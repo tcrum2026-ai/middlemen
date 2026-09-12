@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rankOffers } from "@/lib/ai";
+import { getBusinessRatingSummaries } from "@/lib/ratings";
 import Badge from "@/components/Badge";
 import AcceptOfferButton from "@/components/forms/AcceptOfferButton";
 
@@ -22,6 +23,10 @@ export default async function CustomerRequestDetailPage({
 
   if (!request || request.customerId !== user.id) notFound();
 
+  const ratingSummaries = await getBusinessRatingSummaries(
+    request.offers.map((o) => ({ id: o.business.id, rating: o.business.rating }))
+  );
+
   let orderedOffers = request.offers;
 
   if (request.offers.length > 0 && request.status === "OPEN") {
@@ -39,7 +44,7 @@ export default async function CustomerRequestDetailPage({
         description: o.description,
         deliveryDays: o.deliveryDays,
         businessName: o.business.companyName,
-        businessRating: o.business.rating,
+        businessRating: ratingSummaries.get(o.business.id)?.rating ?? o.business.rating,
       }))
     );
 
@@ -121,7 +126,15 @@ export default async function CustomerRequestDetailPage({
                     <Badge status={offer.status} />
                   </div>
                   <p className="mt-1 text-sm text-slate-500">
-                    ⭐ {offer.business.rating.toFixed(1)} · {offer.deliveryDays}-day delivery
+                    ⭐ {(ratingSummaries.get(offer.business.id)?.rating ?? offer.business.rating).toFixed(1)}
+                    {" "}
+                    {ratingSummaries.get(offer.business.id)?.reviewCount
+                      ? `(${ratingSummaries.get(offer.business.id)?.reviewCount} review${
+                          ratingSummaries.get(offer.business.id)?.reviewCount === 1 ? "" : "s"
+                        })`
+                      : "(new)"}
+                    {" · "}
+                    {offer.deliveryDays}-day delivery
                   </p>
                 </div>
                 <div className="text-right">

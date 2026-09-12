@@ -13,10 +13,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const description =
+  "Post what you need, let businesses compete, and let AI find you the best deal. DealBridge connects customers and businesses and takes a small commission only when a deal closes.";
+
 export const metadata: Metadata = {
-  title: "DealBridge — The AI-matched deal marketplace",
-  description:
-    "Post what you need, let businesses compete, and let AI find you the best deal. DealBridge connects customers and businesses and takes a small commission only when a deal closes.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "DealBridge — The AI-matched deal marketplace",
+    template: "%s · DealBridge",
+  },
+  description,
+  openGraph: {
+    title: "DealBridge — The AI-matched deal marketplace",
+    description,
+    url: siteUrl,
+    siteName: "DealBridge",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "DealBridge — The AI-matched deal marketplace",
+    description,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

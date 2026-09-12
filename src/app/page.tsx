@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { getCommissionRate } from "@/lib/commission";
+import { prisma } from "@/lib/db";
 
-export default function Home() {
+export default async function Home() {
   const commissionPercent = Math.round(getCommissionRate() * 1000) / 10;
+
+  const [businessCount, completedDealCount, reviewStats] = await Promise.all([
+    prisma.businessProfile.count(),
+    prisma.deal.count({ where: { status: "COMPLETED" } }),
+    prisma.review.aggregate({ _avg: { rating: true }, _count: true }),
+  ]);
 
   return (
     <div>
@@ -16,9 +23,9 @@ export default function Home() {
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
             DealBridge is the middleman that works for you: customers describe what they want,
-            verified businesses submit real offers, and our AI ranks every offer on price, quality,
-            and delivery — so you always see the best deal first. We only make money when you do:
-            a {commissionPercent}% commission on completed deals, nothing upfront.
+            real businesses submit competing offers, and our AI ranks every offer on price,
+            rating, and delivery — so you always see the best deal first. We only make money when
+            you do: a {commissionPercent}% commission on completed deals, nothing upfront.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
@@ -34,6 +41,17 @@ export default function Home() {
               I want to win customers
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-slate-200 bg-white py-10">
+        <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 px-4 text-center sm:grid-cols-3 sm:px-6">
+          <Stat value={`${businessCount}+`} label="Businesses ready to bid" />
+          <Stat value={completedDealCount.toString()} label="Deals completed" />
+          <Stat
+            value={reviewStats._count > 0 ? reviewStats._avg.rating!.toFixed(1) : "—"}
+            label={reviewStats._count > 0 ? `Avg. rating (${reviewStats._count} reviews)` : "No reviews yet"}
+          />
         </div>
       </section>
 
@@ -68,6 +86,39 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      <section className="border-t border-slate-200 py-16">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+          <h2 className="text-center text-2xl font-bold text-slate-900">Frequently asked questions</h2>
+          <div className="mt-10 space-y-6">
+            <Faq
+              question="How does DealBridge know which offer is actually the best?"
+              answer="Our AI scores every offer on price relative to your stated budget, the business's real rating from past customer reviews, and delivery time — then explains its reasoning in plain language so you can decide for yourself."
+            />
+            <Faq
+              question="Can I trust the businesses on here?"
+              answer="Every business rating you see is a live average of real reviews left by customers after a completed deal — not a static claim. New businesses without reviews yet are shown honestly as new."
+            />
+            <Faq
+              question="What if I'm not happy with the work?"
+              answer="You can message the business directly on your deal page to work things out. DealBridge doesn't perform the work itself — it connects you with businesses and facilitates payment."
+            />
+            <Faq
+              question="When do I get charged?"
+              answer={`Only when you accept an offer and pay for the resulting deal. DealBridge takes its ${commissionPercent}% commission from that payment — never upfront, and never for browsing or posting.`}
+            />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <p className="text-3xl font-extrabold text-indigo-600">{value}</p>
+      <p className="mt-1 text-sm text-slate-500">{label}</p>
     </div>
   );
 }
@@ -80,6 +131,15 @@ function Step({ number, title, description }: { number: string; title: string; d
       </div>
       <h3 className="font-semibold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm text-slate-600">{description}</p>
+    </div>
+  );
+}
+
+function Faq({ question, answer }: { question: string; answer: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <h3 className="font-semibold text-slate-900">{question}</h3>
+      <p className="mt-2 text-sm text-slate-600">{answer}</p>
     </div>
   );
 }

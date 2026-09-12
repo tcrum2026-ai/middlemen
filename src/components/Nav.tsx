@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { logoutAction } from "@/lib/actions/auth";
+import MobileNav from "@/components/MobileNav";
 
 export default async function Nav() {
   const user = await getCurrentUser();
@@ -21,38 +22,40 @@ export default async function Nav() {
           </span>
           DealBridge
         </Link>
-        <nav className="flex items-center gap-4 text-sm font-medium text-slate-600">
-          <Link href="/how-it-works" className="hidden hover:text-slate-900 sm:inline">
-            How it works
-          </Link>
-          {user ? (
-            <>
-              <Link href={dashboardHref} className="hover:text-slate-900">
-                Dashboard
-              </Link>
-              <span className="hidden text-slate-400 sm:inline">{user.name}</span>
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
+        <nav className="text-sm font-medium text-slate-600">
+          <MobileNav>
+            <Link href="/how-it-works" className="hover:text-slate-900">
+              How it works
+            </Link>
+            {user ? (
+              <>
+                <Link href={dashboardHref} className="hover:text-slate-900">
+                  Dashboard
+                </Link>
+                <span className="text-slate-400">{user.name}</span>
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
+                  >
+                    Log out
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="hover:text-slate-900">
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-md bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700"
                 >
-                  Log out
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="hover:text-slate-900">
-                Log in
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-md bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700"
-              >
-                Sign up
-              </Link>
-            </>
-          )}
+                  Sign up
+                </Link>
+              </>
+            )}
+          </MobileNav>
         </nav>
       </div>
     </header>

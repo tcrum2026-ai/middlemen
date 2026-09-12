@@ -2,10 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getBusinessRatingSummary } from "@/lib/ratings";
 import BusinessProfileForm from "@/components/forms/BusinessProfileForm";
 import Badge from "@/components/Badge";
-import { markDealCompletedAction } from "@/lib/actions/deals";
-import SubmitButton from "@/components/SubmitButton";
 
 export default async function BusinessDashboardPage() {
   const user = await getCurrentUser();
@@ -27,7 +26,7 @@ export default async function BusinessDashboardPage() {
     );
   }
 
-  const [openRequestsCount, offers, deals] = await Promise.all([
+  const [openRequestsCount, offers, deals, reviews, ratingSummary] = await Promise.all([
     prisma.request.count({ where: { status: "OPEN", category: profile.category } }),
     prisma.offer.findMany({
       where: { businessId: profile.id },
@@ -39,6 +38,13 @@ export default async function BusinessDashboardPage() {
       orderBy: { createdAt: "desc" },
       include: { request: true },
     }),
+    prisma.review.findMany({
+      where: { businessId: profile.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { customer: true },
+    }),
+    getBusinessRatingSummary(profile.id, profile.rating),
   ]);
 
   const totalEarned = deals
@@ -51,7 +57,10 @@ export default async function BusinessDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{profile.companyName}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {profile.category} · ⭐ {profile.rating.toFixed(1)}
+            {profile.category} · ⭐ {ratingSummary.rating.toFixed(1)}{" "}
+            {ratingSummary.reviewCount > 0
+              ? `(${ratingSummary.reviewCount} review${ratingSummary.reviewCount === 1 ? "" : "s"})`
+              : "(no reviews yet)"}
           </p>
         </div>
         <Link
@@ -74,7 +83,11 @@ export default async function BusinessDashboardPage() {
       ) : (
         <div className="mt-4 space-y-3">
           {deals.map((deal) => (
-            <div key={deal.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <Link
+              key={deal.id}
+              href={`/dashboard/business/deals/${deal.id}`}
+              className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-indigo-300"
+            >
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="font-medium text-slate-900">{deal.request.title}</p>
@@ -83,21 +96,27 @@ export default async function BusinessDashboardPage() {
                     {(deal.amount - deal.commissionAmount).toFixed(2)} after commission
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge status={deal.status} />
-                  {deal.status === "PAID" && (
-                    <form action={markDealCompletedAction}>
-                      <input type="hidden" name="dealId" value={deal.id} />
-                      <SubmitButton
-                        pendingText="Updating..."
-                        className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
-                      >
-                        Mark completed
-                      </SubmitButton>
-                    </form>
-                  )}
-                </div>
+                <Badge status={deal.status} />
               </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <h2 className="mt-10 text-lg font-semibold text-slate-900">Reviews</h2>
+      {reviews.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-500">
+          No reviews yet — they&apos;ll show up here once customers rate a completed deal.
+        </p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {reviews.map((review) => (
+            <div key={review.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-slate-900">{review.customer.name}</p>
+                <p className="text-sm text-amber-600">{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</p>
+              </div>
+              <p className="mt-2 text-sm text-slate-600">{review.comment}</p>
             </div>
           ))}
         </div>

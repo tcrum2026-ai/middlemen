@@ -44,6 +44,8 @@ model User {
   businessProfile BusinessProfile?
   requests        Request[]
   deals           Deal[]           @relation("CustomerDeals")
+  reviews         Review[]
+  messages        Message[]
 }
 
 model BusinessProfile {
@@ -56,8 +58,9 @@ model BusinessProfile {
   rating      Float    @default(4.5)
   createdAt   DateTime @default(now())
 
-  offers Offer[]
-  deals  Deal[]  @relation("BusinessDeals")
+  offers  Offer[]
+  deals   Deal[]   @relation("BusinessDeals")
+  reviews Review[]
 }
 
 model Request {
@@ -110,4 +113,30 @@ model Deal {
   commissionAmount Float
   status           DealStatus @default(PENDING_PAYMENT)
   createdAt        DateTime   @default(now())
+
+  review   Review?
+  messages Message[]
+}
+
+model Review {
+  id         String          @id @default(cuid())
+  dealId     String          @unique
+  deal       Deal            @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  businessId String
+  business   BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   User            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String
+  createdAt  DateTime        @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
 }

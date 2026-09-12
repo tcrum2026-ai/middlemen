@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { isStripeConfigured } from "@/lib/stripe";
 import Badge from "@/components/Badge";
 import SubmitButton from "@/components/SubmitButton";
+import MessageThread from "@/components/MessageThread";
+import ReviewForm from "@/components/forms/ReviewForm";
 import { payDealAction } from "@/lib/actions/deals";
 
 export default async function CustomerDealPage({
@@ -22,7 +24,13 @@ export default async function CustomerDealPage({
 
   const deal = await prisma.deal.findUnique({
     where: { id },
-    include: { offer: true, request: true, business: true },
+    include: {
+      offer: true,
+      request: true,
+      business: true,
+      review: true,
+      messages: { orderBy: { createdAt: "asc" }, include: { sender: true } },
+    },
   });
 
   if (!deal || deal.customerId !== user.id) notFound();
@@ -89,6 +97,35 @@ export default async function CustomerDealPage({
             {deal.status === "COMPLETED" && "This deal is complete. Thanks for using DealBridge!"}
           </p>
         )}
+      </div>
+
+      {deal.status === "COMPLETED" && (
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          {deal.review ? (
+            <div>
+              <h2 className="font-semibold text-slate-900">Your review</h2>
+              <p className="mt-2 text-amber-600">
+                {"★".repeat(deal.review.rating)}
+                {"☆".repeat(5 - deal.review.rating)}
+              </p>
+              <p className="mt-2 text-sm text-slate-600">{deal.review.comment}</p>
+            </div>
+          ) : (
+            <div>
+              <h2 className="font-semibold text-slate-900">Rate {deal.business.companyName}</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Your feedback helps other customers pick the best business.
+              </p>
+              <div className="mt-4">
+                <ReviewForm dealId={deal.id} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <MessageThread dealId={deal.id} messages={deal.messages} currentUserId={user.id} />
       </div>
     </div>
   );
