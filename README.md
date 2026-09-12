@@ -7,11 +7,13 @@ engine ranks every offer on price, business rating, and delivery time — with a
 plain-language explanation of why it's ranked that way. When a customer accepts
 an offer, DealBridge takes a small commission on the deal.
 
+**Live:** https://dealbridge-marketplace.netlify.app
+
 ## Stack
 
 - **Next.js 16** (App Router, React 19, Server Actions) + TypeScript
 - **Tailwind CSS 4**
-- **Prisma** + SQLite (swap `DATABASE_URL` for Postgres/MySQL in production)
+- **Prisma** + **Postgres** — in production this is [Netlify DB](https://docs.netlify.com/build/data-and-storage/netlify-db/) (Neon), auto-provisioned; see [Deploying](#deploying) below
 - Custom auth: bcrypt password hashing + JWT session cookies (no third-party auth service)
 - **AI matching** (`src/lib/ai.ts`): calls Claude (Anthropic API) when `ANTHROPIC_API_KEY`
   is set; otherwise falls back to a deterministic scorer, so the app works fully
@@ -20,15 +22,24 @@ an offer, DealBridge takes a small commission on the deal.
   back to a one-click "simulate payment" demo flow when no key is configured
 - **Vitest** for unit tests
 
-## Getting started
+## Getting started (local development)
+
+The app needs a reachable Postgres database. The easiest options:
+
+- Run `netlify dev` (after `netlify link`) to proxy the real Netlify DB locally, or
+- Point `DATABASE_URL` at any Postgres instance (local, [Neon](https://neon.tech), [Supabase](https://supabase.com), etc.)
 
 ```bash
 npm install
-cp .env.example .env   # edit values as needed; sane defaults work out of the box
-npx prisma migrate dev # creates the SQLite database and applies the schema
-npm run db:seed        # seeds demo customers, businesses, requests, and offers
+cp .env.example .env      # set DATABASE_URL to a Postgres connection string
+npx prisma db push        # sync the schema (first time / after schema changes)
+npm run db:seed           # seeds demo customers, businesses, requests, and offers
 npm run dev
 ```
+
+Without a `DATABASE_URL`, `npm run build` still works (it type-checks and
+compiles, skipping DB setup) but `npm run dev` will error on any page that
+queries the database.
 
 Visit http://localhost:3000. Demo accounts (all use password `password123`):
 
@@ -42,6 +53,27 @@ Visit http://localhost:3000. Demo accounts (all use password `password123`):
 | Business | pixelforge@dealbridge.dev      |
 | Business | webwrights@dealbridge.dev      |
 | Business | growthlane@dealbridge.dev      |
+
+## Deploying
+
+The app is set up to deploy on [Netlify](https://netlify.com):
+
+- `netlify.toml` declares the `@netlify/plugin-nextjs` runtime (converts the
+  App Router's server-rendered routes into Netlify Functions) and the build command.
+- `@netlify/database` is a dependency, so Netlify auto-provisions a Postgres
+  database (Netlify DB, backed by Neon) on first deploy and injects it as the
+  `NETLIFY_DB_URL` environment variable. `src/lib/db.ts` maps that to
+  `DATABASE_URL`, which Prisma expects.
+- `scripts/netlify-build.sh` (the `build` script) runs `prisma db push` and the
+  seed script before `next build`, so the schema and demo data are ready on
+  first deploy. The seed script is idempotent — safe to rerun on every deploy.
+- Required environment variables (`JWT_SECRET`, `PLATFORM_COMMISSION_PERCENT`,
+  `NEXT_PUBLIC_APP_URL`) are set on the Netlify site. `ANTHROPIC_API_KEY` and
+  the `STRIPE_*` keys are optional — add them as Netlify environment variables
+  to enable real AI ranking and real payments.
+
+To deploy your own copy: create a Netlify site, connect this repo (or use the
+Netlify CLI/MCP to deploy), set the environment variables above, and deploy.
 
 ## How it works
 
@@ -62,9 +94,10 @@ Visit http://localhost:3000. Demo accounts (all use password `password123`):
 
 ## Environment variables
 
-See `.env.example`. Only `DATABASE_URL` and `JWT_SECRET` are required to run
-the app. `ANTHROPIC_API_KEY` and the `STRIPE_*` keys are optional — the app
-degrades gracefully without them.
+See `.env.example`. `DATABASE_URL` and `JWT_SECRET` are required to run the
+app (in production, `DATABASE_URL` is populated automatically — see
+[Deploying](#deploying)). `ANTHROPIC_API_KEY` and the `STRIPE_*` keys are
+optional — the app degrades gracefully without them.
 
 ## Testing
 
@@ -78,7 +111,9 @@ npm run build    # production build / type-check
 
 ```
 prisma/schema.prisma        Data model: User, BusinessProfile, Request, Offer, Deal
-prisma/seed.ts               Demo data seed script
+prisma/seed.ts               Demo data seed script (idempotent)
+netlify.toml                 Netlify build + Next.js runtime plugin config
+scripts/netlify-build.sh     Build entrypoint: schema push + seed + next build
 src/lib/auth.ts              Password hashing + JWT session cookies
 src/lib/ai.ts                AI offer ranking (Claude + deterministic fallback)
 src/lib/commission.ts        Platform commission calculation
