@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "Post what you need, let businesses compete, and let AI find you the best deal. DealBridge connects customers and businesses and takes a small commission only when a deal closes.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
