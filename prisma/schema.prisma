@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  BUSINESS
+  ADMIN
+}
+
+enum RequestStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum DealStatus {
+  PENDING_PAYMENT
+  PAID
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  businessProfile BusinessProfile?
+  requests        Request[]
+  deals           Deal[]           @relation("CustomerDeals")
+}
+
+model BusinessProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  category    String
+  description String
+  rating      Float    @default(4.5)
+  createdAt   DateTime @default(now())
+
+  offers Offer[]
+  deals  Deal[]  @relation("BusinessDeals")
+}
+
+model Request {
+  id          String        @id @default(cuid())
+  customerId  String
+  customer    User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  category    String
+  budgetMin   Float
+  budgetMax   Float
+  status      RequestStatus @default(OPEN)
+  createdAt   DateTime      @default(now())
+
+  offers Offer[]
+  deal   Deal?
+}
+
+model Offer {
+  id            String          @id @default(cuid())
+  requestId     String
+  request       Request         @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  businessId    String
+  business      BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  price         Float
+  description   String
+  deliveryDays  Int
+  status        OfferStatus     @default(PENDING)
+  aiScore       Float?
+  aiRationale   String?
+  createdAt     DateTime        @default(now())
+
+  deal Deal?
+
+  @@unique([requestId, businessId])
+}
+
+model Deal {
+  id               String     @id @default(cuid())
+  requestId        String     @unique
+  request          Request    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  offerId          String     @unique
+  offer            Offer      @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  customerId       String
+  customer         User       @relation("CustomerDeals", fields: [customerId], references: [id], onDelete: Cascade)
+  businessId       String
+  business         BusinessProfile @relation("BusinessDeals", fields: [businessId], references: [id], onDelete: Cascade)
+  amount           Float
+  commissionRate   Float
+  commissionAmount Float
+  status           DealStatus @default(PENDING_PAYMENT)
+  createdAt        DateTime   @default(now())
+}
