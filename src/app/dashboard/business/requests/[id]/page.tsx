@@ -34,7 +34,8 @@ export default async function BusinessRequestDetailPage({
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{request.title}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {request.category} · Budget ${request.budgetMin.toFixed(0)}–${request.budgetMax.toFixed(0)}
+            {request.category} · {request.zipCode} · Budget ${request.budgetMin.toFixed(0)}–$
+            {request.budgetMax.toFixed(0)}
           </p>
         </div>
         <Badge status={request.status} />

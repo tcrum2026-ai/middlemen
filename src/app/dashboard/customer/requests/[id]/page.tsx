@@ -6,6 +6,7 @@ import { rankOffers } from "@/lib/ai";
 import { getBusinessRatingSummaries } from "@/lib/ratings";
 import Badge from "@/components/Badge";
 import AcceptOfferButton from "@/components/forms/AcceptOfferButton";
+import StarRating from "@/components/StarRating";
 
 export default async function CustomerRequestDetailPage({
   params,
@@ -23,7 +24,23 @@ export default async function CustomerRequestDetailPage({
 
   if (!request || request.customerId !== user.id) notFound();
 
-  const ratingSummaries = await getBusinessRatingSummaries(request.offers.map((o) => o.business.id));
+  const offerBusinessIds = new Set(request.offers.map((o) => o.businessId));
+
+  const [directoryMatches, ratingSummaries] = await Promise.all([
+    request.status === "OPEN"
+      ? prisma.businessProfile.findMany({
+          where: {
+            category: request.category,
+            zipCode: request.zipCode,
+            id: { notIn: [...offerBusinessIds] },
+          },
+          take: 6,
+        })
+      : Promise.resolve([]),
+    getBusinessRatingSummaries(request.offers.map((o) => o.business.id)),
+  ]);
+
+  const directoryRatings = await getBusinessRatingSummaries(directoryMatches.map((b) => b.id));
 
   let orderedOffers = request.offers;
 
@@ -74,7 +91,8 @@ export default async function CustomerRequestDetailPage({
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{request.title}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {request.category} · Budget ${request.budgetMin.toFixed(0)}–${request.budgetMax.toFixed(0)}
+            {request.category} · {request.zipCode} · Budget ${request.budgetMin.toFixed(0)}–$
+            {request.budgetMax.toFixed(0)}
           </p>
         </div>
         <Badge status={request.status} />
@@ -87,6 +105,39 @@ export default async function CustomerRequestDetailPage({
           <Link href={`/dashboard/customer/deals/${request.deal.id}`} className="font-semibold underline">
             View deal →
           </Link>
+        </div>
+      )}
+
+      {directoryMatches.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Businesses we found in your area
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            These {request.category.toLowerCase()} businesses serve {request.zipCode} and haven&apos;t
+            sent an offer yet — we notify them about requests like yours.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {directoryMatches.map((biz) => {
+              const summary = directoryRatings.get(biz.id);
+              return (
+                <Link
+                  key={biz.id}
+                  href={`/businesses/${biz.id}`}
+                  className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-indigo-300"
+                >
+                  <p className="font-medium text-slate-900">{biz.companyName}</p>
+                  <div className="mt-1">
+                    <StarRating
+                      rating={summary?.displayRating ?? null}
+                      reviewCount={summary?.reviewCount ?? 0}
+                      size="sm"
+                    />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       )}
 

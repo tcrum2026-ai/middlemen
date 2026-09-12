@@ -16,6 +16,7 @@ export default async function BrowseRequestsPage({
 
   const { category, sort } = await searchParams;
   const myCategory = user.businessProfile.category;
+  const myZip = user.businessProfile.zipCode;
 
   const where: Prisma.RequestWhereInput = { status: "OPEN" };
   if (category) where.category = category;
@@ -36,9 +37,9 @@ export default async function BrowseRequestsPage({
   const sorted = category
     ? requests
     : [...requests].sort((a, b) => {
-        const aMatch = a.category === myCategory ? 0 : 1;
-        const bMatch = b.category === myCategory ? 0 : 1;
-        return aMatch - bMatch;
+        const score = (r: (typeof requests)[number]) =>
+          (r.category === myCategory ? 0 : 2) + (r.zipCode === myZip ? 0 : 1);
+        return score(a) - score(b);
       });
 
   return (
@@ -47,7 +48,7 @@ export default async function BrowseRequestsPage({
       <p className="mt-1 text-sm text-slate-600">
         {category
           ? `Showing ${category} requests.`
-          : `Requests matching your category (${myCategory}) are shown first.`}
+          : `Requests matching your category (${myCategory}) and area (${myZip}) are shown first.`}
       </p>
 
       <form method="get" className="mt-6 flex flex-wrap gap-3">
@@ -109,9 +110,14 @@ export default async function BrowseRequestsPage({
                           Your category
                         </span>
                       )}
+                      {r.zipCode === myZip && (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          Near you
+                        </span>
+                      )}
                     </div>
                     <p className="mt-1 text-sm text-slate-500">
-                      {r.category} · Budget ${r.budgetMin.toFixed(0)}–${r.budgetMax.toFixed(0)}
+                      {r.category} · {r.zipCode} · Budget ${r.budgetMin.toFixed(0)}–${r.budgetMax.toFixed(0)}
                     </p>
                   </div>
                   {alreadyOffered && (
