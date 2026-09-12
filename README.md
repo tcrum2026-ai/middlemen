@@ -7,11 +7,13 @@ engine ranks every offer on price, business rating, and delivery time — with a
 plain-language explanation of why it's ranked that way. When a customer accepts
 an offer, DealBridge takes a small commission on the deal.
 
-**Live:** https://dealbridge-marketplace.netlify.app
+**Netlify site:** https://dealbridge-marketplace.netlify.app (see the note in
+[Deploying](#deploying) — one manual step is needed before this URL serves
+real pages)
 
 ## Stack
 
-- **Next.js 16** (App Router, React 19, Server Actions) + TypeScript
+- **Next.js 15** (App Router, React 19, Server Actions) + TypeScript
 - **Tailwind CSS 4**
 - **Prisma** + **Postgres** — in production this is [Netlify DB](https://docs.netlify.com/build/data-and-storage/netlify-db/) (Neon), auto-provisioned; see [Deploying](#deploying) below
 - Custom auth: bcrypt password hashing + JWT session cookies (no third-party auth service)
@@ -56,24 +58,42 @@ Visit http://localhost:3000. Demo accounts (all use password `password123`):
 
 ## Deploying
 
-The app is set up to deploy on [Netlify](https://netlify.com):
+The app is set up to deploy on [Netlify](https://netlify.com), and a site
+(`dealbridge-marketplace`) plus its database already exist:
 
-- `netlify.toml` declares the `@netlify/plugin-nextjs` runtime (converts the
-  App Router's server-rendered routes into Netlify Functions) and the build command.
 - `@netlify/database` is a dependency, so Netlify auto-provisions a Postgres
-  database (Netlify DB, backed by Neon) on first deploy and injects it as the
-  `NETLIFY_DB_URL` environment variable. `src/lib/db.ts` maps that to
-  `DATABASE_URL`, which Prisma expects.
+  database (Netlify DB, backed by Neon) and injects it as the `NETLIFY_DB_URL`
+  environment variable. `src/lib/db.ts` maps that to `DATABASE_URL`, which
+  Prisma expects.
 - `scripts/netlify-build.sh` (the `build` script) runs `prisma db push` and the
   seed script before `next build`, so the schema and demo data are ready on
-  first deploy. The seed script is idempotent — safe to rerun on every deploy.
+  every deploy. The seed script is idempotent — safe to rerun repeatedly.
 - Required environment variables (`JWT_SECRET`, `PLATFORM_COMMISSION_PERCENT`,
-  `NEXT_PUBLIC_APP_URL`) are set on the Netlify site. `ANTHROPIC_API_KEY` and
-  the `STRIPE_*` keys are optional — add them as Netlify environment variables
-  to enable real AI ranking and real payments.
+  `NEXT_PUBLIC_APP_URL`) are already set on the Netlify site. `ANTHROPIC_API_KEY`
+  and the `STRIPE_*` keys are optional — add them as Netlify environment
+  variables to enable real AI ranking and real payments.
 
-To deploy your own copy: create a Netlify site, connect this repo (or use the
-Netlify CLI/MCP to deploy), set the environment variables above, and deploy.
+**One manual step is still needed to make the site actually serve pages.**
+This app was deployed here using Netlify's upload-a-repo API (no local
+Netlify CLI / auth token was available in that environment), and that
+specific deploy path does not run Netlify's Next.js build plugin — it only
+publishes static assets, so every page currently 404s (this app has no
+static pages at all, since the shared nav bar reads the session cookie on
+every request). Netlify's normal, fully-supported deployment method — a
+Git-linked site — does not have this limitation. To fix it:
+
+1. In the [Netlify dashboard](https://app.netlify.com/projects/dealbridge-marketplace),
+   go to **Site configuration → Build & deploy → Continuous deployment** and
+   link this GitHub repository (branch `claude/middleman-marketplace-website-bun55p`,
+   or your default branch).
+2. Trigger a deploy. Netlify's Git-based build pipeline will auto-detect
+   Next.js, run the build script above, and correctly generate the
+   serverless functions this app's routes need.
+
+After that one-time setup, every future push to the linked branch deploys
+automatically. To deploy your own copy elsewhere, the same steps apply:
+create a Netlify site, link a Git repo, set the environment variables above,
+and deploy.
 
 ## How it works
 
@@ -112,7 +132,7 @@ npm run build    # production build / type-check
 ```
 prisma/schema.prisma        Data model: User, BusinessProfile, Request, Offer, Deal
 prisma/seed.ts               Demo data seed script (idempotent)
-netlify.toml                 Netlify build + Next.js runtime plugin config
+netlify.toml                 Netlify build command + Node version config
 scripts/netlify-build.sh     Build entrypoint: schema push + seed + next build
 src/lib/auth.ts              Password hashing + JWT session cookies
 src/lib/ai.ts                AI offer ranking (Claude + deterministic fallback)
