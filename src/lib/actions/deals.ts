@@ -32,7 +32,7 @@ export async function acceptOfferAction(
 
   const { amount, commissionRate, commissionAmount } = computeCommission(offer.price);
 
-  await prisma.$transaction([
+  const [deal] = await prisma.$transaction([
     prisma.deal.create({
       data: {
         requestId: offer.requestId,
@@ -53,7 +53,8 @@ export async function acceptOfferAction(
   ]);
 
   revalidatePath(`/dashboard/customer/requests/${offer.requestId}`);
-  redirect(`/dashboard/customer`);
+  revalidatePath("/dashboard/customer");
+  redirect(`/dashboard/customer/deals/${deal.id}`);
 }
 
 export async function payDealAction(formData: FormData) {
