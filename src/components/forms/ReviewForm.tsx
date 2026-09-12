@@ -4,13 +4,14 @@ import { useActionState, useState } from "react";
 import { submitReviewAction } from "@/lib/actions/reviews";
 import SubmitButton from "@/components/SubmitButton";
 
-export default function ReviewForm({ dealId }: { dealId: string }) {
+export default function ReviewForm({ businessId, dealId }: { businessId: string; dealId?: string }) {
   const [state, formAction] = useActionState(submitReviewAction, undefined);
   const [rating, setRating] = useState(5);
 
   return (
     <form action={formAction} className="space-y-4">
-      <input type="hidden" name="dealId" value={dealId} />
+      <input type="hidden" name="businessId" value={businessId} />
+      {dealId && <input type="hidden" name="dealId" value={dealId} />}
       <input type="hidden" name="rating" value={rating} />
 
       {state?.error && (

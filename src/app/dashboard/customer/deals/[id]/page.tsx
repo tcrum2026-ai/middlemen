@@ -117,7 +117,7 @@ export default async function CustomerDealPage({
                 Your feedback helps other customers pick the best business.
               </p>
               <div className="mt-4">
-                <ReviewForm dealId={deal.id} />
+                <ReviewForm businessId={deal.businessId} dealId={deal.id} />
               </div>
             </div>
           )}

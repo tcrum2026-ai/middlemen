@@ -17,6 +17,7 @@ export async function createRequestAction(
     title: formData.get("title"),
     description: formData.get("description"),
     category: formData.get("category"),
+    zipCode: formData.get("zipCode"),
     budgetMin: formData.get("budgetMin"),
     budgetMax: formData.get("budgetMax"),
   });

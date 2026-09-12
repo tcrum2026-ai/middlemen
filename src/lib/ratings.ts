@@ -1,52 +1,64 @@
 import { prisma } from "@/lib/db";
 
+/**
+ * A business needs at least this many real reviews before we show a public
+ * star rating. Below the threshold we show "New" instead — showing a number
+ * built from one or two reviews is misleading, and platforms that fake a
+ * "smoothed" number to get around this end up accused of cooking the books.
+ */
+export const MIN_REVIEWS_TO_DISPLAY = 3;
+
+/** Neutral prior used only to keep sorting/matching sane before a business
+ * has enough reviews to earn a real rating. Never shown to users. */
+const PRIOR_MEAN = 4.0;
+const PRIOR_WEIGHT = MIN_REVIEWS_TO_DISPLAY;
+
 export type RatingSummary = {
-  rating: number;
+  /** The honest arithmetic average of real reviews, or null if there aren't
+   * enough yet to display. This is what customers see. */
+  displayRating: number | null;
   reviewCount: number;
+  /** Bayesian-weighted score, pulled toward a neutral prior for businesses
+   * with few or no reviews. Used only to sort/rank listings so a single
+   * lucky 5-star review doesn't outrank a business with 40 solid reviews —
+   * never shown as a rating itself. */
+  sortScore: number;
 };
 
-/**
- * A business's displayed rating is the live average of its real reviews.
- * New businesses with no reviews yet fall back to their seeded base rating
- * so the AI matcher and UI have something sensible to show before any
- * deals have completed.
- */
-export async function getBusinessRatingSummary(
-  businessId: string,
-  fallbackRating: number
-): Promise<RatingSummary> {
+function summarize(sum: number, count: number): RatingSummary {
+  const sortScore = (PRIOR_WEIGHT * PRIOR_MEAN + sum) / (PRIOR_WEIGHT + count);
+  return {
+    displayRating: count >= MIN_REVIEWS_TO_DISPLAY ? sum / count : null,
+    reviewCount: count,
+    sortScore,
+  };
+}
+
+export async function getBusinessRatingSummary(businessId: string): Promise<RatingSummary> {
   const result = await prisma.review.aggregate({
     where: { businessId },
-    _avg: { rating: true },
+    _sum: { rating: true },
     _count: true,
   });
-
-  if (result._count === 0 || result._avg.rating == null) {
-    return { rating: fallbackRating, reviewCount: 0 };
-  }
-
-  return { rating: result._avg.rating, reviewCount: result._count };
+  return summarize(result._sum.rating ?? 0, result._count);
 }
 
 export async function getBusinessRatingSummaries(
-  businesses: { id: string; rating: number }[]
+  businessIds: string[]
 ): Promise<Map<string, RatingSummary>> {
   const grouped = await prisma.review.groupBy({
     by: ["businessId"],
-    where: { businessId: { in: businesses.map((b) => b.id) } },
-    _avg: { rating: true },
+    where: { businessId: { in: businessIds } },
+    _sum: { rating: true },
     _count: true,
   });
 
   const byId = new Map(grouped.map((g) => [g.businessId, g]));
 
   return new Map(
-    businesses.map((b) => {
-      const agg = byId.get(b.id);
-      if (!agg || agg._count === 0 || agg._avg.rating == null) {
-        return [b.id, { rating: b.rating, reviewCount: 0 }];
-      }
-      return [b.id, { rating: agg._avg.rating, reviewCount: agg._count }];
+    businessIds.map((id) => {
+      const agg = byId.get(id);
+      return [id, summarize(agg?._sum.rating ?? 0, agg?._count ?? 0)];
     })
   );
 }

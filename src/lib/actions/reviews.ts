@@ -10,9 +10,10 @@ export async function submitReviewAction(
   formData: FormData
 ): Promise<ActionState> {
   const user = await requireRole("CUSTOMER");
+  const businessId = formData.get("businessId");
   const dealId = formData.get("dealId");
-  if (typeof dealId !== "string" || !dealId) {
-    return { error: "Missing deal" };
+  if (typeof businessId !== "string" || !businessId) {
+    return { error: "Missing business" };
   }
 
   const rating = Number(formData.get("rating"));
@@ -25,27 +26,38 @@ export async function submitReviewAction(
     return { error: "Please add a short comment about your experience" };
   }
 
-  const deal = await prisma.deal.findUnique({ where: { id: dealId }, include: { review: true } });
-  if (!deal || deal.customerId !== user.id) {
-    return { error: "Deal not found" };
-  }
-  if (deal.status !== "COMPLETED") {
-    return { error: "You can review a deal once it's marked complete" };
-  }
-  if (deal.review) {
-    return { error: "You've already reviewed this deal" };
+  const business = await prisma.businessProfile.findUnique({ where: { id: businessId } });
+  if (!business) {
+    return { error: "Business not found" };
   }
 
-  await prisma.review.create({
-    data: {
-      dealId: deal.id,
-      businessId: deal.businessId,
-      customerId: user.id,
-      rating,
-      comment: comment.slice(0, 1000),
-    },
-  });
+  let verifiedDealId: string | null = null;
+  if (typeof dealId === "string" && dealId) {
+    const deal = await prisma.deal.findUnique({ where: { id: dealId } });
+    if (!deal || deal.customerId !== user.id || deal.businessId !== businessId) {
+      return { error: "Deal not found" };
+    }
+    if (deal.status !== "COMPLETED") {
+      return { error: "You can review a deal once it's marked complete" };
+    }
+    verifiedDealId = deal.id;
+  }
 
-  revalidatePath(`/dashboard/customer/deals/${deal.id}`);
+  try {
+    await prisma.review.create({
+      data: {
+        businessId,
+        customerId: user.id,
+        dealId: verifiedDealId,
+        rating,
+        comment: comment.slice(0, 1000),
+      },
+    });
+  } catch {
+    return { error: "You've already reviewed this business" };
+  }
+
+  revalidatePath(`/businesses/${businessId}`);
+  if (verifiedDealId) revalidatePath(`/dashboard/customer/deals/${verifiedDealId}`);
   revalidatePath("/dashboard/business");
 }

@@ -64,6 +64,23 @@ export default function NewRequestForm() {
         />
       </div>
 
+      <div>
+        <label htmlFor="zipCode" className="block text-sm font-medium text-slate-700">
+          ZIP code
+        </label>
+        <input
+          id="zipCode"
+          name="zipCode"
+          type="text"
+          required
+          placeholder="e.g. 94103"
+          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          We use this to match you with businesses that actually serve your area.
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="budgetMin" className="block text-sm font-medium text-slate-700">

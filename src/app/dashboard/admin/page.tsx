@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -27,7 +28,15 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <h1 className="text-2xl font-bold text-slate-900">Platform overview</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Platform overview</h1>
+        <Link
+          href="/dashboard/admin/businesses"
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+        >
+          Manage business directory
+        </Link>
+      </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Customers" value={userCount.toString()} />

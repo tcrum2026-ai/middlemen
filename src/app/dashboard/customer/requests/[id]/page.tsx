@@ -23,9 +23,7 @@ export default async function CustomerRequestDetailPage({
 
   if (!request || request.customerId !== user.id) notFound();
 
-  const ratingSummaries = await getBusinessRatingSummaries(
-    request.offers.map((o) => ({ id: o.business.id, rating: o.business.rating }))
-  );
+  const ratingSummaries = await getBusinessRatingSummaries(request.offers.map((o) => o.business.id));
 
   let orderedOffers = request.offers;
 
@@ -44,7 +42,7 @@ export default async function CustomerRequestDetailPage({
         description: o.description,
         deliveryDays: o.deliveryDays,
         businessName: o.business.companyName,
-        businessRating: ratingSummaries.get(o.business.id)?.rating ?? o.business.rating,
+        businessRating: ratingSummaries.get(o.business.id)?.sortScore ?? 4,
       }))
     );
 
@@ -126,13 +124,12 @@ export default async function CustomerRequestDetailPage({
                     <Badge status={offer.status} />
                   </div>
                   <p className="mt-1 text-sm text-slate-500">
-                    ⭐ {(ratingSummaries.get(offer.business.id)?.rating ?? offer.business.rating).toFixed(1)}
-                    {" "}
-                    {ratingSummaries.get(offer.business.id)?.reviewCount
-                      ? `(${ratingSummaries.get(offer.business.id)?.reviewCount} review${
-                          ratingSummaries.get(offer.business.id)?.reviewCount === 1 ? "" : "s"
-                        })`
-                      : "(new)"}
+                    {(() => {
+                      const s = ratingSummaries.get(offer.business.id);
+                      return s?.displayRating != null
+                        ? `⭐ ${s.displayRating.toFixed(1)} (${s.reviewCount} reviews)`
+                        : "New business";
+                    })()}
                     {" · "}
                     {offer.deliveryDays}-day delivery
                   </p>
