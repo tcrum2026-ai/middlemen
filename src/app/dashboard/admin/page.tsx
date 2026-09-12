@@ -30,12 +30,20 @@ export default async function AdminDashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-stone-900">Platform overview</h1>
-        <Link
-          href="/dashboard/admin/businesses"
-          className="rounded-md bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
-        >
-          Manage business directory
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/dashboard/admin/import"
+            className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            Background import
+          </Link>
+          <Link
+            href="/dashboard/admin/businesses"
+            className="rounded-md bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+          >
+            Manage business directory
+          </Link>
+        </div>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

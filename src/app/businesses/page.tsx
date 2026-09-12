@@ -35,7 +35,16 @@ export default async function BusinessDirectoryPage({
       <h1 className="text-2xl font-bold text-stone-900">Find a local business</h1>
       <p className="mt-1 text-sm text-stone-600">
         Browse every business in the directory — no account required. Businesses are ranked by
-        real customer reviews.
+        real customer reviews. Some listings are sourced from{" "}
+        <a
+          href="https://www.google.com/maps"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          Google Places
+        </a>
+        .
       </p>
 
       <form method="get" className="mt-6 flex flex-wrap gap-3">
@@ -101,8 +110,11 @@ export default async function BusinessDirectoryPage({
                     </p>
                     <p className="mt-2 line-clamp-2 text-sm text-stone-600">{b.description}</p>
                   </div>
-                  <div className="shrink-0">
+                  <div className="shrink-0 text-right">
                     <StarRating rating={summary?.displayRating ?? null} reviewCount={summary?.reviewCount ?? 0} />
+                    {b.source === "GOOGLE_IMPORTED" && b.sourceRating != null && (
+                      <p className="mt-1 text-xs text-stone-400">{b.sourceRating.toFixed(1)}★ on Google</p>
+                    )}
                   </div>
                 </div>
               </Link>

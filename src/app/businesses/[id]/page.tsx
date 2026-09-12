@@ -43,6 +43,12 @@ export default async function BusinessProfilePage({
           <div className="mt-2">
             <StarRating rating={summary.displayRating} reviewCount={summary.reviewCount} size="md" />
           </div>
+          {business.source === "GOOGLE_IMPORTED" && business.sourceRating != null && (
+            <p className="mt-1 text-xs text-stone-400">
+              {business.sourceRating.toFixed(1)}★ on Google ({business.sourceReviewCount} reviews) ·
+              data via Google Places
+            </p>
+          )}
         </div>
         {!business.claimed && (
           <span className="shrink-0 rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-500">

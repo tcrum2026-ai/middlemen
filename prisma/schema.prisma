@@ -36,6 +36,13 @@ enum DealStatus {
 enum ListingSource {
   ADMIN_ADDED
   SELF_CLAIMED
+  GOOGLE_IMPORTED
+}
+
+enum ImportQueueStatus {
+  PENDING
+  DONE
+  FAILED
 }
 
 model User {
@@ -71,12 +78,38 @@ model BusinessProfile {
   rating      Float    @default(4.5)
   createdAt   DateTime @default(now())
 
+  // Populated only for listings pulled in by the Google Places importer.
+  // sourceRating/sourceReviewCount are Google's own numbers, kept separate
+  // from DealBridge's own review system (never blended into displayRating).
+  placeId           String?   @unique
+  sourceRating      Float?
+  sourceReviewCount Int?
+  lastSyncedAt      DateTime?
+
   offers  Offer[]
   deals   Deal[]   @relation("BusinessDeals")
   reviews Review[]
 
   @@index([zipCode])
   @@index([category])
+}
+
+// Drives the background Google Places importer: each row is one
+// area+category search to run. The scheduled function works through
+// PENDING rows a few at a time so a single run never needs more than a
+// handful of API calls (Netlify scheduled functions cap at 30s).
+model ImportQueueItem {
+  id          String            @id @default(cuid())
+  zipCode     String
+  category    String
+  status      ImportQueueStatus @default(PENDING)
+  resultCount Int?
+  errorMessage String?
+  createdAt   DateTime          @default(now())
+  processedAt DateTime?
+
+  @@unique([zipCode, category])
+  @@index([status])
 }
 
 model Request {
