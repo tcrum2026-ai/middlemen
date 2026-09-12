@@ -10,7 +10,12 @@ if [ -z "$DATABASE_URL" ]; then
   echo "No DATABASE_URL or NETLIFY_DB_URL set — skipping database setup (local build without a DB)."
 else
   npx prisma generate
-  npx prisma db push --accept-data-loss --skip-generate
+  # This demo DB is fully re-seeded on every deploy, so a plain `db push` can
+  # fail once real rows exist and a schema change adds a required column
+  # (Prisma refuses to guess a value for existing rows). --force-reset drops
+  # and recreates the schema instead, which is always safe here since seed.ts
+  # repopulates everything immediately after.
+  npx prisma db push --force-reset --accept-data-loss --skip-generate
   npx tsx prisma/seed.ts
 fi
 
