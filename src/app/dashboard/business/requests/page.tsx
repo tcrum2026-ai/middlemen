@@ -44,8 +44,8 @@ export default async function BrowseRequestsPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <h1 className="text-2xl font-bold text-slate-900">Open requests</h1>
-      <p className="mt-1 text-sm text-slate-600">
+      <h1 className="text-2xl font-bold text-stone-900">Open requests</h1>
+      <p className="mt-1 text-sm text-stone-600">
         {category
           ? `Showing ${category} requests.`
           : `Requests matching your category (${myCategory}) and area (${myZip}) are shown first.`}
@@ -55,7 +55,7 @@ export default async function BrowseRequestsPage({
         <select
           name="category"
           defaultValue={category ?? ""}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-stone-500 focus:outline-none"
         >
           <option value="">All categories</option>
           {CATEGORIES.map((c) => (
@@ -67,7 +67,7 @@ export default async function BrowseRequestsPage({
         <select
           name="sort"
           defaultValue={sort ?? "newest"}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:border-stone-500 focus:outline-none"
         >
           <option value="newest">Newest first</option>
           <option value="budget-high">Highest budget first</option>
@@ -75,14 +75,14 @@ export default async function BrowseRequestsPage({
         </select>
         <button
           type="submit"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="rounded-md bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
         >
           Apply
         </button>
         {(category || sort) && (
           <Link
             href="/dashboard/business/requests"
-            className="flex items-center text-sm text-slate-500 hover:text-slate-700"
+            className="flex items-center text-sm text-stone-500 hover:text-stone-700"
           >
             Clear filters
           </Link>
@@ -90,7 +90,7 @@ export default async function BrowseRequestsPage({
       </form>
 
       {sorted.length === 0 ? (
-        <p className="mt-8 text-slate-500">No open requests match these filters right now.</p>
+        <p className="mt-8 text-stone-500">No open requests match these filters right now.</p>
       ) : (
         <div className="mt-8 space-y-3">
           {sorted.map((r) => {
@@ -99,14 +99,14 @@ export default async function BrowseRequestsPage({
               <Link
                 key={r.id}
                 href={`/dashboard/business/requests/${r.id}`}
-                className="block rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
+                className="block rounded-xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-stone-400 hover:shadow-md"
               >
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-semibold text-slate-900">{r.title}</h2>
+                      <h2 className="font-semibold text-stone-900">{r.title}</h2>
                       {r.category === myCategory && (
-                        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                           Your category
                         </span>
                       )}
@@ -116,7 +116,7 @@ export default async function BrowseRequestsPage({
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-stone-500">
                       {r.category} · {r.zipCode} · Budget ${r.budgetMin.toFixed(0)}–${r.budgetMax.toFixed(0)}
                     </p>
                   </div>

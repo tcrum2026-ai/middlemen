@@ -35,7 +35,7 @@ export default function BusinessListingForm({
       )}
 
       <div>
-        <label htmlFor="companyName" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="companyName" className="block text-sm font-medium text-stone-700">
           Company name
         </label>
         <input
@@ -44,12 +44,12 @@ export default function BusinessListingForm({
           type="text"
           required
           defaultValue={initial?.companyName}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
 
       <div>
-        <label htmlFor="category" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="category" className="block text-sm font-medium text-stone-700">
           Category
         </label>
         <select
@@ -57,7 +57,7 @@ export default function BusinessListingForm({
           name="category"
           required
           defaultValue={initial?.category ?? ""}
-          className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 focus:border-stone-500 focus:outline-none"
         >
           <option value="" disabled>
             Select a category
@@ -71,7 +71,7 @@ export default function BusinessListingForm({
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="description" className="block text-sm font-medium text-stone-700">
           Description
         </label>
         <textarea
@@ -81,13 +81,13 @@ export default function BusinessListingForm({
           rows={3}
           defaultValue={initial?.description}
           placeholder="What does this business offer?"
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="phone" className="block text-sm font-medium text-stone-700">
             Phone
           </label>
           <input
@@ -95,11 +95,11 @@ export default function BusinessListingForm({
             name="phone"
             type="tel"
             defaultValue={initial?.phone}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
         <div>
-          <label htmlFor="website" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="website" className="block text-sm font-medium text-stone-700">
             Website
           </label>
           <input
@@ -108,13 +108,13 @@ export default function BusinessListingForm({
             type="text"
             placeholder="example.com"
             defaultValue={initial?.website}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="addressLine" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="addressLine" className="block text-sm font-medium text-stone-700">
           Street address
         </label>
         <input
@@ -122,13 +122,13 @@ export default function BusinessListingForm({
           name="addressLine"
           type="text"
           defaultValue={initial?.addressLine}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label htmlFor="city" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="city" className="block text-sm font-medium text-stone-700">
             City
           </label>
           <input
@@ -136,11 +136,11 @@ export default function BusinessListingForm({
             name="city"
             type="text"
             defaultValue={initial?.city}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
         <div>
-          <label htmlFor="state" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="state" className="block text-sm font-medium text-stone-700">
             State
           </label>
           <input
@@ -148,11 +148,11 @@ export default function BusinessListingForm({
             name="state"
             type="text"
             defaultValue={initial?.state}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
         <div>
-          <label htmlFor="zipCode" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="zipCode" className="block text-sm font-medium text-stone-700">
             ZIP code
           </label>
           <input
@@ -161,7 +161,7 @@ export default function BusinessListingForm({
             type="text"
             required
             defaultValue={initial?.zipCode}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
       </div>

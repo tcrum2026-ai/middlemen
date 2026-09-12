@@ -14,7 +14,7 @@ export default function MobileNav({ children }: { children: React.ReactNode }) {
         onClick={() => setOpen((o) => !o)}
         aria-label="Toggle menu"
         aria-expanded={open}
-        className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-700 sm:hidden"
+        className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-300 text-stone-700 sm:hidden"
       >
         {open ? (
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
@@ -30,7 +30,7 @@ export default function MobileNav({ children }: { children: React.ReactNode }) {
       {open && (
         <div
           onClick={() => setOpen(false)}
-          className="absolute right-0 top-12 z-20 flex w-56 flex-col items-stretch gap-1 rounded-lg border border-slate-200 bg-white p-3 shadow-lg sm:hidden [&_a]:px-2 [&_a]:py-2 [&_form]:px-2 [&_form_button]:w-full"
+          className="absolute right-0 top-12 z-20 flex w-56 flex-col items-stretch gap-1 rounded-lg border border-stone-200 bg-white p-3 shadow-lg sm:hidden [&_a]:px-2 [&_a]:py-2 [&_form]:px-2 [&_form_button]:w-full"
         >
           {children}
         </div>

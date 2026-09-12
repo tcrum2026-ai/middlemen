@@ -16,7 +16,7 @@ export default function NewOfferForm({ requestId }: { requestId: string }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="price" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="price" className="block text-sm font-medium text-stone-700">
             Your price ($)
           </label>
           <input
@@ -26,11 +26,11 @@ export default function NewOfferForm({ requestId }: { requestId: string }) {
             min={1}
             step="1"
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
         <div>
-          <label htmlFor="deliveryDays" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="deliveryDays" className="block text-sm font-medium text-stone-700">
             Delivery (days)
           </label>
           <input
@@ -40,13 +40,13 @@ export default function NewOfferForm({ requestId }: { requestId: string }) {
             min={1}
             step="1"
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="description" className="block text-sm font-medium text-stone-700">
           Offer details
         </label>
         <textarea
@@ -55,7 +55,7 @@ export default function NewOfferForm({ requestId }: { requestId: string }) {
           required
           rows={4}
           placeholder="Explain what's included, your approach, and why the customer should pick you."
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
 

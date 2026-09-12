@@ -19,7 +19,7 @@ export default function ReviewForm({ businessId, dealId }: { businessId: string;
       )}
 
       <div>
-        <span className="block text-sm font-medium text-slate-700">Your rating</span>
+        <span className="block text-sm font-medium text-stone-700">Your rating</span>
         <div className="mt-1 flex gap-1">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -27,7 +27,7 @@ export default function ReviewForm({ businessId, dealId }: { businessId: string;
               type="button"
               onClick={() => setRating(n)}
               aria-label={`${n} star${n === 1 ? "" : "s"}`}
-              className={`text-2xl leading-none ${n <= rating ? "text-amber-500" : "text-slate-300"}`}
+              className={`text-2xl leading-none ${n <= rating ? "text-amber-500" : "text-stone-300"}`}
             >
               ★
             </button>
@@ -36,7 +36,7 @@ export default function ReviewForm({ businessId, dealId }: { businessId: string;
       </div>
 
       <div>
-        <label htmlFor="comment" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="comment" className="block text-sm font-medium text-stone-700">
           How did it go?
         </label>
         <textarea
@@ -45,7 +45,7 @@ export default function ReviewForm({ businessId, dealId }: { businessId: string;
           required
           rows={3}
           placeholder="Share details that would help other customers."
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
 

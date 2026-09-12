@@ -14,29 +14,32 @@ export default async function Nav() {
         : "/dashboard/customer";
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="border-b border-stone-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 text-lg font-bold text-slate-900">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
-            D
-          </span>
+        <Link
+          href="/"
+          className="font-[family-name:var(--font-display)] text-xl font-semibold text-stone-900"
+        >
           DealBridge
         </Link>
-        <nav className="text-sm font-medium text-slate-600">
+        <nav className="text-sm font-medium text-stone-600">
           <MobileNav>
-            <Link href="/how-it-works" className="hover:text-slate-900">
+            <Link href="/businesses" className="hover:text-stone-900">
+              Directory
+            </Link>
+            <Link href="/how-it-works" className="hover:text-stone-900">
               How it works
             </Link>
             {user ? (
               <>
-                <Link href={dashboardHref} className="hover:text-slate-900">
+                <Link href={dashboardHref} className="hover:text-stone-900">
                   Dashboard
                 </Link>
-                <span className="text-slate-400">{user.name}</span>
+                <span className="text-stone-400">{user.name}</span>
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50"
+                    className="rounded-md border border-stone-300 px-3 py-1.5 text-stone-700 hover:bg-stone-50"
                   >
                     Log out
                   </button>
@@ -44,12 +47,12 @@ export default async function Nav() {
               </>
             ) : (
               <>
-                <Link href="/login" className="hover:text-slate-900">
+                <Link href="/login" className="hover:text-stone-900">
                   Log in
                 </Link>
                 <Link
                   href="/signup"
-                  className="rounded-md bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700"
+                  className="rounded-md bg-stone-900 px-3 py-1.5 text-white hover:bg-stone-800"
                 >
                   Sign up
                 </Link>

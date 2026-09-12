@@ -15,7 +15,7 @@ export default function SignupForm({ defaultRole }: { defaultRole: "CUSTOMER" | 
       )}
 
       <div>
-        <span className="block text-sm font-medium text-slate-700">I am a...</span>
+        <span className="block text-sm font-medium text-stone-700">I am a...</span>
         <div className="mt-1 grid grid-cols-2 gap-2">
           {(["CUSTOMER", "BUSINESS"] as const).map((r) => (
             <button
@@ -24,8 +24,8 @@ export default function SignupForm({ defaultRole }: { defaultRole: "CUSTOMER" | 
               onClick={() => setRole(r)}
               className={`rounded-md border px-3 py-2 text-sm font-medium transition ${
                 role === r
-                  ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                  ? "border-stone-900 bg-stone-50 text-stone-900"
+                  : "border-stone-300 text-stone-600 hover:bg-stone-50"
               }`}
             >
               {r === "CUSTOMER" ? "Customer" : "Business"}
@@ -36,7 +36,7 @@ export default function SignupForm({ defaultRole }: { defaultRole: "CUSTOMER" | 
       </div>
 
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="name" className="block text-sm font-medium text-stone-700">
           Full name / Company contact
         </label>
         <input
@@ -44,11 +44,11 @@ export default function SignupForm({ defaultRole }: { defaultRole: "CUSTOMER" | 
           name="name"
           type="text"
           required
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="email" className="block text-sm font-medium text-stone-700">
           Email
         </label>
         <input
@@ -56,11 +56,11 @@ export default function SignupForm({ defaultRole }: { defaultRole: "CUSTOMER" | 
           name="email"
           type="email"
           required
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="password" className="block text-sm font-medium text-stone-700">
           Password
         </label>
         <input
@@ -69,7 +69,7 @@ export default function SignupForm({ defaultRole }: { defaultRole: "CUSTOMER" | 
           type="password"
           required
           minLength={8}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
       <SubmitButton pendingText="Creating account...">Create account</SubmitButton>

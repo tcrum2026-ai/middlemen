@@ -29,10 +29,10 @@ export default async function AdminDashboardPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Platform overview</h1>
+        <h1 className="text-2xl font-bold text-stone-900">Platform overview</h1>
         <Link
           href="/dashboard/admin/businesses"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="rounded-md bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
         >
           Manage business directory
         </Link>
@@ -47,13 +47,13 @@ export default async function AdminDashboardPage() {
         <StatCard label="Commission revenue" value={`$${totalCommission.toFixed(2)}`} highlight />
       </div>
 
-      <h2 className="mt-10 text-lg font-semibold text-slate-900">All deals</h2>
+      <h2 className="mt-10 text-lg font-semibold text-stone-900">All deals</h2>
       {deals.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-500">No deals yet.</p>
+        <p className="mt-3 text-sm text-stone-500">No deals yet.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+          <table className="min-w-full divide-y divide-stone-200 text-sm">
+            <thead className="bg-stone-50 text-left text-xs font-semibold uppercase text-stone-500">
               <tr>
                 <th className="px-4 py-3">Request</th>
                 <th className="px-4 py-3">Customer</th>
@@ -63,14 +63,14 @@ export default async function AdminDashboardPage() {
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-stone-100">
               {deals.map((deal) => (
                 <tr key={deal.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">{deal.request.title}</td>
-                  <td className="px-4 py-3 text-slate-600">{deal.customer.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{deal.business.companyName}</td>
-                  <td className="px-4 py-3 text-slate-600">${deal.amount.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-slate-600">${deal.commissionAmount.toFixed(2)}</td>
+                  <td className="px-4 py-3 font-medium text-stone-900">{deal.request.title}</td>
+                  <td className="px-4 py-3 text-stone-600">{deal.customer.name}</td>
+                  <td className="px-4 py-3 text-stone-600">{deal.business.companyName}</td>
+                  <td className="px-4 py-3 text-stone-600">${deal.amount.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-stone-600">${deal.commissionAmount.toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <Badge status={deal.status} />
                   </td>
@@ -88,11 +88,11 @@ function StatCard({ label, value, highlight }: { label: string; value: string; h
   return (
     <div
       className={`rounded-xl border p-5 shadow-sm ${
-        highlight ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-white"
+        highlight ? "border-amber-300 bg-amber-50" : "border-stone-200 bg-white"
       }`}
     >
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${highlight ? "text-indigo-700" : "text-slate-900"}`}>
+      <p className="text-sm text-stone-500">{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${highlight ? "text-amber-800" : "text-stone-900"}`}>
         {value}
       </p>
     </div>

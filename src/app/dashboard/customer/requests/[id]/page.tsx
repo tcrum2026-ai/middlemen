@@ -83,24 +83,24 @@ export default async function CustomerRequestDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <Link href="/dashboard/customer" className="text-sm text-indigo-600 hover:text-indigo-700">
+      <Link href="/dashboard/customer" className="text-sm text-stone-600 hover:text-stone-900">
         ← Back to requests
       </Link>
 
       <div className="mt-4 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{request.title}</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-stone-900">{request.title}</h1>
+          <p className="mt-1 text-sm text-stone-500">
             {request.category} · {request.zipCode} · Budget ${request.budgetMin.toFixed(0)}–$
             {request.budgetMax.toFixed(0)}
           </p>
         </div>
         <Badge status={request.status} />
       </div>
-      <p className="mt-4 whitespace-pre-wrap text-slate-700">{request.description}</p>
+      <p className="mt-4 whitespace-pre-wrap text-stone-700">{request.description}</p>
 
       {request.deal && (
-        <div className="mt-6 rounded-lg bg-indigo-50 p-4 text-sm text-indigo-800">
+        <div className="mt-6 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">
           You accepted an offer for this request.{" "}
           <Link href={`/dashboard/customer/deals/${request.deal.id}`} className="font-semibold underline">
             View deal →
@@ -110,10 +110,10 @@ export default async function CustomerRequestDetailPage({
 
       {directoryMatches.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-stone-900">
             Businesses we found in your area
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-stone-500">
             These {request.category.toLowerCase()} businesses serve {request.zipCode} and haven&apos;t
             sent an offer yet — we notify them about requests like yours.
           </p>
@@ -124,9 +124,9 @@ export default async function CustomerRequestDetailPage({
                 <Link
                   key={biz.id}
                   href={`/businesses/${biz.id}`}
-                  className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-indigo-300"
+                  className="block rounded-xl border border-stone-200 bg-white p-4 shadow-sm hover:border-stone-400"
                 >
-                  <p className="font-medium text-slate-900">{biz.companyName}</p>
+                  <p className="font-medium text-stone-900">{biz.companyName}</p>
                   <div className="mt-1">
                     <StarRating
                       rating={summary?.displayRating ?? null}
@@ -141,17 +141,17 @@ export default async function CustomerRequestDetailPage({
         </div>
       )}
 
-      <h2 className="mt-10 text-lg font-semibold text-slate-900">
+      <h2 className="mt-10 text-lg font-semibold text-stone-900">
         Offers ({request.offers.length})
       </h2>
       {request.offers.length > 0 && request.status === "OPEN" && (
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-stone-500">
           Ranked by AI from best to worst overall value for you.
         </p>
       )}
 
       {orderedOffers.length === 0 ? (
-        <p className="mt-4 text-slate-500">No offers yet — check back soon.</p>
+        <p className="mt-4 text-stone-500">No offers yet — check back soon.</p>
       ) : (
         <div className="mt-6 space-y-4">
           {orderedOffers.map((offer, idx) => (
@@ -159,22 +159,22 @@ export default async function CustomerRequestDetailPage({
               key={offer.id}
               className={`rounded-xl border bg-white p-5 shadow-sm ${
                 idx === 0 && request.status === "OPEN"
-                  ? "border-indigo-400 ring-1 ring-indigo-200"
-                  : "border-slate-200"
+                  ? "border-amber-400 ring-1 ring-amber-200"
+                  : "border-stone-200"
               }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-slate-900">{offer.business.companyName}</h3>
+                    <h3 className="font-semibold text-stone-900">{offer.business.companyName}</h3>
                     {idx === 0 && request.status === "OPEN" && (
-                      <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-semibold text-white">
+                      <span className="rounded-full bg-stone-900 px-2 py-0.5 text-xs font-semibold text-white">
                         AI Top Pick
                       </span>
                     )}
                     <Badge status={offer.status} />
                   </div>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-stone-500">
                     {(() => {
                       const s = ratingSummaries.get(offer.business.id);
                       return s?.displayRating != null
@@ -186,16 +186,16 @@ export default async function CustomerRequestDetailPage({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-bold text-slate-900">${offer.price.toFixed(0)}</p>
+                  <p className="text-xl font-bold text-stone-900">${offer.price.toFixed(0)}</p>
                   {offer.aiScore != null && (
-                    <p className="text-xs font-medium text-indigo-600">AI score: {Math.round(offer.aiScore)}/100</p>
+                    <p className="text-xs font-medium text-amber-700">AI score: {Math.round(offer.aiScore)}/100</p>
                   )}
                 </div>
               </div>
-              <p className="mt-3 text-sm text-slate-700">{offer.description}</p>
+              <p className="mt-3 text-sm text-stone-700">{offer.description}</p>
               {offer.aiRationale && (
-                <p className="mt-3 rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-                  <span className="font-medium text-slate-700">AI take: </span>
+                <p className="mt-3 rounded-md bg-stone-50 p-3 text-sm text-stone-600">
+                  <span className="font-medium text-stone-700">AI take: </span>
                   {offer.aiRationale}
                 </p>
               )}

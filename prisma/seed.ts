@@ -21,6 +21,7 @@ async function main() {
     [
       { email: "customer1@dealbridge.dev", name: "Cara Customer" },
       { email: "customer2@dealbridge.dev", name: "Charlie Customer" },
+      { email: "customer3@dealbridge.dev", name: "Nora Customer" },
     ].map((c) =>
       prisma.user.upsert({
         where: { email: c.email },
@@ -257,9 +258,10 @@ async function main() {
   const reviewSeeds: Array<[string, string, number, string]> = [
     [customers[0].id, "BrightPaint Co.", 5, "Crew showed up on time and the paint job still looks brand new a year later."],
     [customers[1].id, "BrightPaint Co.", 5, "Great prep work, cleaned up after themselves every day."],
+    [customers[2].id, "BrightPaint Co.", 4, "Solid work overall, took a day longer than quoted but the result was worth it."],
     [customers[0].id, "PixelForge Studio", 4, "Delivered on schedule, minor revisions needed after launch but handled quickly."],
     [customers[1].id, "PixelForge Studio", 5, "Best web team we've worked with, very responsive."],
-    [customers[1].id, "PixelForge Studio", 4, "Solid work, would hire again."],
+    [customers[2].id, "PixelForge Studio", 5, "Great communication throughout, would hire again."],
   ];
 
   for (const [customerId, companyName, rating, comment] of reviewSeeds) {

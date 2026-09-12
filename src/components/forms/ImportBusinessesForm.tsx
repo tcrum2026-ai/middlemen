@@ -21,7 +21,7 @@ export default function ImportBusinessesForm({
         required
         rows={6}
         placeholder="[{ &quot;companyName&quot;: ... }]"
-        className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-xs focus:border-indigo-500 focus:outline-none"
+        className="w-full rounded-md border border-stone-300 px-3 py-2 font-mono text-xs focus:border-stone-500 focus:outline-none"
       />
       <SubmitButton pendingText="Importing...">Import businesses</SubmitButton>
     </form>

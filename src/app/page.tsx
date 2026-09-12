@@ -13,133 +13,152 @@ export default async function Home() {
 
   return (
     <div>
-      <section className="bg-gradient-to-b from-indigo-50 to-slate-50">
-        <div className="mx-auto max-w-6xl px-4 py-20 text-center sm:px-6">
-          <p className="mb-4 inline-block rounded-full bg-indigo-100 px-4 py-1 text-sm font-semibold text-indigo-700">
-            AI-matched deals, no back-and-forth
-          </p>
-          <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            Post what you need. Let businesses compete. Let AI find your best deal.
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
-            DealBridge is the middleman that works for you: customers describe what they want,
-            real businesses submit competing offers, and our AI ranks every offer on price,
-            rating, and delivery — so you always see the best deal first. We only make money when
-            you do: a {commissionPercent}% commission on completed deals, nothing upfront.
-          </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/signup?role=CUSTOMER"
-              className="w-full rounded-md bg-indigo-600 px-6 py-3 text-center font-semibold text-white shadow-sm hover:bg-indigo-700 sm:w-auto"
-            >
-              I&apos;m looking for a deal
-            </Link>
-            <Link
-              href="/signup?role=BUSINESS"
-              className="w-full rounded-md border border-slate-300 bg-white px-6 py-3 text-center font-semibold text-slate-800 shadow-sm hover:bg-slate-50 sm:w-auto"
-            >
-              I want to win customers
-            </Link>
+      <section className="border-b border-stone-200 bg-white">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wider text-amber-700">
+              A marketplace that does the legwork
+            </p>
+            <h1 className="mt-4 max-w-xl text-4xl font-semibold leading-[1.1] text-stone-900 sm:text-5xl">
+              Describe the job. Real businesses bid on it. AI tells you who&apos;s actually worth
+              hiring.
+            </h1>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-stone-600">
+              DealBridge already knows the businesses in your area — we build the directory so
+              you don&apos;t have to search it. Post what you need, compare competing offers, and
+              let our AI weigh price against real, verified reviews. We take a {commissionPercent}%
+              cut only when a deal actually closes.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/signup?role=CUSTOMER"
+                className="rounded-md bg-stone-900 px-6 py-3 text-center font-semibold text-white shadow-sm hover:bg-stone-800"
+              >
+                Post a request
+              </Link>
+              <Link
+                href="/businesses"
+                className="rounded-md border border-stone-300 bg-white px-6 py-3 text-center font-semibold text-stone-800 hover:bg-stone-50"
+              >
+                Browse the directory
+              </Link>
+            </div>
+            <p className="mt-4 text-sm text-stone-500">
+              Own a business?{" "}
+              <Link href="/signup?role=BUSINESS" className="font-medium text-stone-900 underline">
+                Claim your listing
+              </Link>{" "}
+              or add one — no cost to appear.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-stone-200 bg-stone-50 p-6">
+            <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+              Live on DealBridge
+            </p>
+            <dl className="mt-4 divide-y divide-stone-200">
+              <StatRow value={`${businessCount}`} label="Businesses in the directory" />
+              <StatRow value={completedDealCount.toString()} label="Deals completed" />
+              <StatRow
+                value={reviewStats._count > 0 ? reviewStats._avg.rating!.toFixed(1) : "—"}
+                label={
+                  reviewStats._count > 0
+                    ? `Average rating across ${reviewStats._count} reviews`
+                    : "No reviews yet — be the first"
+                }
+              />
+            </dl>
           </div>
         </div>
       </section>
 
-      <section className="border-b border-slate-200 bg-white py-10">
-        <div className="mx-auto grid max-w-4xl grid-cols-2 gap-6 px-4 text-center sm:grid-cols-3 sm:px-6">
-          <Stat value={`${businessCount}+`} label="Businesses ready to bid" />
-          <Stat value={completedDealCount.toString()} label="Deals completed" />
-          <Stat
-            value={reviewStats._count > 0 ? reviewStats._avg.rating!.toFixed(1) : "—"}
-            label={reviewStats._count > 0 ? `Avg. rating (${reviewStats._count} reviews)` : "No reviews yet"}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <h2 className="max-w-xl text-2xl font-semibold text-stone-900 sm:text-3xl">
+          How it actually works
+        </h2>
+        <div className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-3">
+          <Step
+            number="01"
+            title="Tell us the job and your ZIP"
+            description="A price, a timeline, and enough detail that a real business can quote it accurately."
+          />
+          <Step
+            number="02"
+            title="We match it to businesses near you"
+            description="Including ones that never signed up — we build the directory by area so you're never stuck with whoever bothered to register."
+          />
+          <Step
+            number="03"
+            title="Compare and pick, backed by real reviews"
+            description="Every rating requires at least 3 real reviews before it's shown. No single review inflates or sinks a business."
           />
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900">How it works</h2>
-        <div className="mt-10 grid gap-8 sm:grid-cols-3">
-          <Step
-            number="1"
-            title="Post a request"
-            description="Customers describe what they need and their budget — a service, a product, a project."
-          />
-          <Step
-            number="2"
-            title="Businesses compete"
-            description="Relevant businesses submit real offers: price, delivery time, and details."
-          />
-          <Step
-            number="3"
-            title="AI finds the best deal"
-            description="Our AI scores every offer on value — price vs. budget, ratings, and speed — and explains why."
-          />
-        </div>
-      </section>
-
-      <section className="border-t border-slate-200 bg-white py-16">
-        <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
-          <h2 className="text-2xl font-bold text-slate-900">Simple, aligned pricing</h2>
-          <p className="mx-auto mt-4 max-w-xl text-slate-600">
-            Posting a request and submitting offers is always free. DealBridge only takes a{" "}
-            {commissionPercent}% commission on the final deal amount when a customer accepts an
-            offer and the deal is paid — so we only win when you do.
-          </p>
-        </div>
-      </section>
-
-      <section className="border-t border-slate-200 py-16">
+      <section className="border-y border-stone-200 bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <h2 className="text-center text-2xl font-bold text-slate-900">Frequently asked questions</h2>
-          <div className="mt-10 space-y-6">
-            <Faq
-              question="How does DealBridge know which offer is actually the best?"
-              answer="Our AI scores every offer on price relative to your stated budget, the business's real rating from past customer reviews, and delivery time — then explains its reasoning in plain language so you can decide for yourself."
-            />
-            <Faq
-              question="Can I trust the businesses on here?"
-              answer="Every business rating you see is a live average of real reviews left by customers after a completed deal — not a static claim. New businesses without reviews yet are shown honestly as new."
-            />
-            <Faq
-              question="What if I'm not happy with the work?"
-              answer="You can message the business directly on your deal page to work things out. DealBridge doesn't perform the work itself — it connects you with businesses and facilitates payment."
-            />
-            <Faq
-              question="When do I get charged?"
-              answer={`Only when you accept an offer and pay for the resulting deal. DealBridge takes its ${commissionPercent}% commission from that payment — never upfront, and never for browsing or posting.`}
-            />
-          </div>
+          <h2 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
+            Pricing that only works when you win
+          </h2>
+          <p className="mt-4 max-w-xl text-stone-600">
+            Posting a request, browsing the directory, and submitting offers cost nothing.
+            DealBridge takes a {commissionPercent}% commission on the final amount — and only once
+            a customer accepts an offer and the deal is paid.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
+        <h2 className="text-2xl font-semibold text-stone-900 sm:text-3xl">
+          Questions people actually ask
+        </h2>
+        <div className="mt-8 divide-y divide-stone-200 border-y border-stone-200">
+          <Faq
+            question="How do businesses end up on here without signing up?"
+            answer="We add listings ourselves by searching for real businesses in a given area — the same way a directory like Yelp seeds itself. A business can claim its listing later to manage offers directly, or a customer can request one we haven't found yet."
+          />
+          <Faq
+            question="How does the AI decide which offer is best?"
+            answer="It weighs price against your stated budget, delivery time, and the business's real review-based rating — then writes out its reasoning in plain language so you can second-guess it."
+          />
+          <Faq
+            question="Can I trust the ratings?"
+            answer="A business needs at least 3 real customer reviews before any rating shows publicly. Below that, we show it plainly as new rather than faking a number."
+          />
+          <Faq
+            question="When do I actually get charged?"
+            answer={`Only after you accept an offer and the resulting deal is paid. The ${commissionPercent}% commission comes out of that payment — never for posting, browsing, or bidding.`}
+          />
         </div>
       </section>
     </div>
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function StatRow({ value, label }: { value: string; label: string }) {
   return (
-    <div>
-      <p className="text-3xl font-extrabold text-indigo-600">{value}</p>
-      <p className="mt-1 text-sm text-slate-500">{label}</p>
+    <div className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0">
+      <span className="text-sm text-stone-600">{label}</span>
+      <span className="text-xl font-semibold text-stone-900">{value}</span>
     </div>
   );
 }
 
 function Step({ number, title, description }: { number: string; title: string; description: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-      <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 font-bold text-white">
-        {number}
-      </div>
-      <h3 className="font-semibold text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm text-slate-600">{description}</p>
+    <div className="border-l-2 border-amber-500 pl-5">
+      <p className="text-sm font-semibold text-amber-700">{number}</p>
+      <h3 className="mt-2 font-semibold text-stone-900">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-stone-600">{description}</p>
     </div>
   );
 }
 
 function Faq({ question, answer }: { question: string; answer: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
-      <h3 className="font-semibold text-slate-900">{question}</h3>
-      <p className="mt-2 text-sm text-slate-600">{answer}</p>
+    <div className="py-6">
+      <h3 className="font-semibold text-stone-900">{question}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-stone-600">{answer}</p>
     </div>
   );
 }

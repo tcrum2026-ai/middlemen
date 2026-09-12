@@ -15,7 +15,7 @@ export default function NewRequestForm() {
       )}
 
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="title" className="block text-sm font-medium text-stone-700">
           Title
         </label>
         <input
@@ -24,12 +24,12 @@ export default function NewRequestForm() {
           type="text"
           required
           placeholder="e.g. Repaint a 3-bedroom house exterior"
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
 
       <div>
-        <label htmlFor="category" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="category" className="block text-sm font-medium text-stone-700">
           Category
         </label>
         <select
@@ -37,7 +37,7 @@ export default function NewRequestForm() {
           name="category"
           required
           defaultValue=""
-          className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 focus:border-stone-500 focus:outline-none"
         >
           <option value="" disabled>
             Select a category
@@ -51,7 +51,7 @@ export default function NewRequestForm() {
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="description" className="block text-sm font-medium text-stone-700">
           Description
         </label>
         <textarea
@@ -60,12 +60,12 @@ export default function NewRequestForm() {
           required
           rows={5}
           placeholder="Describe exactly what you need, timelines, and any requirements."
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
       </div>
 
       <div>
-        <label htmlFor="zipCode" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="zipCode" className="block text-sm font-medium text-stone-700">
           ZIP code
         </label>
         <input
@@ -74,16 +74,16 @@ export default function NewRequestForm() {
           type="text"
           required
           placeholder="e.g. 94103"
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-stone-500">
           We use this to match you with businesses that actually serve your area.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="budgetMin" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="budgetMin" className="block text-sm font-medium text-stone-700">
             Min budget ($)
           </label>
           <input
@@ -93,11 +93,11 @@ export default function NewRequestForm() {
             min={0}
             step="1"
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
         <div>
-          <label htmlFor="budgetMax" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="budgetMax" className="block text-sm font-medium text-stone-700">
             Max budget ($)
           </label>
           <input
@@ -107,7 +107,7 @@ export default function NewRequestForm() {
             min={0}
             step="1"
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
       </div>

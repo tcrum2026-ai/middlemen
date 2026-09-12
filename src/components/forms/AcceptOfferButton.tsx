@@ -13,7 +13,7 @@ export default function AcceptOfferButton({ offerId }: { offerId: string }) {
       {state?.error && <p className="mb-2 text-sm text-red-600">{state.error}</p>}
       <SubmitButton
         pendingText="Accepting..."
-        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+        className="rounded-md bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60"
       >
         Accept this offer
       </SubmitButton>
