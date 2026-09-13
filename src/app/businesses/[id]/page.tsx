@@ -1,11 +1,30 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getBusinessRatingSummary } from "@/lib/ratings";
 import StarRating from "@/components/StarRating";
 import ReviewForm from "@/components/forms/ReviewForm";
 import ClaimButton from "@/components/forms/ClaimButton";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const business = await prisma.businessProfile.findUnique({ where: { id } });
+  if (!business) return {};
+
+  const location = [business.city, business.state].filter(Boolean).join(", ");
+  const title = location ? `${business.companyName} — ${location}` : business.companyName;
+
+  return {
+    title,
+    description: business.description.slice(0, 160),
+  };
+}
 
 export default async function BusinessProfilePage({
   params,
@@ -28,8 +47,39 @@ export default async function BusinessProfilePage({
   const myReview = user ? business.reviews.find((r) => r.customerId === user.id) : undefined;
   const canClaim = !business.claimed && user?.role === "BUSINESS" && !user.businessProfile;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: business.companyName,
+    description: business.description,
+    ...(business.phone && { telephone: business.phone }),
+    ...(business.website && { url: business.website }),
+    ...((business.addressLine || business.city || business.state || business.zipCode) && {
+      address: {
+        "@type": "PostalAddress",
+        ...(business.addressLine && { streetAddress: business.addressLine }),
+        ...(business.city && { addressLocality: business.city }),
+        ...(business.state && { addressRegion: business.state }),
+        postalCode: business.zipCode,
+        addressCountry: "US",
+      },
+    }),
+    ...(business.hours && { openingHours: business.hours }),
+    ...(summary.displayRating != null && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: summary.displayRating.toFixed(1),
+        reviewCount: summary.reviewCount,
+      },
+    }),
+  };
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Link href="/businesses" className="text-sm text-stone-500 hover:text-stone-700">
         ← Back to directory
       </Link>
