@@ -237,6 +237,7 @@ export default async function BusinessDashboardPage({
               description: profile.description,
               phone: profile.phone ?? "",
               website: profile.website ?? "",
+              hours: profile.hours ?? "",
               addressLine: profile.addressLine ?? "",
               city: profile.city ?? "",
               state: profile.state ?? "",

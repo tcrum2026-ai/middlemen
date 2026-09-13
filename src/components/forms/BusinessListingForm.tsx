@@ -11,6 +11,7 @@ type Initial = {
   description?: string;
   phone?: string;
   website?: string;
+  hours?: string;
   addressLine?: string;
   city?: string;
   state?: string;
@@ -111,6 +112,20 @@ export default function BusinessListingForm({
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="hours" className="block text-sm font-medium text-stone-700">
+          Hours
+        </label>
+        <input
+          id="hours"
+          name="hours"
+          type="text"
+          placeholder="Mon–Fri 8am–6pm"
+          defaultValue={initial?.hours}
+          className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
+        />
       </div>
 
       <div>

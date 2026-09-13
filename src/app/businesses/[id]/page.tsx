@@ -78,6 +78,12 @@ export default async function BusinessProfilePage({
             <dd className="font-medium text-stone-900">{business.addressLine}</dd>
           </div>
         )}
+        {business.hours && (
+          <div>
+            <dt className="text-stone-500">Hours</dt>
+            <dd className="font-medium text-stone-900">{business.hours}</dd>
+          </div>
+        )}
       </dl>
 
       {canClaim && (

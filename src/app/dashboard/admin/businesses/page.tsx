@@ -51,6 +51,7 @@ export default async function AdminBusinessesPage() {
   "description": "Licensed plumbers serving...",
   "phone": "555-123-4567",
   "website": "example.com",
+  "hours": "Mon–Fri 8am–6pm",
   "addressLine": "123 Main St",
   "city": "Springfield",
   "state": "IL",

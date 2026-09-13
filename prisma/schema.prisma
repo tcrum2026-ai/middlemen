@@ -69,6 +69,7 @@ model BusinessProfile {
   description String
   phone       String?
   website     String?
+  hours       String?
   addressLine String?
   city        String?
   state       String?

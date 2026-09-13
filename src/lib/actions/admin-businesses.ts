@@ -18,6 +18,7 @@ export async function addBusinessListingAction(
     description: formData.get("description"),
     phone: formData.get("phone") ?? "",
     website: formData.get("website") ?? "",
+    hours: formData.get("hours") ?? "",
     addressLine: formData.get("addressLine") ?? "",
     city: formData.get("city") ?? "",
     state: formData.get("state") ?? "",
@@ -67,6 +68,7 @@ type ImportRow = {
   description?: unknown;
   phone?: unknown;
   website?: unknown;
+  hours?: unknown;
   addressLine?: unknown;
   city?: unknown;
   state?: unknown;
@@ -102,6 +104,7 @@ export async function importBusinessesAction(
       description: row.description,
       phone: row.phone ?? "",
       website: row.website ?? "",
+      hours: row.hours ?? "",
       addressLine: row.addressLine ?? "",
       city: row.city ?? "",
       state: row.state ?? "",

@@ -14,6 +14,7 @@ function parseListingFields(formData: FormData) {
     description: formData.get("description"),
     phone: formData.get("phone") ?? "",
     website: formData.get("website") ?? "",
+    hours: formData.get("hours") ?? "",
     addressLine: formData.get("addressLine") ?? "",
     city: formData.get("city") ?? "",
     state: formData.get("state") ?? "",

@@ -23,6 +23,7 @@ export const businessProfileSchema = z.object({
   description: z.string().trim().min(10).max(1000),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   website: z.string().trim().max(200).optional().or(z.literal("")),
+  hours: z.string().trim().max(200).optional().or(z.literal("")),
   addressLine: z.string().trim().max(200).optional().or(z.literal("")),
   city: z.string().trim().max(100).optional().or(z.literal("")),
   state: z.string().trim().max(50).optional().or(z.literal("")),
