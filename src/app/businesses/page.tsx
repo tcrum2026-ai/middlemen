@@ -13,14 +13,20 @@ const MAX_RANKED = 300;
 export default async function BusinessDirectoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ zip?: string; category?: string; page?: string }>;
+  searchParams: Promise<{ zip?: string; category?: string; q?: string; page?: string }>;
 }) {
-  const { zip, category, page: pageParam } = await searchParams;
+  const { zip, category, q, page: pageParam } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
   const where: Prisma.BusinessProfileWhereInput = {};
   if (zip) where.zipCode = zip.trim();
   if (category) where.category = category;
+  if (q) {
+    where.OR = [
+      { companyName: { contains: q.trim(), mode: "insensitive" } },
+      { description: { contains: q.trim(), mode: "insensitive" } },
+    ];
+  }
 
   const [totalCount, businesses] = await Promise.all([
     prisma.businessProfile.count({ where }),
@@ -45,6 +51,7 @@ export default async function BusinessDirectoryPage({
     const params = new URLSearchParams();
     if (zip) params.set("zip", zip);
     if (category) params.set("category", category);
+    if (q) params.set("q", q);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return qs ? `/businesses?${qs}` : "/businesses";
@@ -70,6 +77,13 @@ export default async function BusinessDirectoryPage({
       <form method="get" className="mt-6 flex flex-wrap gap-3">
         <input
           type="text"
+          name="q"
+          defaultValue={q}
+          placeholder="Search by name or description"
+          className="w-64 rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none"
+        />
+        <input
+          type="text"
           name="zip"
           defaultValue={zip}
           placeholder="ZIP code"
@@ -93,7 +107,7 @@ export default async function BusinessDirectoryPage({
         >
           Search
         </button>
-        {(zip || category) && (
+        {(zip || category || q) && (
           <Link href="/businesses" className="flex items-center text-sm text-stone-500 hover:text-stone-700">
             Clear
           </Link>
@@ -102,7 +116,8 @@ export default async function BusinessDirectoryPage({
 
       {sorted.length === 0 ? (
         <p className="mt-10 text-stone-500">
-          No businesses match yet{zip ? ` in ${zip}` : ""}
+          No businesses match yet{q ? ` for "${q}"` : ""}
+          {zip ? ` in ${zip}` : ""}
           {category ? ` for ${category}` : ""}.
         </p>
       ) : (
