@@ -68,6 +68,18 @@ model User {
   claimRequests       ClaimRequest[]
 }
 
+// A generic abuse-prevention counter: one row per attempt, keyed by
+// whatever the caller is rate-limiting (e.g. "login:<email>"). Rows older
+// than the caller's window are pruned on each check, so this table never
+// grows unbounded.
+model RateLimitEvent {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
 // A short-lived, single-use token for the forgot-password flow. The raw
 // token is emailed to the user and only its sha256 hash is stored, so a
 // database read alone can never be used to reset someone's password.

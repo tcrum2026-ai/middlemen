@@ -5,9 +5,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { sendPasswordResetEmail } from "@/lib/mail";
+import { isRateLimited, recordRateLimitHit } from "@/lib/rateLimit";
 import { forgotPasswordSchema, loginSchema, resetPasswordSchema, signupSchema } from "@/lib/validation";
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const LOGIN_LIMIT = { limit: 10, windowMs: 15 * 60 * 1000 }; // 10 failures / 15 min
+const RESET_REQUEST_LIMIT = { limit: 3, windowMs: 60 * 60 * 1000 }; // 3 requests / hour
 
 export type ActionState = { error?: string; message?: string } | undefined;
 
@@ -51,8 +54,14 @@ export async function loginAction(_prevState: ActionState, formData: FormData): 
   }
 
   const { email, password } = parsed.data;
+  const rateLimitKey = `login:${email.toLowerCase()}`;
+  if (await isRateLimited(rateLimitKey, LOGIN_LIMIT)) {
+    return { error: "Too many failed login attempts. Please wait 15 minutes and try again." };
+  }
+
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    await recordRateLimitHit(rateLimitKey);
     return { error: "Incorrect email or password" };
   }
 
@@ -80,27 +89,34 @@ export async function requestPasswordResetAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  const rateLimitKey = `reset:${parsed.data.email.toLowerCase()}`;
+  // Checked (and only recorded) before the lookup, and the response below is
+  // identical either way — a rate-limited request can't be told apart from
+  // one that just found no matching account.
+  if (!(await isRateLimited(rateLimitKey, RESET_REQUEST_LIMIT))) {
+    await recordRateLimitHit(rateLimitKey);
 
-  if (user) {
-    const rawToken = randomBytes(32).toString("hex");
-    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+    if (user) {
+      const rawToken = randomBytes(32).toString("hex");
+      const tokenHash = createHash("sha256").update(rawToken).digest("hex");
 
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        tokenHash,
-        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
-      },
-    });
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      });
 
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const resetUrl = `${siteUrl}/reset-password?token=${rawToken}`;
-    await sendPasswordResetEmail(user.email, resetUrl);
+      const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const resetUrl = `${siteUrl}/reset-password?token=${rawToken}`;
+      await sendPasswordResetEmail(user.email, resetUrl);
+    }
   }
 
-  // Same response whether or not the email is registered, so this can't be
-  // used to probe which addresses have accounts.
+  // Same response whether or not the email is registered, and whether or
+  // not this request was rate-limited, so neither can be probed.
   return { message: GENERIC_RESET_MESSAGE };
 }
 
