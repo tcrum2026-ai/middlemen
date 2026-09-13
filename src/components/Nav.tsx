@@ -35,6 +35,9 @@ export default async function Nav() {
                 <Link href={dashboardHref} className="hover:text-stone-900">
                   Dashboard
                 </Link>
+                <Link href="/dashboard/settings" className="hover:text-stone-900">
+                  Settings
+                </Link>
                 <span className="text-stone-400">{user.name}</span>
                 <form action={logoutAction}>
                   <button
