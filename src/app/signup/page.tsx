@@ -18,6 +18,17 @@ export default async function SignupPage({
       <div className="mt-8 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
         <SignupForm defaultRole={defaultRole} />
       </div>
+      <p className="mt-4 text-center text-xs text-stone-500">
+        By creating an account you agree to our{" "}
+        <Link href="/terms" className="underline hover:text-stone-700">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="underline hover:text-stone-700">
+          Privacy Policy
+        </Link>
+        .
+      </p>
       <p className="mt-6 text-center text-sm text-stone-600">
         Already have an account?{" "}
         <Link href="/login" className="font-semibold text-stone-900 underline hover:text-stone-600">

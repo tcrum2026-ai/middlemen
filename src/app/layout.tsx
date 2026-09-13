@@ -65,6 +65,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/signup" className="hover:text-stone-900">
                 Sign up
               </Link>
+              <Link href="/terms" className="hover:text-stone-900">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-stone-900">
+                Privacy
+              </Link>
             </nav>
           </div>
         </footer>
