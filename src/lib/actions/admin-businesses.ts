@@ -28,6 +28,16 @@ export async function addBusinessListingAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
+  const existing = await prisma.businessProfile.findFirst({
+    where: {
+      companyName: { equals: parsed.data.companyName, mode: "insensitive" },
+      zipCode: parsed.data.zipCode,
+    },
+  });
+  if (existing) {
+    return { error: `"${parsed.data.companyName}" already exists in ${parsed.data.zipCode}` };
+  }
+
   await prisma.businessProfile.create({
     data: { ...parsed.data, source: "ADMIN_ADDED", claimed: false },
   });
@@ -113,14 +123,38 @@ export async function importBusinessesAction(
     return p.result.data;
   });
 
-  await prisma.businessProfile.createMany({
-    data: rowsData.map((data) => ({
-      ...data,
-      source: "ADMIN_ADDED" as const,
-      claimed: false,
-    })),
+  const existing = await prisma.businessProfile.findMany({
+    where: {
+      zipCode: { in: [...new Set(rowsData.map((d) => d.zipCode))] },
+    },
+    select: { companyName: true, zipCode: true },
   });
+  const existingKeys = new Set(
+    existing.map((e) => `${e.companyName.toLowerCase()}|${e.zipCode}`)
+  );
+
+  const newRows = rowsData.filter(
+    (d) => !existingKeys.has(`${d.companyName.toLowerCase()}|${d.zipCode}`)
+  );
+  const skipped = rowsData.length - newRows.length;
+
+  if (newRows.length > 0) {
+    await prisma.businessProfile.createMany({
+      data: newRows.map((data) => ({
+        ...data,
+        source: "ADMIN_ADDED" as const,
+        claimed: false,
+      })),
+    });
+  }
 
   revalidatePath("/dashboard/admin/businesses");
   revalidatePath("/businesses");
+
+  return {
+    message:
+      skipped > 0
+        ? `Added ${newRows.length}, skipped ${skipped} already in the directory (same name + ZIP).`
+        : `Added ${newRows.length} business${newRows.length === 1 ? "" : "es"}.`,
+  };
 }

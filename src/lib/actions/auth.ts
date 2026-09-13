@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { loginSchema, signupSchema } from "@/lib/validation";
 
-export type ActionState = { error?: string } | undefined;
+export type ActionState = { error?: string; message?: string } | undefined;
 
 export async function signupAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = signupSchema.safeParse({
