@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { getBusinessRatingSummary } from "@/lib/ratings";
 import StarRating from "@/components/StarRating";
 import ReviewForm from "@/components/forms/ReviewForm";
+import { editReviewAction } from "@/lib/actions/reviews";
 import ClaimButton from "@/components/forms/ClaimButton";
 
 export async function generateMetadata({
@@ -165,6 +166,24 @@ export default async function BusinessProfilePage({
             <ReviewForm businessId={business.id} />
           </div>
         </div>
+      )}
+
+      {myReview && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm font-medium text-stone-700 hover:underline">
+            Edit your review
+          </summary>
+          <div className="mt-4 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+            <ReviewForm
+              businessId={business.id}
+              action={editReviewAction}
+              reviewId={myReview.id}
+              initial={{ rating: myReview.rating, comment: myReview.comment }}
+              submitLabel="Save changes"
+              pendingText="Saving..."
+            />
+          </div>
+        </details>
       )}
 
       <div className="mt-4 space-y-3">

@@ -61,3 +61,38 @@ export async function submitReviewAction(
   if (verifiedDealId) revalidatePath(`/dashboard/customer/deals/${verifiedDealId}`);
   revalidatePath("/dashboard/business");
 }
+
+export async function editReviewAction(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const user = await requireRole("CUSTOMER");
+  const reviewId = formData.get("reviewId");
+  if (typeof reviewId !== "string" || !reviewId) {
+    return { error: "Missing review" };
+  }
+
+  const rating = Number(formData.get("rating"));
+  const comment = String(formData.get("comment") ?? "").trim();
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { error: "Pick a rating from 1 to 5" };
+  }
+  if (comment.length < 5) {
+    return { error: "Please add a short comment about your experience" };
+  }
+
+  const review = await prisma.review.findUnique({ where: { id: reviewId } });
+  if (!review || review.customerId !== user.id) {
+    return { error: "Review not found" };
+  }
+
+  await prisma.review.update({
+    where: { id: reviewId },
+    data: { rating, comment: comment.slice(0, 1000) },
+  });
+
+  revalidatePath(`/businesses/${review.businessId}`);
+  revalidatePath("/dashboard/business");
+  return { message: "Your review has been updated." };
+}
