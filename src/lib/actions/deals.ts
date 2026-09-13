@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
 import { computeCommission } from "@/lib/commission";
+import { sendOfferAcceptedEmail } from "@/lib/mail";
 import { createDealCheckoutSession, isStripeConfigured } from "@/lib/stripe";
 import type { ActionState } from "@/lib/actions/auth";
 
@@ -20,7 +21,7 @@ export async function acceptOfferAction(
 
   const offer = await prisma.offer.findUnique({
     where: { id: offerId },
-    include: { request: true },
+    include: { request: true, business: { include: { user: true } } },
   });
 
   if (!offer || offer.request.customerId !== user.id) {
@@ -51,6 +52,13 @@ export async function acceptOfferAction(
     }),
     prisma.request.update({ where: { id: offer.requestId }, data: { status: "CLOSED" } }),
   ]);
+
+  if (offer.business.user) {
+    await sendOfferAcceptedEmail(offer.business.user.email, {
+      requestTitle: offer.request.title,
+      dealId: deal.id,
+    });
+  }
 
   revalidatePath(`/dashboard/customer/requests/${offer.requestId}`);
   revalidatePath("/dashboard/customer");

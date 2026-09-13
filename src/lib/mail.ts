@@ -36,6 +36,36 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
   }
 }
 
+const siteUrl = () => process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+export async function sendNewOfferEmail(
+  to: string,
+  params: { requestTitle: string; requestId: string; companyName: string },
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `New offer on "${params.requestTitle}"`,
+    html: `
+      <p>${params.companyName} just submitted an offer on your request "${params.requestTitle}".</p>
+      <p><a href="${siteUrl()}/dashboard/customer/requests/${params.requestId}">View the offer</a></p>
+    `,
+  });
+}
+
+export async function sendOfferAcceptedEmail(
+  to: string,
+  params: { requestTitle: string; dealId: string },
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `Your offer on "${params.requestTitle}" was accepted`,
+    html: `
+      <p>Good news — your offer on "${params.requestTitle}" was accepted.</p>
+      <p><a href="${siteUrl()}/dashboard/business/deals/${params.dealId}">View the deal</a></p>
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     // Dev/staging fallback so the flow is testable before a Resend domain is

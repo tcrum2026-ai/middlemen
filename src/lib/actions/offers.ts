@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
+import { sendNewOfferEmail } from "@/lib/mail";
 import { offerSchema } from "@/lib/validation";
 import type { ActionState } from "@/lib/actions/auth";
 
@@ -21,7 +22,10 @@ export async function createOfferAction(
     return { error: "Set up your business profile before submitting offers" };
   }
 
-  const targetRequest = await prisma.request.findUnique({ where: { id: requestId } });
+  const targetRequest = await prisma.request.findUnique({
+    where: { id: requestId },
+    include: { customer: true },
+  });
   if (!targetRequest || targetRequest.status !== "OPEN") {
     return { error: "This request is no longer open for offers" };
   }
@@ -43,6 +47,12 @@ export async function createOfferAction(
   } catch {
     return { error: "You've already submitted an offer for this request" };
   }
+
+  await sendNewOfferEmail(targetRequest.customer.email, {
+    requestTitle: targetRequest.title,
+    requestId,
+    companyName: businessProfile.companyName,
+  });
 
   revalidatePath(`/dashboard/business/requests/${requestId}`);
   revalidatePath("/dashboard/business/offers");
