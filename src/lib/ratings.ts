@@ -25,7 +25,7 @@ export type RatingSummary = {
   sortScore: number;
 };
 
-function summarize(sum: number, count: number): RatingSummary {
+export function summarize(sum: number, count: number): RatingSummary {
   const sortScore = (PRIOR_WEIGHT * PRIOR_MEAN + sum) / (PRIOR_WEIGHT + count);
   return {
     displayRating: count >= MIN_REVIEWS_TO_DISPLAY ? sum / count : null,
