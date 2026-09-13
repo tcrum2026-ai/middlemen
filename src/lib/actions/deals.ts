@@ -33,25 +33,49 @@ export async function acceptOfferAction(
 
   const { amount, commissionRate, commissionAmount } = computeCommission(offer.price);
 
-  const [deal] = await prisma.$transaction([
-    prisma.deal.create({
-      data: {
-        requestId: offer.requestId,
-        offerId: offer.id,
-        customerId: user.id,
-        businessId: offer.businessId,
-        amount,
-        commissionRate,
-        commissionAmount,
-      },
-    }),
-    prisma.offer.update({ where: { id: offer.id }, data: { status: "ACCEPTED" } }),
-    prisma.offer.updateMany({
-      where: { requestId: offer.requestId, id: { not: offer.id } },
-      data: { status: "REJECTED" },
-    }),
-    prisma.request.update({ where: { id: offer.requestId }, data: { status: "CLOSED" } }),
-  ]);
+  // The OPEN check above reads stale data by the time this runs, so two
+  // near-simultaneous accepts (a double-click across two tabs, a retried
+  // request) could otherwise both pass it and each create a Deal for the
+  // same request. Closing the request is done as a conditional update
+  // inside the transaction itself — Postgres serializes concurrent updates
+  // to the same row, so only one caller's updateMany can ever match
+  // status: "OPEN" and proceed; the loser sees count 0 and the whole
+  // transaction rolls back.
+  let deal;
+  try {
+    deal = await prisma.$transaction(async (tx) => {
+      const closed = await tx.request.updateMany({
+        where: { id: offer.requestId, status: "OPEN" },
+        data: { status: "CLOSED" },
+      });
+      if (closed.count === 0) {
+        throw new Error("REQUEST_ALREADY_RESOLVED");
+      }
+
+      const created = await tx.deal.create({
+        data: {
+          requestId: offer.requestId,
+          offerId: offer.id,
+          customerId: user.id,
+          businessId: offer.businessId,
+          amount,
+          commissionRate,
+          commissionAmount,
+        },
+      });
+      await tx.offer.update({ where: { id: offer.id }, data: { status: "ACCEPTED" } });
+      await tx.offer.updateMany({
+        where: { requestId: offer.requestId, id: { not: offer.id } },
+        data: { status: "REJECTED" },
+      });
+      return created;
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_ALREADY_RESOLVED") {
+      return { error: "This request has already been resolved" };
+    }
+    throw err;
+  }
 
   if (offer.business.user) {
     await sendOfferAcceptedEmail(offer.business.user.email, {
