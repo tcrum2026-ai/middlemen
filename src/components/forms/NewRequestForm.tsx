@@ -2,14 +2,37 @@
 
 import { useActionState } from "react";
 import { createRequestAction } from "@/lib/actions/requests";
+import type { ActionState } from "@/lib/actions/auth";
 import SubmitButton from "@/components/SubmitButton";
 import { CATEGORIES } from "@/lib/validation";
 
-export default function NewRequestForm() {
-  const [state, formAction] = useActionState(createRequestAction, undefined);
+type Initial = {
+  title: string;
+  category: string;
+  description: string;
+  zipCode: string;
+  budgetMin: number;
+  budgetMax: number;
+};
+
+export default function NewRequestForm({
+  action = createRequestAction,
+  requestId,
+  initial,
+  submitLabel = "Post request",
+  pendingText = "Posting...",
+}: {
+  action?: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+  requestId?: string;
+  initial?: Initial;
+  submitLabel?: string;
+  pendingText?: string;
+}) {
+  const [state, formAction] = useActionState(action, undefined);
 
   return (
     <form action={formAction} className="space-y-4">
+      {requestId && <input type="hidden" name="requestId" value={requestId} />}
       {state?.error && (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       )}
@@ -23,6 +46,7 @@ export default function NewRequestForm() {
           name="title"
           type="text"
           required
+          defaultValue={initial?.title}
           placeholder="e.g. Repaint a 3-bedroom house exterior"
           className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
@@ -36,7 +60,7 @@ export default function NewRequestForm() {
           id="category"
           name="category"
           required
-          defaultValue=""
+          defaultValue={initial?.category ?? ""}
           className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 focus:border-stone-500 focus:outline-none"
         >
           <option value="" disabled>
@@ -59,6 +83,7 @@ export default function NewRequestForm() {
           name="description"
           required
           rows={5}
+          defaultValue={initial?.description}
           placeholder="Describe exactly what you need, timelines, and any requirements."
           className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
@@ -73,6 +98,7 @@ export default function NewRequestForm() {
           name="zipCode"
           type="text"
           required
+          defaultValue={initial?.zipCode}
           placeholder="e.g. 94103"
           className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
@@ -93,6 +119,7 @@ export default function NewRequestForm() {
             min={0}
             step="1"
             required
+            defaultValue={initial?.budgetMin}
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
@@ -107,12 +134,13 @@ export default function NewRequestForm() {
             min={0}
             step="1"
             required
+            defaultValue={initial?.budgetMax}
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
           />
         </div>
       </div>
 
-      <SubmitButton pendingText="Posting...">Post request</SubmitButton>
+      <SubmitButton pendingText={pendingText}>{submitLabel}</SubmitButton>
     </form>
   );
 }

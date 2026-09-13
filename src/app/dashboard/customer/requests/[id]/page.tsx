@@ -7,7 +7,8 @@ import { getBusinessRatingSummaries } from "@/lib/ratings";
 import Badge from "@/components/Badge";
 import AcceptOfferButton from "@/components/forms/AcceptOfferButton";
 import StarRating from "@/components/StarRating";
-import { cancelRequestAction } from "@/lib/actions/requests";
+import { cancelRequestAction, editRequestAction } from "@/lib/actions/requests";
+import NewRequestForm from "@/components/forms/NewRequestForm";
 
 export default async function CustomerRequestDetailPage({
   params,
@@ -101,12 +102,37 @@ export default async function CustomerRequestDetailPage({
       <p className="mt-4 whitespace-pre-wrap text-stone-700">{request.description}</p>
 
       {request.status === "OPEN" && !request.deal && (
-        <form action={cancelRequestAction} className="mt-3">
-          <input type="hidden" name="requestId" value={request.id} />
-          <button type="submit" className="text-sm font-medium text-red-600 hover:underline">
-            Cancel request
-          </button>
-        </form>
+        <div className="mt-3 flex items-center gap-4">
+          {request.offers.length === 0 && (
+            <details className="text-sm">
+              <summary className="cursor-pointer font-medium text-stone-700 hover:underline">
+                Edit request
+              </summary>
+              <div className="mt-4 max-w-md rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+                <NewRequestForm
+                  action={editRequestAction}
+                  requestId={request.id}
+                  initial={{
+                    title: request.title,
+                    category: request.category,
+                    description: request.description,
+                    zipCode: request.zipCode,
+                    budgetMin: request.budgetMin,
+                    budgetMax: request.budgetMax,
+                  }}
+                  submitLabel="Save changes"
+                  pendingText="Saving..."
+                />
+              </div>
+            </details>
+          )}
+          <form action={cancelRequestAction}>
+            <input type="hidden" name="requestId" value={request.id} />
+            <button type="submit" className="text-sm font-medium text-red-600 hover:underline">
+              Cancel request
+            </button>
+          </form>
+        </div>
       )}
 
       {request.deal && (
