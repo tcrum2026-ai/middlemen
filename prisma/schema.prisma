@@ -53,11 +53,27 @@ model User {
   role         Role
   createdAt    DateTime @default(now())
 
-  businessProfile BusinessProfile?
-  requests        Request[]
-  deals           Deal[]           @relation("CustomerDeals")
-  reviews         Review[]
-  messages        Message[]
+  businessProfile     BusinessProfile?
+  requests            Request[]
+  deals               Deal[]               @relation("CustomerDeals")
+  reviews             Review[]
+  messages            Message[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+// A short-lived, single-use token for the forgot-password flow. The raw
+// token is emailed to the user and only its sha256 hash is stored, so a
+// database read alone can never be used to reset someone's password.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model BusinessProfile {

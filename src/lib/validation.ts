@@ -12,6 +12,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.email("Enter a valid email"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Missing reset token"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(200),
+});
+
 const zipCodeSchema = z
   .string()
   .trim()

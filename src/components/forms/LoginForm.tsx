@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { loginAction } from "@/lib/actions/auth";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -35,6 +36,11 @@ export default function LoginForm() {
           required
           className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-stone-500 focus:outline-none"
         />
+        <div className="mt-1 text-right">
+          <Link href="/forgot-password" className="text-xs text-stone-500 underline hover:text-stone-700">
+            Forgot password?
+          </Link>
+        </div>
       </div>
       <SubmitButton pendingText="Logging in...">Log in</SubmitButton>
     </form>
