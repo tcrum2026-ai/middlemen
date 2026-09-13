@@ -47,3 +47,24 @@ export async function createOfferAction(
   revalidatePath(`/dashboard/business/requests/${requestId}`);
   revalidatePath("/dashboard/business/offers");
 }
+
+export async function withdrawOfferAction(formData: FormData) {
+  const user = await requireRole("BUSINESS");
+  const offerId = formData.get("offerId");
+  if (typeof offerId !== "string" || !offerId) return;
+
+  const businessProfile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
+  if (!businessProfile) return;
+
+  const offer = await prisma.offer.findUnique({
+    where: { id: offerId },
+    include: { request: true },
+  });
+  if (!offer || offer.businessId !== businessProfile.id) return;
+  if (offer.status !== "PENDING" || offer.request.status !== "OPEN") return;
+
+  await prisma.offer.update({ where: { id: offerId }, data: { status: "WITHDRAWN" } });
+
+  revalidatePath(`/dashboard/business/requests/${offer.requestId}`);
+  revalidatePath(`/dashboard/customer/requests/${offer.requestId}`);
+}

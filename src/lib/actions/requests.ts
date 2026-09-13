@@ -33,3 +33,21 @@ export async function createRequestAction(
   revalidatePath("/dashboard/customer");
   redirect(`/dashboard/customer/requests/${request.id}`);
 }
+
+export async function cancelRequestAction(formData: FormData) {
+  const user = await requireRole("CUSTOMER");
+  const requestId = formData.get("requestId");
+  if (typeof requestId !== "string" || !requestId) return;
+
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    include: { deal: true },
+  });
+  if (!request || request.customerId !== user.id) return;
+  if (request.status !== "OPEN" || request.deal) return;
+
+  await prisma.request.update({ where: { id: requestId }, data: { status: "CANCELLED" } });
+
+  revalidatePath(`/dashboard/customer/requests/${requestId}`);
+  revalidatePath("/dashboard/customer");
+}

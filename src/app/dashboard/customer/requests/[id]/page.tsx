@@ -7,6 +7,7 @@ import { getBusinessRatingSummaries } from "@/lib/ratings";
 import Badge from "@/components/Badge";
 import AcceptOfferButton from "@/components/forms/AcceptOfferButton";
 import StarRating from "@/components/StarRating";
+import { cancelRequestAction } from "@/lib/actions/requests";
 
 export default async function CustomerRequestDetailPage({
   params,
@@ -98,6 +99,15 @@ export default async function CustomerRequestDetailPage({
         <Badge status={request.status} />
       </div>
       <p className="mt-4 whitespace-pre-wrap text-stone-700">{request.description}</p>
+
+      {request.status === "OPEN" && !request.deal && (
+        <form action={cancelRequestAction} className="mt-3">
+          <input type="hidden" name="requestId" value={request.id} />
+          <button type="submit" className="text-sm font-medium text-red-600 hover:underline">
+            Cancel request
+          </button>
+        </form>
+      )}
 
       {request.deal && (
         <div className="mt-6 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">

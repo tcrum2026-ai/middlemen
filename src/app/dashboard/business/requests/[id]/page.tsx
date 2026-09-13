@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Badge from "@/components/Badge";
 import NewOfferForm from "@/components/forms/NewOfferForm";
+import { withdrawOfferAction } from "@/lib/actions/offers";
 
 export default async function BusinessRequestDetailPage({
   params,
@@ -58,6 +59,17 @@ export default async function BusinessRequestDetailPage({
                 <span className="font-medium text-stone-700">AI score: {Math.round(myOffer.aiScore)}/100. </span>
                 {myOffer.aiRationale}
               </p>
+            )}
+            {myOffer.status === "PENDING" && request.status === "OPEN" && (
+              <form action={withdrawOfferAction} className="mt-4">
+                <input type="hidden" name="offerId" value={myOffer.id} />
+                <button
+                  type="submit"
+                  className="text-sm font-medium text-red-600 hover:underline"
+                >
+                  Withdraw offer
+                </button>
+              </form>
             )}
           </div>
         ) : request.status === "OPEN" ? (
