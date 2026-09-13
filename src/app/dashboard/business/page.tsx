@@ -19,6 +19,23 @@ export default async function BusinessDashboardPage({
   const profile = user.businessProfile;
 
   if (!profile) {
+    const pendingClaim = await prisma.claimRequest.findFirst({
+      where: { userId: user.id, status: "PENDING" },
+      include: { business: true },
+    });
+
+    if (pendingClaim) {
+      return (
+        <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+          <h1 className="text-2xl font-bold text-stone-900">Claim pending review</h1>
+          <p className="mt-2 text-sm text-stone-600">
+            Your request to claim <strong>{pendingClaim.business.companyName}</strong> is awaiting
+            admin review. We&apos;ll email you at {user.email} once it&apos;s decided.
+          </p>
+        </div>
+      );
+    }
+
     const { q } = await searchParams;
     const matches = q
       ? await prisma.businessProfile.findMany({
