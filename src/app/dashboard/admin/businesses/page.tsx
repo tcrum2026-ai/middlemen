@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import BusinessListingForm from "@/components/forms/BusinessListingForm";
-import { addBusinessListingAction, importBusinessesAction } from "@/lib/actions/admin-businesses";
+import {
+  addBusinessListingAction,
+  deleteBusinessListingAction,
+  importBusinessesAction,
+} from "@/lib/actions/admin-businesses";
 import ImportBusinessesForm from "@/components/forms/ImportBusinessesForm";
 
 export default async function AdminBusinessesPage() {
@@ -70,6 +74,7 @@ export default async function AdminBusinessesPage() {
               <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">ZIP</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
@@ -84,6 +89,16 @@ export default async function AdminBusinessesPage() {
                 <td className="px-4 py-3 text-stone-600">{b.zipCode}</td>
                 <td className="px-4 py-3 text-stone-600">
                   {b.claimed ? "Claimed" : "Unclaimed"}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {!b.claimed && (
+                    <form action={deleteBusinessListingAction}>
+                      <input type="hidden" name="businessId" value={b.id} />
+                      <button type="submit" className="text-xs font-medium text-red-600 hover:underline">
+                        Delete
+                      </button>
+                    </form>
+                  )}
                 </td>
               </tr>
             ))}

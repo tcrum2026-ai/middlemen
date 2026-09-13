@@ -36,6 +36,21 @@ export async function addBusinessListingAction(
   revalidatePath("/businesses");
 }
 
+export async function deleteBusinessListingAction(formData: FormData) {
+  await requireRole("ADMIN");
+
+  const businessId = formData.get("businessId");
+  if (typeof businessId !== "string" || !businessId) return;
+
+  const listing = await prisma.businessProfile.findUnique({ where: { id: businessId } });
+  if (!listing || listing.claimed) return;
+
+  await prisma.businessProfile.delete({ where: { id: businessId } });
+
+  revalidatePath("/dashboard/admin/businesses");
+  revalidatePath("/businesses");
+}
+
 type ImportRow = {
   companyName?: unknown;
   category?: unknown;
