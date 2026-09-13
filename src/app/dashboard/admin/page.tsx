@@ -32,6 +32,12 @@ export default async function AdminDashboardPage() {
         <h1 className="text-2xl font-bold text-stone-900">Platform overview</h1>
         <div className="flex gap-2">
           <Link
+            href="/dashboard/admin/reviews"
+            className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            Reviews
+          </Link>
+          <Link
             href="/dashboard/admin/import"
             className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
           >
