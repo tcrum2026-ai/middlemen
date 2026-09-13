@@ -111,7 +111,6 @@ model BusinessProfile {
   zipCode     String
   source      ListingSource @default(ADMIN_ADDED)
   claimed     Boolean       @default(false)
-  rating      Float    @default(4.5)
   createdAt   DateTime @default(now())
 
   // Populated only for listings pulled in by the Google Places importer.
