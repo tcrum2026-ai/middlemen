@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { sendNewMessageEmail } from "@/lib/mail";
 
 export async function sendMessageAction(formData: FormData) {
   const user = await requireUser();
@@ -12,7 +13,7 @@ export async function sendMessageAction(formData: FormData) {
 
   const deal = await prisma.deal.findUnique({
     where: { id: dealId },
-    include: { business: true },
+    include: { business: { include: { user: true } }, customer: true, request: true },
   });
   if (!deal) return;
 
@@ -23,6 +24,18 @@ export async function sendMessageAction(formData: FormData) {
   await prisma.message.create({
     data: { dealId, senderId: user.id, body: body.slice(0, 2000) },
   });
+
+  if (isCustomer && deal.business.user) {
+    await sendNewMessageEmail(deal.business.user.email, {
+      requestTitle: deal.request.title,
+      dealPath: `/dashboard/business/deals/${dealId}`,
+    });
+  } else if (isBusinessOwner) {
+    await sendNewMessageEmail(deal.customer.email, {
+      requestTitle: deal.request.title,
+      dealPath: `/dashboard/customer/deals/${dealId}`,
+    });
+  }
 
   revalidatePath(`/dashboard/customer/deals/${dealId}`);
   revalidatePath(`/dashboard/business/deals/${dealId}`);

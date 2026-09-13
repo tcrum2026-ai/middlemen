@@ -88,6 +88,20 @@ export async function sendClaimRejectedEmail(to: string, companyName: string): P
   });
 }
 
+export async function sendNewMessageEmail(
+  to: string,
+  params: { requestTitle: string; dealPath: string },
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `New message about "${params.requestTitle}"`,
+    html: `
+      <p>You have a new message on the deal for "${params.requestTitle}".</p>
+      <p><a href="${siteUrl()}${params.dealPath}">View the conversation</a></p>
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     // Dev/staging fallback so the flow is testable before a Resend domain is
