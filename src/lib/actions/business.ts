@@ -7,6 +7,17 @@ import { requireRole } from "@/lib/auth";
 import { businessProfileSchema } from "@/lib/validation";
 import type { ActionState } from "@/lib/actions/auth";
 
+// Best-effort hostname extraction so "https://www.example.com/path" and
+// "example.com" both normalize to "example.com" for a domain comparison.
+function extractDomain(value: string): string | null {
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  try {
+    return new URL(withProtocol).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
 function parseListingFields(formData: FormData) {
   return businessProfileSchema.safeParse({
     companyName: formData.get("companyName"),
@@ -42,7 +53,14 @@ export async function saveBusinessProfileAction(
   revalidatePath("/dashboard/business");
 }
 
-/** A business owner claims an existing, unclaimed directory listing as their own. */
+/**
+ * A business owner claims an existing, unclaimed directory listing as their
+ * own. Instantly granting ownership on a single click would let anyone
+ * hijack a listing's reviews and future deals, so this only auto-approves
+ * when the requester's email domain matches the listing's website — a cheap
+ * but meaningful signal — and otherwise queues the request for an admin to
+ * review.
+ */
 export async function claimBusinessAction(
   _prevState: ActionState,
   formData: FormData
@@ -52,10 +70,18 @@ export async function claimBusinessAction(
   if (typeof businessId !== "string" || !businessId) {
     return { error: "Missing business" };
   }
+  const note = formData.get("note");
 
   const alreadyOwned = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
   if (alreadyOwned) {
     return { error: "You've already claimed or created a listing" };
+  }
+
+  const pendingClaim = await prisma.claimRequest.findFirst({
+    where: { userId: user.id, status: "PENDING" },
+  });
+  if (pendingClaim) {
+    return { error: "You already have a claim request awaiting review" };
   }
 
   const listing = await prisma.businessProfile.findUnique({ where: { id: businessId } });
@@ -66,12 +92,49 @@ export async function claimBusinessAction(
     return { error: "This listing has already been claimed" };
   }
 
-  await prisma.businessProfile.update({
-    where: { id: businessId },
-    data: { userId: user.id, claimed: true, source: "SELF_CLAIMED" },
+  const existingRequest = await prisma.claimRequest.findUnique({
+    where: { businessId_userId: { businessId, userId: user.id } },
+  });
+  if (existingRequest) {
+    return { error: "You've already requested to claim this listing" };
+  }
+
+  const websiteDomain = listing.website ? extractDomain(listing.website) : null;
+  const emailDomain = user.email.split("@")[1]?.toLowerCase() ?? null;
+  const autoVerified = Boolean(websiteDomain && emailDomain && websiteDomain === emailDomain);
+
+  if (autoVerified) {
+    await prisma.$transaction([
+      prisma.businessProfile.update({
+        where: { id: businessId },
+        data: { userId: user.id, claimed: true, source: "SELF_CLAIMED" },
+      }),
+      prisma.claimRequest.create({
+        data: {
+          businessId,
+          userId: user.id,
+          status: "APPROVED",
+          decidedAt: new Date(),
+          note: typeof note === "string" && note ? note : null,
+        },
+      }),
+    ]);
+    redirect("/dashboard/business");
+  }
+
+  await prisma.claimRequest.create({
+    data: {
+      businessId,
+      userId: user.id,
+      note: typeof note === "string" && note ? note : null,
+    },
   });
 
-  redirect("/dashboard/business");
+  revalidatePath(`/businesses/${businessId}`);
+  return {
+    message:
+      "Your claim request has been submitted for review. We'll email you once it's approved.",
+  };
 }
 
 /** A business owner creates a brand-new listing when they can't find an existing one to claim. */

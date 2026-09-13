@@ -66,6 +66,28 @@ export async function sendOfferAcceptedEmail(
   });
 }
 
+export async function sendClaimApprovedEmail(to: string, companyName: string): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `Your claim on "${companyName}" was approved`,
+    html: `
+      <p>You now own the "${companyName}" listing on DealBridge.</p>
+      <p><a href="${siteUrl()}/dashboard/business">Manage your listing</a></p>
+    `,
+  });
+}
+
+export async function sendClaimRejectedEmail(to: string, companyName: string): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `Your claim on "${companyName}" was not approved`,
+    html: `
+      <p>We couldn't verify your claim on "${companyName}", so it was not approved.</p>
+      <p>If this is a mistake, you can submit a new claim with more detail on how to verify you own the business.</p>
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     // Dev/staging fallback so the flow is testable before a Resend domain is

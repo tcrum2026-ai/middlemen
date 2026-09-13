@@ -8,16 +8,18 @@ export default async function AdminDashboardPage() {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") redirect("/login");
 
-  const [userCount, businessCount, requestCount, offerCount, deals] = await Promise.all([
-    prisma.user.count({ where: { role: "CUSTOMER" } }),
-    prisma.user.count({ where: { role: "BUSINESS" } }),
-    prisma.request.count(),
-    prisma.offer.count(),
-    prisma.deal.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { request: true, business: true, customer: true },
-    }),
-  ]);
+  const [userCount, businessCount, requestCount, offerCount, deals, pendingClaimCount] =
+    await Promise.all([
+      prisma.user.count({ where: { role: "CUSTOMER" } }),
+      prisma.user.count({ where: { role: "BUSINESS" } }),
+      prisma.request.count(),
+      prisma.offer.count(),
+      prisma.deal.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { request: true, business: true, customer: true },
+      }),
+      prisma.claimRequest.count({ where: { status: "PENDING" } }),
+    ]);
 
   const totalCommission = deals
     .filter((d) => d.status === "PAID" || d.status === "COMPLETED")
@@ -31,6 +33,17 @@ export default async function AdminDashboardPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-stone-900">Platform overview</h1>
         <div className="flex gap-2">
+          <Link
+            href="/dashboard/admin/claims"
+            className="relative rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            Claim requests
+            {pendingClaimCount > 0 && (
+              <span className="ml-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                {pendingClaimCount}
+              </span>
+            )}
+          </Link>
           <Link
             href="/dashboard/admin/reviews"
             className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"

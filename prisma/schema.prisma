@@ -45,6 +45,12 @@ enum ImportQueueStatus {
   FAILED
 }
 
+enum ClaimRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -59,6 +65,7 @@ model User {
   reviews             Review[]
   messages            Message[]
   passwordResetTokens PasswordResetToken[]
+  claimRequests       ClaimRequest[]
 }
 
 // A short-lived, single-use token for the forgot-password flow. The raw
@@ -103,12 +110,33 @@ model BusinessProfile {
   sourceReviewCount Int?
   lastSyncedAt      DateTime?
 
-  offers  Offer[]
-  deals   Deal[]   @relation("BusinessDeals")
-  reviews Review[]
+  offers        Offer[]
+  deals         Deal[]         @relation("BusinessDeals")
+  reviews       Review[]
+  claimRequests ClaimRequest[]
 
   @@index([zipCode])
   @@index([category])
+}
+
+// A business owner's request to take ownership of an existing, unclaimed
+// directory listing. Auto-approved when the requester's email domain
+// matches the listing's website domain; otherwise held for an admin to
+// review, so a stranger can't hijack a listing (and its reviews) with a
+// single click.
+model ClaimRequest {
+  id         String             @id @default(cuid())
+  businessId String
+  business   BusinessProfile    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     ClaimRequestStatus @default(PENDING)
+  note       String?
+  createdAt  DateTime           @default(now())
+  decidedAt  DateTime?
+
+  @@unique([businessId, userId])
+  @@index([status])
 }
 
 // Drives the background Google Places importer: each row is one
