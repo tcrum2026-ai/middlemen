@@ -75,11 +75,20 @@ export default async function BusinessProfilePage({
     }),
   };
 
+  // JSON.stringify never escapes "<", and the HTML tokenizer closes a
+  // <script> block on a literal "</script" substring regardless of the
+  // type attribute — so a business with e.g. "</script><script>..." in its
+  // (fully user-controlled) name/description/hours would otherwise break
+  // out of this tag and run arbitrary JS for every visitor of this public
+  // page. Escaping every "<" as its unicode form neutralizes that and any
+  // other tag-based breakout, while leaving the JSON semantically identical.
+  const jsonLdString = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdString }}
       />
       <Link href="/businesses" className="text-sm text-stone-500 hover:text-stone-700">
         ← Back to directory

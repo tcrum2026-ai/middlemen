@@ -148,6 +148,12 @@ model ClaimRequest {
   userId     String
   user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   status     ClaimRequestStatus @default(PENDING)
+  // A hint for the admin reviewing this, never a substitute for their
+  // approval: the requester's email domain matched the listing's website
+  // domain, which is suggestive but proves nothing on its own — nothing in
+  // signup verifies that a user actually controls the inbox at their stated
+  // email address, so this can never be used to auto-approve a claim.
+  domainMatched Boolean         @default(false)
   note       String?
   createdAt  DateTime           @default(now())
   decidedAt  DateTime?

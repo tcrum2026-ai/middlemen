@@ -46,11 +46,15 @@ export async function saveBusinessProfileAction(
 
 /**
  * A business owner claims an existing, unclaimed directory listing as their
- * own. Instantly granting ownership on a single click would let anyone
- * hijack a listing's reviews and future deals, so this only auto-approves
- * when the requester's email domain matches the listing's website — a cheap
- * but meaningful signal — and otherwise queues the request for an admin to
- * review.
+ * own. This always queues the request for an admin to review and approve —
+ * it can never auto-approve, because signup never verifies that a user
+ * actually controls the inbox at their stated email address. An email
+ * domain matching the listing's website is surfaced to the admin as a
+ * helpful (but unverified) hint, not a substitute for their judgment: an
+ * attacker can type any email address at signup, so trusting a domain
+ * string match alone would let anyone claim (and take over the reviews,
+ * deals, and payouts of) any business whose website they can see on the
+ * public directory.
  */
 export async function claimBusinessAction(
   _prevState: ActionState,
@@ -92,31 +96,13 @@ export async function claimBusinessAction(
 
   const websiteDomain = listing.website ? extractDomain(listing.website) : null;
   const emailDomain = user.email.split("@")[1]?.toLowerCase() ?? null;
-  const autoVerified = Boolean(websiteDomain && emailDomain && websiteDomain === emailDomain);
-
-  if (autoVerified) {
-    await prisma.$transaction([
-      prisma.businessProfile.update({
-        where: { id: businessId },
-        data: { userId: user.id, claimed: true, source: "SELF_CLAIMED" },
-      }),
-      prisma.claimRequest.create({
-        data: {
-          businessId,
-          userId: user.id,
-          status: "APPROVED",
-          decidedAt: new Date(),
-          note: typeof note === "string" && note ? note : null,
-        },
-      }),
-    ]);
-    redirect("/dashboard/business");
-  }
+  const domainMatched = Boolean(websiteDomain && emailDomain && websiteDomain === emailDomain);
 
   await prisma.claimRequest.create({
     data: {
       businessId,
       userId: user.id,
+      domainMatched,
       note: typeof note === "string" && note ? note : null,
     },
   });

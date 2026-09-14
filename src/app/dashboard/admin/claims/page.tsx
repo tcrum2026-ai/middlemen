@@ -22,8 +22,9 @@ export default async function AdminClaimsPage() {
       </Link>
       <h1 className="mt-4 text-2xl font-bold text-stone-900">Claim requests</h1>
       <p className="mt-1 text-sm text-stone-600">
-        These requesters&apos; email domains didn&apos;t match the listing&apos;s website, so they
-        need a manual check before we hand over the listing.
+        Every claim needs a manual approval — we don&apos;t verify email ownership at signup, so a
+        matching domain is a helpful hint but never proof by itself. Check that the requester&apos;s
+        note (or a quick search) actually supports the claim before approving.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold text-stone-900">
@@ -48,6 +49,11 @@ export default async function AdminClaimsPage() {
                       claimed by {claim.user.name} ({claim.user.email}) ·{" "}
                       {claim.createdAt.toLocaleDateString()}
                     </span>
+                    {claim.domainMatched && (
+                      <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                        Email domain matches website
+                      </span>
+                    )}
                   </p>
                   {claim.business.website && (
                     <p className="mt-1 text-xs text-stone-500">

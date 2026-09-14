@@ -38,15 +38,34 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
 
 const siteUrl = () => process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+// Every value below can originate from free-text user input (a business
+// name, a request title, an account display name, an admin's resolution
+// note) and gets sent, as live HTML, to a *different* party's inbox — so it
+// must be escaped before interpolation, the same as rendering it in a
+// browser would require. Unescaped, a title like `<a href="...">` would
+// render as a real clickable link appearing to come from DealBridge itself.
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function sendNewOfferEmail(
   to: string,
   params: { requestTitle: string; requestId: string; companyName: string },
 ): Promise<void> {
+  const requestTitle = escapeHtml(params.requestTitle);
+  const companyName = escapeHtml(params.companyName);
   await sendEmail({
     to,
+    // The subject line is plain text, not HTML — escaping it would show
+    // literal "&#39;" etc. in the recipient's inbox, so it uses the raw value.
     subject: `New offer on "${params.requestTitle}"`,
     html: `
-      <p>${params.companyName} just submitted an offer on your request "${params.requestTitle}".</p>
+      <p>${companyName} just submitted an offer on your request "${requestTitle}".</p>
       <p><a href="${siteUrl()}/dashboard/customer/requests/${params.requestId}">View the offer</a></p>
     `,
   });
@@ -56,20 +75,22 @@ export async function sendOfferAcceptedEmail(
   to: string,
   params: { requestTitle: string; dealId: string },
 ): Promise<void> {
+  const requestTitle = escapeHtml(params.requestTitle);
   await sendEmail({
     to,
     subject: `Your offer on "${params.requestTitle}" was accepted`,
     html: `
-      <p>Good news — your offer on "${params.requestTitle}" was accepted.</p>
+      <p>Good news — your offer on "${requestTitle}" was accepted.</p>
       <p><a href="${siteUrl()}/dashboard/business/deals/${params.dealId}">View the deal</a></p>
     `,
   });
 }
 
-export async function sendClaimApprovedEmail(to: string, companyName: string): Promise<void> {
+export async function sendClaimApprovedEmail(to: string, companyNameRaw: string): Promise<void> {
+  const companyName = escapeHtml(companyNameRaw);
   await sendEmail({
     to,
-    subject: `Your claim on "${companyName}" was approved`,
+    subject: `Your claim on "${companyNameRaw}" was approved`,
     html: `
       <p>You now own the "${companyName}" listing on DealBridge.</p>
       <p><a href="${siteUrl()}/dashboard/business">Manage your listing</a></p>
@@ -77,10 +98,11 @@ export async function sendClaimApprovedEmail(to: string, companyName: string): P
   });
 }
 
-export async function sendClaimRejectedEmail(to: string, companyName: string): Promise<void> {
+export async function sendClaimRejectedEmail(to: string, companyNameRaw: string): Promise<void> {
+  const companyName = escapeHtml(companyNameRaw);
   await sendEmail({
     to,
-    subject: `Your claim on "${companyName}" was not approved`,
+    subject: `Your claim on "${companyNameRaw}" was not approved`,
     html: `
       <p>We couldn't verify your claim on "${companyName}", so it was not approved.</p>
       <p>If this is a mistake, you can submit a new claim with more detail on how to verify you own the business.</p>
@@ -92,11 +114,12 @@ export async function sendNewMessageEmail(
   to: string,
   params: { requestTitle: string; dealPath: string },
 ): Promise<void> {
+  const requestTitle = escapeHtml(params.requestTitle);
   await sendEmail({
     to,
     subject: `New message about "${params.requestTitle}"`,
     html: `
-      <p>You have a new message on the deal for "${params.requestTitle}".</p>
+      <p>You have a new message on the deal for "${requestTitle}".</p>
       <p><a href="${siteUrl()}${params.dealPath}">View the conversation</a></p>
     `,
   });
@@ -106,11 +129,13 @@ export async function sendNewClaimRequestEmail(
   to: string,
   params: { companyName: string; requesterName: string },
 ): Promise<void> {
+  const companyName = escapeHtml(params.companyName);
+  const requesterName = escapeHtml(params.requesterName);
   await sendEmail({
     to,
     subject: `New claim request on "${params.companyName}"`,
     html: `
-      <p>${params.requesterName} requested to claim "${params.companyName}" and needs manual review (their email domain didn't match the listing's website).</p>
+      <p>${requesterName} requested to claim "${companyName}" and needs manual review (their email domain didn't match the listing's website).</p>
       <p><a href="${siteUrl()}/dashboard/admin/claims">Review the request</a></p>
     `,
   });
@@ -120,11 +145,13 @@ export async function sendDealFlaggedEmail(
   to: string,
   params: { requestTitle: string; reporterName: string },
 ): Promise<void> {
+  const requestTitle = escapeHtml(params.requestTitle);
+  const reporterName = escapeHtml(params.reporterName);
   await sendEmail({
     to,
     subject: `Issue reported on "${params.requestTitle}"`,
     html: `
-      <p>${params.reporterName} reported an issue with the deal for "${params.requestTitle}".</p>
+      <p>${reporterName} reported an issue with the deal for "${requestTitle}".</p>
       <p><a href="${siteUrl()}/dashboard/admin/disputes">Review the report</a></p>
     `,
   });
@@ -134,12 +161,14 @@ export async function sendDealFlagResolvedEmail(
   to: string,
   params: { requestTitle: string; resolutionNote: string | null },
 ): Promise<void> {
+  const requestTitle = escapeHtml(params.requestTitle);
+  const resolutionNote = params.resolutionNote ? escapeHtml(params.resolutionNote) : null;
   await sendEmail({
     to,
     subject: `Your reported issue on "${params.requestTitle}" was resolved`,
     html: `
-      <p>An admin reviewed the issue you reported on the deal for "${params.requestTitle}".</p>
-      ${params.resolutionNote ? `<p>${params.resolutionNote}</p>` : ""}
+      <p>An admin reviewed the issue you reported on the deal for "${requestTitle}".</p>
+      ${resolutionNote ? `<p>${resolutionNote}</p>` : ""}
     `,
   });
 }
@@ -148,11 +177,13 @@ export async function sendDealCompletedEmail(
   to: string,
   params: { requestTitle: string; companyName: string; dealId: string },
 ): Promise<void> {
+  const requestTitle = escapeHtml(params.requestTitle);
+  const companyName = escapeHtml(params.companyName);
   await sendEmail({
     to,
     subject: `"${params.requestTitle}" is marked complete — leave a review?`,
     html: `
-      <p>${params.companyName} marked your deal for "${params.requestTitle}" as complete.</p>
+      <p>${companyName} marked your deal for "${requestTitle}" as complete.</p>
       <p><a href="${siteUrl()}/dashboard/customer/deals/${params.dealId}">Leave a review</a> to help other customers pick the best business.</p>
     `,
   });
@@ -162,11 +193,13 @@ export async function sendNewReviewEmail(
   to: string,
   params: { customerName: string; rating: number; companyName: string },
 ): Promise<void> {
+  const customerName = escapeHtml(params.customerName);
+  const companyName = escapeHtml(params.companyName);
   await sendEmail({
     to,
     subject: `${params.customerName} left ${params.companyName} a ${params.rating}-star review`,
     html: `
-      <p>${params.customerName} left a ${params.rating}-star review on your DealBridge listing.</p>
+      <p>${customerName} left ${companyName} a ${params.rating}-star review on DealBridge.</p>
       <p><a href="${siteUrl()}/dashboard/business">View your reviews</a></p>
     `,
   });
