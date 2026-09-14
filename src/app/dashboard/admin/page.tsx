@@ -8,26 +8,42 @@ export default async function AdminDashboardPage() {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") redirect("/login");
 
-  const [userCount, businessCount, requestCount, offerCount, deals, pendingClaimCount, openDisputeCount] =
-    await Promise.all([
-      prisma.user.count({ where: { role: "CUSTOMER" } }),
-      prisma.user.count({ where: { role: "BUSINESS" } }),
-      prisma.request.count(),
-      prisma.offer.count(),
-      prisma.deal.findMany({
-        orderBy: { createdAt: "desc" },
-        include: { request: true, business: true, customer: true },
-      }),
-      prisma.claimRequest.count({ where: { status: "PENDING" } }),
-      prisma.dealFlag.count({ where: { status: "OPEN" } }),
-    ]);
+  const DEAL_TABLE_LIMIT = 50;
 
-  const totalCommission = deals
-    .filter((d) => d.status === "PAID" || d.status === "COMPLETED")
-    .reduce((sum, d) => sum + d.commissionAmount, 0);
-  const totalVolume = deals
-    .filter((d) => d.status === "PAID" || d.status === "COMPLETED")
-    .reduce((sum, d) => sum + d.amount, 0);
+  const [
+    userCount,
+    businessCount,
+    requestCount,
+    offerCount,
+    dealCount,
+    paidTotals,
+    deals,
+    pendingClaimCount,
+    openDisputeCount,
+  ] = await Promise.all([
+    prisma.user.count({ where: { role: "CUSTOMER" } }),
+    prisma.user.count({ where: { role: "BUSINESS" } }),
+    prisma.request.count(),
+    prisma.offer.count(),
+    prisma.deal.count(),
+    // Totals are computed server-side over every paid/completed deal, not
+    // just the page of rows below — pulling every row into memory to sum
+    // client-side wouldn't scale once deal volume grows.
+    prisma.deal.aggregate({
+      where: { status: { in: ["PAID", "COMPLETED"] } },
+      _sum: { amount: true, commissionAmount: true },
+    }),
+    prisma.deal.findMany({
+      orderBy: { createdAt: "desc" },
+      take: DEAL_TABLE_LIMIT,
+      include: { request: true, business: true, customer: true },
+    }),
+    prisma.claimRequest.count({ where: { status: "PENDING" } }),
+    prisma.dealFlag.count({ where: { status: "OPEN" } }),
+  ]);
+
+  const totalCommission = paidTotals._sum.commissionAmount ?? 0;
+  const totalVolume = paidTotals._sum.amount ?? 0;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -86,7 +102,11 @@ export default async function AdminDashboardPage() {
         <StatCard label="Commission revenue" value={`$${totalCommission.toFixed(2)}`} highlight />
       </div>
 
-      <h2 className="mt-10 text-lg font-semibold text-stone-900">All deals</h2>
+      <h2 className="mt-10 text-lg font-semibold text-stone-900">
+        {dealCount > DEAL_TABLE_LIMIT
+          ? `Most recent ${DEAL_TABLE_LIMIT} of ${dealCount} deals`
+          : "All deals"}
+      </h2>
       {deals.length === 0 ? (
         <p className="mt-3 text-sm text-stone-500">No deals yet.</p>
       ) : (
