@@ -137,10 +137,10 @@ model BusinessProfile {
 }
 
 // A business owner's request to take ownership of an existing, unclaimed
-// directory listing. Auto-approved when the requester's email domain
-// matches the listing's website domain; otherwise held for an admin to
-// review, so a stranger can't hijack a listing (and its reviews) with a
-// single click.
+// directory listing. Always held for an admin to review and approve —
+// never auto-approved, since signup never verifies that a user controls
+// the inbox at their stated email, so nothing here can be trusted enough
+// to skip a human before handing over a listing's reviews and deals.
 model ClaimRequest {
   id         String             @id @default(cuid())
   businessId String
