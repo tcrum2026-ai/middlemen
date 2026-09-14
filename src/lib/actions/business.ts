@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { extractDomain } from "@/lib/domain";
+import { sendNewClaimRequestEmail } from "@/lib/mail";
 import { businessProfileSchema } from "@/lib/validation";
 import type { ActionState } from "@/lib/actions/auth";
 
@@ -119,6 +120,13 @@ export async function claimBusinessAction(
       note: typeof note === "string" && note ? note : null,
     },
   });
+
+  const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
+  await Promise.all(
+    admins.map((admin) =>
+      sendNewClaimRequestEmail(admin.email, { companyName: listing.companyName, requesterName: user.name }),
+    ),
+  );
 
   revalidatePath(`/businesses/${businessId}`);
   return {

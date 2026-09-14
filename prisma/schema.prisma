@@ -51,6 +51,11 @@ enum ClaimRequestStatus {
   REJECTED
 }
 
+enum DealFlagStatus {
+  OPEN
+  RESOLVED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -66,6 +71,7 @@ model User {
   messages            Message[]
   passwordResetTokens PasswordResetToken[]
   claimRequests       ClaimRequest[]
+  dealFlags           DealFlag[]
 }
 
 // A generic abuse-prevention counter: one row per attempt, keyed by
@@ -222,6 +228,28 @@ model Deal {
 
   review   Review?
   messages Message[]
+  flags    DealFlag[]
+}
+
+// Either party on a paid deal can flag a problem instead of having no
+// recourse but the message thread. Admin sees it in one place and resolves
+// it; the reporter gets an email either way, closing a real gap — messaging
+// alone gives a customer or business nothing to do if the other side goes
+// quiet or the work goes badly.
+model DealFlag {
+  id             String         @id @default(cuid())
+  dealId         String
+  deal           Deal           @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  reporterId     String
+  reporter       User           @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason         String
+  status         DealFlagStatus @default(OPEN)
+  resolutionNote String?
+  createdAt      DateTime       @default(now())
+  resolvedAt     DateTime?
+
+  @@index([status])
+  @@index([dealId])
 }
 
 model Review {

@@ -130,6 +130,14 @@ export default async function BusinessDashboardPage({
     .filter((d) => d.status === "COMPLETED" || d.status === "PAID")
     .reduce((sum, d) => sum + (d.amount - d.commissionAmount), 0);
 
+  // Win rate only counts offers that have actually been decided — a still-
+  // PENDING offer hasn't won or lost anything yet, so including it would
+  // understate the rate for a business that just started bidding.
+  const decidedOffers = offers.filter((o) => o.status === "ACCEPTED" || o.status === "REJECTED");
+  const wonOffers = offers.filter((o) => o.status === "ACCEPTED").length;
+  const winRate = decidedOffers.length > 0 ? (wonOffers / decidedOffers.length) * 100 : null;
+  const avgDealSize = deals.length > 0 ? deals.reduce((sum, d) => sum + d.amount, 0) / deals.length : null;
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <div className="flex items-start justify-between">
@@ -160,10 +168,12 @@ export default async function BusinessDashboardPage({
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Open requests near you" value={openRequestsCount.toString()} />
         <StatCard label="Offers submitted" value={offers.length.toString()} />
-        <StatCard label="Net earnings (after commission)" value={`$${totalEarned.toFixed(2)}`} />
+        <StatCard label="Win rate" value={winRate != null ? `${winRate.toFixed(0)}%` : "—"} />
+        <StatCard label="Avg. deal size" value={avgDealSize != null ? `$${avgDealSize.toFixed(0)}` : "—"} />
+        <StatCard label="Net earnings (after commission)" value={`$${totalEarned.toFixed(2)}`} highlight />
       </div>
 
       <h2 className="mt-10 text-lg font-semibold text-stone-900">Your deals</h2>
@@ -267,11 +277,17 @@ export default async function BusinessDashboardPage({
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+    <div
+      className={`rounded-xl border p-5 shadow-sm ${
+        highlight ? "border-amber-300 bg-amber-50" : "border-stone-200 bg-white"
+      }`}
+    >
       <p className="text-sm text-stone-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-stone-900">{value}</p>
+      <p className={`mt-1 text-2xl font-bold ${highlight ? "text-amber-800" : "text-stone-900"}`}>
+        {value}
+      </p>
     </div>
   );
 }

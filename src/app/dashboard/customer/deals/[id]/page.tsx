@@ -7,6 +7,7 @@ import Badge from "@/components/Badge";
 import SubmitButton from "@/components/SubmitButton";
 import MessageThread from "@/components/MessageThread";
 import ReviewForm from "@/components/forms/ReviewForm";
+import ReportIssueForm from "@/components/forms/ReportIssueForm";
 import { payDealAction } from "@/lib/actions/deals";
 
 export default async function CustomerDealPage({
@@ -30,10 +31,14 @@ export default async function CustomerDealPage({
       business: true,
       review: true,
       messages: { orderBy: { createdAt: "asc" }, include: { sender: true } },
+      flags: { orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!deal || deal.customerId !== user.id) notFound();
+
+  const openFlag = deal.flags.find((f) => f.status === "OPEN");
+  const canReportIssue = (deal.status === "PAID" || deal.status === "COMPLETED") && !openFlag;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
@@ -127,6 +132,23 @@ export default async function CustomerDealPage({
       <div className="mt-6 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
         <MessageThread dealId={deal.id} messages={deal.messages} currentUserId={user.id} />
       </div>
+
+      {openFlag && (
+        <p className="mt-6 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          You reported an issue with this deal — an admin is reviewing it.
+        </p>
+      )}
+
+      {canReportIssue && (
+        <details className="mt-6">
+          <summary className="cursor-pointer text-sm font-medium text-red-600 hover:underline">
+            Report an issue with this deal
+          </summary>
+          <div className="mt-4 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+            <ReportIssueForm dealId={deal.id} />
+          </div>
+        </details>
+      )}
     </div>
   );
 }

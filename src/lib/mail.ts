@@ -102,6 +102,48 @@ export async function sendNewMessageEmail(
   });
 }
 
+export async function sendNewClaimRequestEmail(
+  to: string,
+  params: { companyName: string; requesterName: string },
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `New claim request on "${params.companyName}"`,
+    html: `
+      <p>${params.requesterName} requested to claim "${params.companyName}" and needs manual review (their email domain didn't match the listing's website).</p>
+      <p><a href="${siteUrl()}/dashboard/admin/claims">Review the request</a></p>
+    `,
+  });
+}
+
+export async function sendDealFlaggedEmail(
+  to: string,
+  params: { requestTitle: string; reporterName: string },
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `Issue reported on "${params.requestTitle}"`,
+    html: `
+      <p>${params.reporterName} reported an issue with the deal for "${params.requestTitle}".</p>
+      <p><a href="${siteUrl()}/dashboard/admin/disputes">Review the report</a></p>
+    `,
+  });
+}
+
+export async function sendDealFlagResolvedEmail(
+  to: string,
+  params: { requestTitle: string; resolutionNote: string | null },
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `Your reported issue on "${params.requestTitle}" was resolved`,
+    html: `
+      <p>An admin reviewed the issue you reported on the deal for "${params.requestTitle}".</p>
+      ${params.resolutionNote ? `<p>${params.resolutionNote}</p>` : ""}
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     // Dev/staging fallback so the flow is testable before a Resend domain is

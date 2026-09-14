@@ -8,7 +8,7 @@ export default async function AdminDashboardPage() {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") redirect("/login");
 
-  const [userCount, businessCount, requestCount, offerCount, deals, pendingClaimCount] =
+  const [userCount, businessCount, requestCount, offerCount, deals, pendingClaimCount, openDisputeCount] =
     await Promise.all([
       prisma.user.count({ where: { role: "CUSTOMER" } }),
       prisma.user.count({ where: { role: "BUSINESS" } }),
@@ -19,6 +19,7 @@ export default async function AdminDashboardPage() {
         include: { request: true, business: true, customer: true },
       }),
       prisma.claimRequest.count({ where: { status: "PENDING" } }),
+      prisma.dealFlag.count({ where: { status: "OPEN" } }),
     ]);
 
   const totalCommission = deals
@@ -32,7 +33,18 @@ export default async function AdminDashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-stone-900">Platform overview</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/admin/disputes"
+            className="relative rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            Reported issues
+            {openDisputeCount > 0 && (
+              <span className="ml-2 rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                {openDisputeCount}
+              </span>
+            )}
+          </Link>
           <Link
             href="/dashboard/admin/claims"
             className="relative rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
