@@ -7,9 +7,7 @@ engine ranks every offer on price, business rating, and delivery time — with a
 plain-language explanation of why it's ranked that way. When a customer accepts
 an offer, DealBridge takes a small commission on the deal.
 
-**Netlify site:** https://dealbridge-marketplace.netlify.app (see the note in
-[Deploying](#deploying) — one manual step is needed before this URL serves
-real pages)
+**Netlify site:** https://keen-lokum-35ca76.netlify.app
 
 ## Stack
 
@@ -58,8 +56,9 @@ Visit http://localhost:3000. Demo accounts (all use password `password123`):
 
 ## Deploying
 
-The app is set up to deploy on [Netlify](https://netlify.com), and a site
-(`dealbridge-marketplace`) plus its database already exist:
+The app is deployed on [Netlify](https://netlify.com) as the site
+`keen-lokum-35ca76`, Git-linked to this repository — every push to the linked
+branch deploys automatically:
 
 - `@netlify/database` is a dependency, so Netlify auto-provisions a Postgres
   database (Netlify DB, backed by Neon) and injects it as the `NETLIFY_DB_URL`
@@ -67,33 +66,19 @@ The app is set up to deploy on [Netlify](https://netlify.com), and a site
   Prisma expects.
 - `scripts/netlify-build.sh` (the `build` script) runs `prisma db push` and the
   seed script before `next build`, so the schema and demo data are ready on
-  every deploy. The seed script is idempotent — safe to rerun repeatedly.
+  every deploy. The seed script is idempotent — safe to rerun repeatedly. It
+  never uses `--force-reset`, so real directory data added after the initial
+  seed survives every subsequent deploy.
 - Required environment variables (`JWT_SECRET`, `PLATFORM_COMMISSION_PERCENT`,
-  `NEXT_PUBLIC_APP_URL`) are already set on the Netlify site. `ANTHROPIC_API_KEY`
-  and the `STRIPE_*` keys are optional — add them as Netlify environment
-  variables to enable real AI ranking and real payments.
+  `NEXT_PUBLIC_APP_URL`) are already set on the Netlify site.
+  `ANTHROPIC_API_KEY`, the `STRIPE_*` keys, `GOOGLE_PLACES_API_KEY`, and
+  `RESEND_API_KEY` / `RESEND_FROM_EMAIL` are all optional — see
+  `.env.example` for what each unlocks. The app is fully functional without
+  any of them (deterministic AI fallback, simulated payments, an inert
+  import queue, and log-only email).
 
-**One manual step is still needed to make the site actually serve pages.**
-This app was deployed here using Netlify's upload-a-repo API (no local
-Netlify CLI / auth token was available in that environment), and that
-specific deploy path does not run Netlify's Next.js build plugin — it only
-publishes static assets, so every page currently 404s (this app has no
-static pages at all, since the shared nav bar reads the session cookie on
-every request). Netlify's normal, fully-supported deployment method — a
-Git-linked site — does not have this limitation. To fix it:
-
-1. In the [Netlify dashboard](https://app.netlify.com/projects/dealbridge-marketplace),
-   go to **Site configuration → Build & deploy → Continuous deployment** and
-   link this GitHub repository (branch `claude/middleman-marketplace-website-bun55p`,
-   or your default branch).
-2. Trigger a deploy. Netlify's Git-based build pipeline will auto-detect
-   Next.js, run the build script above, and correctly generate the
-   serverless functions this app's routes need.
-
-After that one-time setup, every future push to the linked branch deploys
-automatically. To deploy your own copy elsewhere, the same steps apply:
-create a Netlify site, link a Git repo, set the environment variables above,
-and deploy.
+To deploy your own copy elsewhere: create a Netlify site, link a Git repo,
+set the environment variables above, and push.
 
 ## How it works
 
@@ -116,8 +101,9 @@ and deploy.
 
 See `.env.example`. `DATABASE_URL` and `JWT_SECRET` are required to run the
 app (in production, `DATABASE_URL` is populated automatically — see
-[Deploying](#deploying)). `ANTHROPIC_API_KEY` and the `STRIPE_*` keys are
-optional — the app degrades gracefully without them.
+[Deploying](#deploying)). `ANTHROPIC_API_KEY`, the `STRIPE_*` keys,
+`GOOGLE_PLACES_API_KEY`, and `RESEND_API_KEY` / `RESEND_FROM_EMAIL` are all
+optional — the app degrades gracefully without any of them.
 
 ## Testing
 
