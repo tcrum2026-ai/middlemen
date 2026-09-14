@@ -124,7 +124,7 @@ export async function markDealCompletedAction(formData: FormData) {
   const dealId = formData.get("dealId");
   if (typeof dealId !== "string" || !dealId) return;
 
-  const businessProfile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
+  const businessProfile = user.businessProfile;
   if (!businessProfile) return;
 
   const deal = await prisma.deal.findUnique({

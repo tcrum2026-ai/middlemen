@@ -52,12 +52,12 @@ export async function editRequestAction(
 
   const existing = await prisma.request.findUnique({
     where: { id: requestId },
-    include: { offers: true },
+    include: { _count: { select: { offers: true } } },
   });
   if (!existing || existing.customerId !== user.id) {
     return { error: "Request not found" };
   }
-  if (existing.status !== "OPEN" || existing.offers.length > 0) {
+  if (existing.status !== "OPEN" || existing._count.offers > 0) {
     return { error: "This request can no longer be edited" };
   }
 

@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import type { Role } from "@prisma/client";
 
@@ -64,7 +65,10 @@ export async function getSessionPayload(): Promise<SessionPayload | null> {
   }
 }
 
-export async function getCurrentUser() {
+// Called independently by the root layout's Nav and by nearly every
+// dashboard page on every request — cache() collapses those into a single
+// lookup per request instead of one per caller.
+export const getCurrentUser = cache(async function getCurrentUser() {
   const session = await getSessionPayload();
   if (!session) return null;
 
@@ -73,7 +77,7 @@ export async function getCurrentUser() {
     include: { businessProfile: true },
   });
   return user;
-}
+});
 
 export async function requireUser() {
   const user = await getCurrentUser();

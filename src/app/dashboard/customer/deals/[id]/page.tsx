@@ -31,13 +31,13 @@ export default async function CustomerDealPage({
       business: true,
       review: true,
       messages: { orderBy: { createdAt: "asc" }, include: { sender: true } },
-      flags: { orderBy: { createdAt: "desc" } },
+      flags: { where: { status: "OPEN" }, take: 1 },
     },
   });
 
   if (!deal || deal.customerId !== user.id) notFound();
 
-  const openFlag = deal.flags.find((f) => f.status === "OPEN");
+  const openFlag = deal.flags[0];
   const canReportIssue = (deal.status === "PAID" || deal.status === "COMPLETED") && !openFlag;
 
   return (

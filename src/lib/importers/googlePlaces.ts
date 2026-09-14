@@ -84,8 +84,6 @@ function findComponent(details: PlaceDetailsResult, type: string) {
 }
 
 export type ImportOutcome = {
-  found: number;
-  qualified: number;
   imported: number;
   updated: number;
 };
@@ -103,14 +101,12 @@ export async function importBusinessesForArea(zipCode: string, category: string)
   }
 
   const results = await textSearch(`${category} near ${zipCode}`, apiKey);
-  const outcome: ImportOutcome = { found: results.length, qualified: 0, imported: 0, updated: 0 };
+  const outcome: ImportOutcome = { imported: 0, updated: 0 };
 
   for (const place of results) {
     if (place.business_status && place.business_status !== "OPERATIONAL") continue;
     if ((place.rating ?? 0) < MIN_SOURCE_RATING) continue;
     if ((place.user_ratings_total ?? 0) < MIN_SOURCE_REVIEWS) continue;
-
-    outcome.qualified++;
 
     const existing = await prisma.businessProfile.findUnique({ where: { placeId: place.place_id } });
     if (existing?.claimed) continue; // never overwrite a claimed listing

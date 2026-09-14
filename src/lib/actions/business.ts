@@ -6,23 +6,8 @@ import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { extractDomain } from "@/lib/domain";
 import { sendNewClaimRequestEmail } from "@/lib/mail";
-import { businessProfileSchema } from "@/lib/validation";
+import { parseListingFields } from "@/lib/listingFields";
 import type { ActionState } from "@/lib/actions/auth";
-
-function parseListingFields(formData: FormData) {
-  return businessProfileSchema.safeParse({
-    companyName: formData.get("companyName"),
-    category: formData.get("category"),
-    description: formData.get("description"),
-    phone: formData.get("phone") ?? "",
-    website: formData.get("website") ?? "",
-    hours: formData.get("hours") ?? "",
-    addressLine: formData.get("addressLine") ?? "",
-    city: formData.get("city") ?? "",
-    state: formData.get("state") ?? "",
-    zipCode: formData.get("zipCode"),
-  });
-}
 
 export async function saveBusinessProfileAction(
   _prevState: ActionState,
@@ -35,12 +20,11 @@ export async function saveBusinessProfileAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const existing = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
-  if (!existing) {
+  if (!user.businessProfile) {
     return { error: "Claim or create a listing first" };
   }
 
-  await prisma.businessProfile.update({ where: { id: existing.id }, data: parsed.data });
+  await prisma.businessProfile.update({ where: { id: user.businessProfile.id }, data: parsed.data });
   revalidatePath("/dashboard/business");
 }
 
@@ -67,8 +51,7 @@ export async function claimBusinessAction(
   }
   const note = formData.get("note");
 
-  const alreadyOwned = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
-  if (alreadyOwned) {
+  if (user.businessProfile) {
     return { error: "You've already claimed or created a listing" };
   }
 
@@ -121,21 +104,39 @@ export async function claimBusinessAction(
   };
 }
 
-/** A business owner creates a brand-new listing when they can't find an existing one to claim. */
+/**
+ * A business owner creates a brand-new listing when they can't find an
+ * existing one to claim. Blocked on a case-insensitive name+ZIP match
+ * against the directory for the same reason claimBusinessAction requires
+ * admin review: without this check, anyone could stand up a duplicate
+ * listing for a business they don't own, complete with its own reviews and
+ * deals, alongside — or in place of — the real one.
+ */
 export async function createOwnListingAction(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
   const user = await requireRole("BUSINESS");
 
-  const alreadyOwned = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
-  if (alreadyOwned) {
+  if (user.businessProfile) {
     return { error: "You've already claimed or created a listing" };
   }
 
   const parsed = parseListingFields(formData);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const existingListing = await prisma.businessProfile.findFirst({
+    where: {
+      companyName: { equals: parsed.data.companyName, mode: "insensitive" },
+      zipCode: parsed.data.zipCode,
+    },
+  });
+  if (existingListing) {
+    return {
+      error: `"${parsed.data.companyName}" already exists in ${parsed.data.zipCode} — claim it instead of creating a duplicate.`,
+    };
   }
 
   await prisma.businessProfile.create({

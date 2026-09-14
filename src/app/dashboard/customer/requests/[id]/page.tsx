@@ -28,9 +28,9 @@ export default async function CustomerRequestDetailPage({
 
   const offerBusinessIds = new Set(request.offers.map((o) => o.businessId));
 
-  const [directoryMatches, ratingSummaries] = await Promise.all([
+  const directoryMatches =
     request.status === "OPEN"
-      ? prisma.businessProfile.findMany({
+      ? await prisma.businessProfile.findMany({
           where: {
             category: request.category,
             zipCode: request.zipCode,
@@ -38,11 +38,12 @@ export default async function CustomerRequestDetailPage({
           },
           take: 6,
         })
-      : Promise.resolve([]),
-    getBusinessRatingSummaries(request.offers.map((o) => o.business.id)),
-  ]);
+      : [];
 
-  const directoryRatings = await getBusinessRatingSummaries(directoryMatches.map((b) => b.id));
+  const ratingSummaries = await getBusinessRatingSummaries([
+    ...offerBusinessIds,
+    ...directoryMatches.map((b) => b.id),
+  ]);
 
   let orderedOffers = request.offers;
 
@@ -155,7 +156,7 @@ export default async function CustomerRequestDetailPage({
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {directoryMatches.map((biz) => {
-              const summary = directoryRatings.get(biz.id);
+              const summary = ratingSummaries.get(biz.id);
               return (
                 <Link
                   key={biz.id}

@@ -6,6 +6,20 @@ import { requireRole } from "@/lib/auth";
 import { sendNewReviewEmail } from "@/lib/mail";
 import type { ActionState } from "@/lib/actions/auth";
 
+function parseReviewInput(formData: FormData): { rating: number; comment: string } | { error: string } {
+  const rating = Number(formData.get("rating"));
+  const comment = String(formData.get("comment") ?? "").trim();
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { error: "Pick a rating from 1 to 5" };
+  }
+  if (comment.length < 5) {
+    return { error: "Please add a short comment about your experience" };
+  }
+
+  return { rating, comment };
+}
+
 export async function submitReviewAction(
   _prevState: ActionState,
   formData: FormData
@@ -17,15 +31,11 @@ export async function submitReviewAction(
     return { error: "Missing business" };
   }
 
-  const rating = Number(formData.get("rating"));
-  const comment = String(formData.get("comment") ?? "").trim();
-
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return { error: "Pick a rating from 1 to 5" };
+  const parsedInput = parseReviewInput(formData);
+  if ("error" in parsedInput) {
+    return { error: parsedInput.error };
   }
-  if (comment.length < 5) {
-    return { error: "Please add a short comment about your experience" };
-  }
+  const { rating, comment } = parsedInput;
 
   const business = await prisma.businessProfile.findUnique({
     where: { id: businessId },
@@ -84,15 +94,11 @@ export async function editReviewAction(
     return { error: "Missing review" };
   }
 
-  const rating = Number(formData.get("rating"));
-  const comment = String(formData.get("comment") ?? "").trim();
-
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return { error: "Pick a rating from 1 to 5" };
+  const parsedInput = parseReviewInput(formData);
+  if ("error" in parsedInput) {
+    return { error: parsedInput.error };
   }
-  if (comment.length < 5) {
-    return { error: "Please add a short comment about your experience" };
-  }
+  const { rating, comment } = parsedInput;
 
   const review = await prisma.review.findUnique({ where: { id: reviewId } });
   if (!review || review.customerId !== user.id) {

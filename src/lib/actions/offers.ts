@@ -17,7 +17,7 @@ export async function createOfferAction(
     return { error: "Missing request" };
   }
 
-  const businessProfile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
+  const businessProfile = user.businessProfile;
   if (!businessProfile) {
     return { error: "Set up your business profile before submitting offers" };
   }
@@ -63,7 +63,7 @@ export async function withdrawOfferAction(formData: FormData) {
   const offerId = formData.get("offerId");
   if (typeof offerId !== "string" || !offerId) return;
 
-  const businessProfile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
+  const businessProfile = user.businessProfile;
   if (!businessProfile) return;
 
   const offer = await prisma.offer.findUnique({

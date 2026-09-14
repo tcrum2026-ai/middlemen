@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { businessListingSchema } from "@/lib/validation";
+import { parseListingFields } from "@/lib/listingFields";
 import type { ActionState } from "@/lib/actions/auth";
 
 export async function addBusinessListingAction(
@@ -12,18 +13,7 @@ export async function addBusinessListingAction(
 ): Promise<ActionState> {
   await requireRole("ADMIN");
 
-  const parsed = businessListingSchema.safeParse({
-    companyName: formData.get("companyName"),
-    category: formData.get("category"),
-    description: formData.get("description"),
-    phone: formData.get("phone") ?? "",
-    website: formData.get("website") ?? "",
-    hours: formData.get("hours") ?? "",
-    addressLine: formData.get("addressLine") ?? "",
-    city: formData.get("city") ?? "",
-    state: formData.get("state") ?? "",
-    zipCode: formData.get("zipCode"),
-  });
+  const parsed = parseListingFields(formData);
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
