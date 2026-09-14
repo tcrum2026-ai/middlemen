@@ -11,6 +11,7 @@ export default async function AdminDisputesPage() {
   const flags = await prisma.dealFlag.findMany({
     where: { status: "OPEN" },
     orderBy: { createdAt: "asc" },
+    take: 200,
     include: {
       reporter: true,
       deal: { include: { request: true, customer: true, business: true } },

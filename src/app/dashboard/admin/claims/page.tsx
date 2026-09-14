@@ -11,6 +11,7 @@ export default async function AdminClaimsPage() {
   const claims = await prisma.claimRequest.findMany({
     where: { status: "PENDING" },
     orderBy: { createdAt: "asc" },
+    take: 200,
     include: { business: true, user: true },
   });
 

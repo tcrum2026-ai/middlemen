@@ -31,6 +31,7 @@ export default async function BrowseRequestsPage({
   const requests = await prisma.request.findMany({
     where,
     orderBy,
+    take: 300,
     include: { offers: { where: { businessId: user.businessProfile.id } } },
   });
 
