@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
 import { computeCommission } from "@/lib/commission";
-import { sendOfferAcceptedEmail } from "@/lib/mail";
+import { sendDealCompletedEmail, sendOfferAcceptedEmail } from "@/lib/mail";
 import { createDealCheckoutSession, isStripeConfigured } from "@/lib/stripe";
 import type { ActionState } from "@/lib/actions/auth";
 
@@ -127,9 +127,20 @@ export async function markDealCompletedAction(formData: FormData) {
   const businessProfile = await prisma.businessProfile.findUnique({ where: { userId: user.id } });
   if (!businessProfile) return;
 
-  const deal = await prisma.deal.findUnique({ where: { id: dealId } });
+  const deal = await prisma.deal.findUnique({
+    where: { id: dealId },
+    include: { request: true, customer: true },
+  });
   if (!deal || deal.businessId !== businessProfile.id || deal.status !== "PAID") return;
 
   await prisma.deal.update({ where: { id: deal.id }, data: { status: "COMPLETED" } });
+
+  await sendDealCompletedEmail(deal.customer.email, {
+    requestTitle: deal.request.title,
+    companyName: businessProfile.companyName,
+    dealId: deal.id,
+  });
+
   revalidatePath("/dashboard/business");
+  revalidatePath(`/dashboard/customer/deals/${deal.id}`);
 }

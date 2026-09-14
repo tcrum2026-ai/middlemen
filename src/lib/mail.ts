@@ -144,6 +144,34 @@ export async function sendDealFlagResolvedEmail(
   });
 }
 
+export async function sendDealCompletedEmail(
+  to: string,
+  params: { requestTitle: string; companyName: string; dealId: string },
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `"${params.requestTitle}" is marked complete — leave a review?`,
+    html: `
+      <p>${params.companyName} marked your deal for "${params.requestTitle}" as complete.</p>
+      <p><a href="${siteUrl()}/dashboard/customer/deals/${params.dealId}">Leave a review</a> to help other customers pick the best business.</p>
+    `,
+  });
+}
+
+export async function sendNewReviewEmail(
+  to: string,
+  params: { customerName: string; rating: number; companyName: string },
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `${params.customerName} left ${params.companyName} a ${params.rating}-star review`,
+    html: `
+      <p>${params.customerName} left a ${params.rating}-star review on your DealBridge listing.</p>
+      <p><a href="${siteUrl()}/dashboard/business">View your reviews</a></p>
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     // Dev/staging fallback so the flow is testable before a Resend domain is

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
+import { sendNewReviewEmail } from "@/lib/mail";
 import type { ActionState } from "@/lib/actions/auth";
 
 export async function submitReviewAction(
@@ -26,7 +27,10 @@ export async function submitReviewAction(
     return { error: "Please add a short comment about your experience" };
   }
 
-  const business = await prisma.businessProfile.findUnique({ where: { id: businessId } });
+  const business = await prisma.businessProfile.findUnique({
+    where: { id: businessId },
+    include: { user: true },
+  });
   if (!business) {
     return { error: "Business not found" };
   }
@@ -55,6 +59,14 @@ export async function submitReviewAction(
     });
   } catch {
     return { error: "You've already reviewed this business" };
+  }
+
+  if (business.user) {
+    await sendNewReviewEmail(business.user.email, {
+      customerName: user.name,
+      rating,
+      companyName: business.companyName,
+    });
   }
 
   revalidatePath(`/businesses/${businessId}`);
