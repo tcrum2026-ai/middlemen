@@ -1,0 +1,68 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ComponentType, SVGProps } from "react";
+import {
+  CalendarIcon,
+  ChartIcon,
+  GearIcon,
+  HomeIcon,
+  InboxIcon,
+  LeadIcon,
+  BookIcon,
+  PhoneIcon,
+  PlugIcon,
+  ShieldIcon,
+  SparkIcon,
+} from "@/components/icons";
+
+export interface NavCounts {
+  inbox: number;
+  calls: number;
+  approvals: number;
+}
+
+const ITEMS: { href: string; label: string; icon: ComponentType<SVGProps<SVGSVGElement>>; badge?: keyof NavCounts }[] = [
+  { href: "/dashboard", label: "Overview", icon: HomeIcon },
+  { href: "/dashboard/inbox", label: "Inbox", icon: InboxIcon, badge: "inbox" },
+  { href: "/dashboard/calls", label: "Call queue", icon: PhoneIcon, badge: "calls" },
+  { href: "/dashboard/approvals", label: "Approvals", icon: ShieldIcon, badge: "approvals" },
+  { href: "/dashboard/appointments", label: "Schedule", icon: CalendarIcon },
+  { href: "/dashboard/leads", label: "Leads", icon: LeadIcon },
+  { href: "/dashboard/knowledge", label: "Knowledge", icon: BookIcon },
+  { href: "/dashboard/integrations", label: "Integrations", icon: PlugIcon },
+  { href: "/dashboard/analytics", label: "Analytics", icon: ChartIcon },
+  { href: "/dashboard/install", label: "Install", icon: SparkIcon },
+  { href: "/dashboard/settings", label: "Settings", icon: GearIcon },
+];
+
+export function DashboardNav({ counts }: { counts: NavCounts }) {
+  const pathname = usePathname();
+
+  return (
+    <nav className="space-y-0.5">
+      {ITEMS.map(({ href, label, icon: Icon, badge }) => {
+        const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+        const count = badge ? counts[badge] : 0;
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+              active ? "bg-ink-850 font-medium text-mist-100" : "text-mist-400 hover:bg-ink-850/60 hover:text-mist-100"
+            }`}
+          >
+            <Icon width={17} height={17} className={active ? "text-jade-400" : ""} />
+            {label}
+            {count > 0 ? (
+              <span className="ml-auto rounded-full bg-ink-700 px-1.5 py-0.5 text-[11px] font-semibold text-mist-100">
+                {count}
+              </span>
+            ) : null}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

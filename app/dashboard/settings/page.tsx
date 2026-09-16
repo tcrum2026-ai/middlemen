@@ -1,0 +1,132 @@
+import { Card, PageHeader } from "@/components/ui";
+import { updateSettingsAction } from "../actions";
+import { activeBusiness } from "@/lib/session";
+
+const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+export default async function SettingsPage() {
+  const business = await activeBusiness();
+
+  return (
+    <div>
+      <PageHeader title="Settings" subtitle="How your assistant sounds, what it may decide alone, and when it works." />
+
+      <form action={updateSettingsAction} className="space-y-5">
+        <Card>
+          <h2 className="font-semibold">Business</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="name">Name</label>
+              <input id="name" name="name" defaultValue={business.name} className="field" />
+            </div>
+            <div>
+              <label className="label" htmlFor="industry">Industry</label>
+              <input id="industry" name="industry" defaultValue={business.industry} className="field" />
+            </div>
+            <div>
+              <label className="label" htmlFor="website">Website</label>
+              <input id="website" name="website" defaultValue={business.website ?? ""} className="field" />
+            </div>
+            <div>
+              <label className="label" htmlFor="email">Support email</label>
+              <input id="email" name="email" defaultValue={business.email ?? ""} className="field" />
+            </div>
+            <div>
+              <label className="label" htmlFor="phone">Phone</label>
+              <input id="phone" name="phone" defaultValue={business.phone ?? ""} className="field" />
+            </div>
+            <div>
+              <label className="label" htmlFor="timezone">Timezone</label>
+              <input id="timezone" name="timezone" defaultValue={business.timezone} className="field" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="services">Services (comma separated)</label>
+              <input id="services" name="services" defaultValue={business.services.join(", ")} className="field" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="font-semibold">Assistant</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="assistant_name">Name</label>
+              <input id="assistant_name" name="assistant_name" defaultValue={business.assistant_name} className="field" />
+            </div>
+            <div>
+              <label className="label" htmlFor="tone">Tone</label>
+              <select id="tone" name="tone" defaultValue={business.tone} className="field">
+                <option value="friendly-professional">Friendly and professional</option>
+                <option value="warm-casual">Warm and casual</option>
+                <option value="brisk-efficient">Brisk and efficient</option>
+                <option value="formal">Formal</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="greeting">Opening line</label>
+              <textarea id="greeting" name="greeting" rows={2} defaultValue={business.greeting} className="field resize-y" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="font-semibold">Guardrails</h2>
+          <p className="mt-1 text-sm text-mist-400">
+            Whatever you set here, calls are never answered by the assistant and refunds always come to you.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="autonomy">Autonomy</label>
+              <select id="autonomy" name="autonomy" defaultValue={business.autonomy} className="field">
+                <option value="cautious">Cautious — draft everything, send nothing</option>
+                <option value="balanced">Balanced — answer and book, escalate money</option>
+                <option value="autonomous">Autonomous — handle quotes and changes too</option>
+              </select>
+            </div>
+            <div>
+              <label className="label" htmlFor="auto_send_threshold">Auto-send confidence threshold</label>
+              <input
+                id="auto_send_threshold"
+                name="auto_send_threshold"
+                type="number"
+                step="0.05"
+                min="0"
+                max="1"
+                defaultValue={business.auto_send_threshold}
+                className="field"
+              />
+              <p className="mt-1.5 text-xs text-mist-400">Below this, the reply waits in Approvals.</p>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="call_handoff_number">Number your team answers</label>
+              <input
+                id="call_handoff_number"
+                name="call_handoff_number"
+                defaultValue={business.call_handoff_number ?? ""}
+                className="field"
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="font-semibold">Working hours</h2>
+          <p className="mt-1 text-sm text-mist-400">Bookings are only offered inside these windows. Use “closed” for days off.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {DAYS.map((day) => (
+              <div key={day}>
+                <label className="label capitalize" htmlFor={`hours_${day}`}>{day}</label>
+                <input id={`hours_${day}`} name={`hours_${day}`} defaultValue={business.hours[day] ?? "closed"} className="field" />
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="flex items-center gap-3">
+          <button className="btn btn-primary">Save changes</button>
+          <p className="text-xs text-mist-400">Applies to the next message your assistant handles.</p>
+        </div>
+      </form>
+    </div>
+  );
+}
