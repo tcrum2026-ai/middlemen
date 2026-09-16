@@ -65,11 +65,30 @@ language, it picks from written responses.
 3. Or skip the website entirely: `/chat/<widget-key>` is a hosted chat page for a QR code
    or link in bio, and `POST /api/chat` is the same endpoint behind email and SMS.
 
+## The sales site
+
+The marketing surface is part of the product, not a wrapper around it:
+
+- **A live assistant in the hero**, wired to the demo workspace — visitors can try to catch it inventing a price.
+- **“Watch it work”** steps through one 9:47pm message and names every record each tool call reads or writes.
+- **An ROI calculator** built on the visitor's own numbers (volume, miss rate, close rate, job value) rather than
+  industry statistics, with its assumptions stated on the page.
+- **An honest comparison table** against AI voice receptionists, answering services, chatbots and doing nothing —
+  including a section on when to buy something else instead.
+- **Six industry pages** at `/for/<trade>` (home services, dental, salon, legal, real estate, auto repair), each
+  with its own sample conversation, day-one knowledge list, and what always reaches a person.
+- Guardrails section, annual/monthly pricing, objection-handling FAQ, generated OG image, sitemap and structured
+  data.
+
+There are deliberately no testimonials or customer counts — this product has no customers yet, and inventing them
+is the one thing a page about not making things up shouldn't do.
+
 ## Layout
 
 ```
 app/
-  page.tsx              marketing site with a live assistant demo
+  page.tsx              sales site with a live assistant demo
+  for/[industry]/       per-trade landing pages
   connect/              four-step onboarding wizard
   chat/[key]/           hosted chat page
   dashboard/            inbox, calls, approvals, schedule, leads,
@@ -77,6 +96,8 @@ app/
   api/chat/             public chat endpoint (CORS-open, widget-key scoped)
   api/onboarding/       creates a workspace
 lib/
+  marketing.ts          sales-site copy (capabilities, plans, FAQ, comparison)
+  industries.ts         per-trade content
   assistant.ts          Claude tool-use engine + scripted fallback
   repo.ts               data access
   db.ts                 SQLite schema
