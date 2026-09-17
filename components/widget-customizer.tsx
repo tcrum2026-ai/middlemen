@@ -66,8 +66,8 @@ export function WidgetCustomizer({
   const onAccent = readableOn(accent);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-      <div className="card space-y-4 p-5">
+    <div className="grid min-w-0 gap-5 lg:grid-cols-[1fr_1fr]">
+      <div className="card min-w-0 space-y-4 p-5">
         <div>
           <label className="label" htmlFor="widget-title">Launcher text</label>
           <input
@@ -134,7 +134,7 @@ export function WidgetCustomizer({
           </div>
         </div>
 
-        <div className="rounded-lg border border-ink-700 bg-ink-950">
+        <div className="min-w-0 rounded-lg border border-ink-700 bg-ink-950">
           <div className="flex items-center justify-between border-b border-ink-700 px-3 py-2">
             <span className="text-xs text-mist-400">Your snippet</span>
             <button onClick={copy} className="text-xs font-medium text-jade-400 hover:underline">
@@ -148,9 +148,9 @@ export function WidgetCustomizer({
       </div>
 
       {/* Preview of a customer's page, not of this dashboard. */}
-      <div className="card overflow-hidden !p-0">
+      <div className="card min-w-0 overflow-hidden !p-0">
         <div className="border-b border-ink-700 px-4 py-2 text-xs text-mist-400">Preview</div>
-        <div className="relative h-[27rem] bg-[#fbfbfa] p-5">
+        <div className="relative h-[27rem] overflow-hidden bg-[#fbfbfa] p-5">
           <div className="space-y-2">
             <div className="h-3 w-28 rounded bg-[#e6e6e1]" />
             <div className="h-6 w-52 rounded bg-[#dcdcd6]" />
@@ -159,7 +159,7 @@ export function WidgetCustomizer({
           </div>
 
           <div
-            className={`absolute bottom-16 w-[17rem] overflow-hidden rounded-2xl border border-[#212733] bg-[#0b0d11] shadow-2xl ${
+            className={`absolute bottom-16 w-[min(17rem,calc(100%-2.5rem))] overflow-hidden rounded-2xl border border-[#212733] bg-[#0b0d11] shadow-2xl ${
               position === "right" ? "right-5" : "left-5"
             }`}
           >
@@ -196,7 +196,7 @@ export function WidgetCustomizer({
           </div>
 
           <div
-            className={`absolute bottom-5 flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold shadow-lg ${
+            className={`absolute bottom-5 flex max-w-[calc(100%-2.5rem)] items-center gap-2 truncate rounded-full px-4 py-2.5 text-[13px] font-semibold shadow-lg ${
               position === "right" ? "right-5" : "left-5"
             }`}
             style={{ background: accent, color: onAccent }}

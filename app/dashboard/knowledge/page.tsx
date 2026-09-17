@@ -36,7 +36,7 @@ export default async function KnowledgePage() {
           ) : (
             articles.map((article) => (
               <Card key={article.id} className="!p-0">
-                <div className="flex items-center gap-3 border-b border-ink-700 px-5 py-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-ink-700 px-5 py-3">
                   <h2 className="min-w-0 flex-1 truncate font-semibold">{article.title}</h2>
                   {isPlaceholder(article) ? <Badge tone="amber">placeholder</Badge> : null}
                   <span className="text-xs text-mist-400">

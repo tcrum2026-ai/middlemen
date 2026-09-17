@@ -92,9 +92,11 @@
 
   var panel = document.createElement("div");
   panel.className = "panel";
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-label", title);
   panel.innerHTML =
     '<div class="head"><span class="dot"></span><strong></strong><button aria-label="Close">&times;</button></div>' +
-    '<div class="log"></div>' +
+    '<div class="log" role="log" aria-live="polite" aria-label="Conversation"></div>' +
     '<form><input type="text" placeholder="Type your message…" aria-label="Message" /><button type="submit">Send</button></form>' +
     '<div class="foot">Answers are AI. Calls are handled by our team.</div>';
   root.appendChild(panel);

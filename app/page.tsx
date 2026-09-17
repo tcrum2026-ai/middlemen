@@ -7,6 +7,8 @@ import { Mechanism } from "@/components/marketing/mechanism";
 import { Comparison } from "@/components/marketing/comparison";
 import { Trust } from "@/components/marketing/trust";
 import { Pricing } from "@/components/marketing/pricing";
+import { WorkspaceShowcase } from "@/components/marketing/workspace-showcase";
+import { Reveal } from "@/components/marketing/reveal";
 import { Badge } from "@/components/ui";
 import {
   ArrowIcon,
@@ -44,8 +46,12 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-ink-950">
+      <a href="#content" className="skip-link">
+        Skip to content
+      </a>
       <SiteNav />
 
+      <main id="content">
       {/* hero */}
       <section className="relative overflow-hidden">
         <div
@@ -137,6 +143,24 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* workspace */}
+      <section id="workspace" className="border-t border-ink-800 bg-ink-900/40 py-20">
+        <div className="mx-auto max-w-6xl px-5">
+          <Reveal>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-jade-400">The workspace</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
+              This is what you open on Monday.
+            </h2>
+            <p className="mt-3 max-w-2xl text-mist-400">
+              Five screens do the work. The rest of the product exists to keep these five honest.
+            </p>
+            <div className="mt-10">
+              <WorkspaceShowcase />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* the math */}
       <section id="math" className="border-t border-ink-800 bg-ink-900/40 py-20">
         <div className="mx-auto max-w-6xl px-5">
@@ -157,6 +181,7 @@ export default async function LandingPage() {
       {/* capabilities */}
       <section id="capabilities" className="border-t border-ink-800 py-20">
         <div className="mx-auto max-w-6xl px-5">
+          <Reveal>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-jade-400">Capabilities</p>
           <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
             Everything a good front desk does, minus the phone.
@@ -180,6 +205,7 @@ export default async function LandingPage() {
               );
             })}
           </div>
+          </Reveal>
         </div>
       </section>
 
@@ -245,6 +271,7 @@ export default async function LandingPage() {
       {/* comparison */}
       <section id="compare" className="border-t border-ink-800 py-20">
         <div className="mx-auto max-w-6xl px-5">
+          <Reveal>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-jade-400">Compare</p>
           <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
             Against the things you&apos;re actually choosing between.
@@ -256,6 +283,7 @@ export default async function LandingPage() {
           <div className="mt-10">
             <Comparison />
           </div>
+          </Reveal>
         </div>
       </section>
 
@@ -297,6 +325,7 @@ export default async function LandingPage() {
       {/* trust */}
       <section id="trust" className="border-t border-ink-800 py-20">
         <div className="mx-auto max-w-6xl px-5">
+          <Reveal>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-jade-400">Guardrails</p>
           <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
             Six reasons this won&apos;t embarrass you.
@@ -308,6 +337,7 @@ export default async function LandingPage() {
           <div className="mt-10">
             <Trust />
           </div>
+          </Reveal>
         </div>
       </section>
 
@@ -417,6 +447,8 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      </main>
 
       <SiteFooter />
     </div>

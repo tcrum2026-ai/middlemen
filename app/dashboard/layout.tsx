@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DashboardNav } from "./nav";
+import { MobileNav } from "./mobile-nav";
 import { switchBusinessAction } from "./actions";
 import { BusinessSwitcher } from "./business-switcher";
 import { Logo } from "@/components/ui";
@@ -21,37 +22,44 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <div className="min-h-screen bg-ink-950">
       <header className="sticky top-0 z-20 border-b border-ink-800 bg-ink-950/90 backdrop-blur">
-        <div className="flex items-center gap-4 px-5 py-3">
-          <Link href="/">
+        <div className="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5">
+          <MobileNav counts={counts} />
+          <Link href="/" className="hidden sm:block">
             <Logo />
           </Link>
 
-          <BusinessSwitcher
-            businesses={businesses}
-            current={business.id}
-            action={switchBusinessAction}
-          />
+          <div className="min-w-0 max-w-[12rem] sm:max-w-none">
+            <BusinessSwitcher
+              businesses={businesses}
+              current={business.id}
+              action={switchBusinessAction}
+            />
+          </div>
 
-          <div className="ml-auto flex items-center gap-3 text-xs text-mist-400">
+          <div className="ml-auto flex shrink-0 items-center gap-3 text-xs text-mist-400">
             {assistantConfigured() ? (
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-jade-500" />
-                Assistant live
+                <span className="hidden sm:inline">Assistant live</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-ink-700 px-2 py-1">
+              <span
+                title="No ANTHROPIC_API_KEY set — replies come from the scripted fallback"
+                className="inline-flex items-center gap-1.5 rounded-full border border-ink-700 px-2 py-1"
+              >
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-glow" />
-                Scripted mode — set ANTHROPIC_API_KEY
+                <span className="hidden sm:inline">Scripted mode — set ANTHROPIC_API_KEY</span>
+                <span className="sm:hidden">Scripted</span>
               </span>
             )}
-            <Link href="/connect" className="btn btn-ghost px-3 py-1.5">
+            <Link href="/connect" className="btn btn-ghost hidden px-3 py-1.5 sm:inline-flex">
               Add business
             </Link>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-[92rem] gap-6 px-5 py-6">
+      <div className="mx-auto flex max-w-[92rem] gap-6 px-4 py-6 sm:px-5">
         <aside className="hidden w-52 shrink-0 lg:block">
           <DashboardNav counts={counts} />
         </aside>

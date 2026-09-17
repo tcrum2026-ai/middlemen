@@ -85,7 +85,13 @@ export function ChatPanel({
         </span>
       </div>
 
-      <div ref={scroller} className={`flex-1 space-y-3 overflow-y-auto px-4 py-4 ${heightClass}`}>
+      <div
+        ref={scroller}
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation"
+        className={`flex-1 space-y-3 overflow-y-auto px-4 py-4 ${heightClass}`}
+      >
         {messages.map((message, index) => (
           <div key={index} className={message.role === "customer" ? "flex justify-end" : "flex justify-start"}>
             <div className="max-w-[85%] space-y-2">
@@ -117,7 +123,10 @@ export function ChatPanel({
 
         {busy ? (
           <div className="flex justify-start">
-            <div className="flex gap-1 rounded-2xl border border-ink-700 bg-ink-850 px-3.5 py-3">
+            <div
+              aria-label="Assistant is typing"
+              className="flex gap-1 rounded-2xl border border-ink-700 bg-ink-850 px-3.5 py-3"
+            >
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}

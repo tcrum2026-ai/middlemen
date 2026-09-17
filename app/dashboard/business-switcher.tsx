@@ -17,7 +17,7 @@ export function BusinessSwitcher({
         name="business_id"
         defaultValue={current}
         onChange={(event) => event.currentTarget.form?.requestSubmit()}
-        className="rounded-lg border border-ink-700 bg-ink-900 px-2.5 py-1.5 text-sm text-mist-100"
+        className="w-full min-w-0 truncate rounded-lg border border-ink-700 bg-ink-900 px-2.5 py-1.5 text-sm text-mist-100"
         aria-label="Active workspace"
       >
         {businesses.map((business) => (

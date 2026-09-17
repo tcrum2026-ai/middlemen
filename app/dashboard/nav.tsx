@@ -45,7 +45,7 @@ const ITEMS: { href: string; label: string; icon: ComponentType<SVGProps<SVGSVGE
   { href: "/dashboard/settings", label: "Settings", icon: GearIcon },
 ];
 
-export function DashboardNav({ counts }: { counts: NavCounts }) {
+export function DashboardNav({ counts, onNavigate }: { counts: NavCounts; onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -57,6 +57,7 @@ export function DashboardNav({ counts }: { counts: NavCounts }) {
           <Link
             key={href}
             href={href}
+            onClick={onNavigate}
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
               active ? "bg-ink-850 font-medium text-mist-100" : "text-mist-400 hover:bg-ink-850/60 hover:text-mist-100"
             }`}

@@ -41,7 +41,7 @@ export default async function IntegrationsPage() {
                 .map(([provider, meta]) => {
                   const connected = status.get(provider) === "connected";
                   return (
-                    <Card key={provider} className="flex items-center gap-3">
+                    <Card key={provider} className="flex min-w-0 flex-wrap items-center gap-3">
                       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-sm font-semibold text-mist-300">
                         {meta.label.slice(0, 2)}
                       </span>

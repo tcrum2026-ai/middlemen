@@ -124,6 +124,10 @@ The marketing surface is part of the product, not a wrapper around it:
 - Guardrails section, annual/monthly pricing, objection-handling FAQ, generated OG image, sitemap and structured
   data.
 
+A **workspace showcase** on the landing page walks through the five screens that do the
+work (inbox, call queue, approvals, playground, analytics) as real markup rather than
+screenshots, so it never goes stale against the product.
+
 There are deliberately no testimonials or customer counts — this product has no customers yet, and inventing them
 is the one thing a page about not making things up shouldn't do.
 
@@ -161,6 +165,21 @@ public/widget.js        embeddable widget (shadow DOM, no dependencies)
 Next.js 15 (App Router, server components, server actions), TypeScript, Tailwind v4,
 SQLite via better-sqlite3, `@anthropic-ai/sdk`. Data lives in `.data/middlemen.db`
 (override with `MIDDLEMEN_DATA_DIR`).
+
+## Accessibility and robustness
+
+- Skip link is the first tab stop; focus rings are visible throughout.
+- Chat transcripts are `role="log"` with `aria-live="polite"`, in both the app and the
+  embedded widget.
+- Scroll reveals are pure enhancement: a `<noscript>` rule keeps every section visible
+  without JS, `prefers-reduced-motion` disables them, and the visibility check is
+  position-based rather than `IntersectionObserver` — an observer only fires on threshold
+  crossings, so a deep link or a jump to the bottom would otherwise leave sections stuck
+  invisible.
+- The dashboard has a real mobile drawer; every page is checked at 390px and 1440px for
+  horizontal overflow, console errors, and exactly one `h1`.
+- Widget text colour is chosen against the accent by WCAG contrast ratio, so a dark brand
+  colour can't produce an unreadable launcher.
 
 ## Notes and limits
 

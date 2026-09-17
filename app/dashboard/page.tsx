@@ -90,7 +90,7 @@ export default async function OverviewPage({
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <Card className="!p-0">
+        <Card className="!p-0 min-w-0">
           <div className="flex items-center justify-between border-b border-ink-700 px-5 py-3.5">
             <h2 className="inline-flex items-center gap-2 font-semibold">
               <PhoneIcon width={16} height={16} className="text-amber-glow" />
@@ -118,7 +118,7 @@ export default async function OverviewPage({
           </div>
         </Card>
 
-        <Card className="!p-0">
+        <Card className="!p-0 min-w-0">
           <div className="flex items-center justify-between border-b border-ink-700 px-5 py-3.5">
             <h2 className="inline-flex items-center gap-2 font-semibold">
               <ShieldIcon width={16} height={16} className="text-iris" />
@@ -153,7 +153,7 @@ export default async function OverviewPage({
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        <Card className="!p-0 lg:col-span-2">
+        <Card className="!p-0 min-w-0 lg:col-span-2">
           <div className="flex items-center justify-between border-b border-ink-700 px-5 py-3.5">
             <h2 className="font-semibold">Recent conversations</h2>
             <Link href="/dashboard/inbox" className="text-xs text-mist-400 hover:text-mist-100">
@@ -165,14 +165,16 @@ export default async function OverviewPage({
               <Link
                 key={conversation.id}
                 href={`/dashboard/inbox/${conversation.id}`}
-                className="flex items-center gap-3 px-5 py-3.5 transition hover:bg-ink-850/50"
+                className="flex min-w-0 items-center gap-3 px-5 py-3.5 transition hover:bg-ink-850/50"
               >
                 <Badge tone={conversation.handled_by === "ai" ? "jade" : "iris"}>
                   {conversation.handled_by === "ai" ? "AI" : "Human"}
                 </Badge>
                 <span className="min-w-0 flex-1 truncate text-sm">{conversation.subject}</span>
-                <span className="text-xs uppercase tracking-wide text-mist-400">{conversation.channel}</span>
-                <span className="w-16 text-right text-xs text-mist-400">
+                <span className="hidden text-xs uppercase tracking-wide text-mist-400 sm:inline">
+                  {conversation.channel}
+                </span>
+                <span className="shrink-0 text-right text-xs text-mist-400">
                   {relativeTime(conversation.last_message_at)}
                 </span>
               </Link>
@@ -180,7 +182,7 @@ export default async function OverviewPage({
           </div>
         </Card>
 
-        <Card className="!p-0">
+        <Card className="!p-0 min-w-0">
           <div className="border-b border-ink-700 px-5 py-3.5">
             <h2 className="font-semibold">Next up</h2>
           </div>
@@ -206,7 +208,7 @@ export default async function OverviewPage({
         </div>
         <ul className="divide-y divide-ink-800">
           {events.map((event) => (
-            <li key={event.id} className="flex items-center gap-3 px-5 py-3 text-sm">
+            <li key={event.id} className="flex min-w-0 items-center gap-3 px-5 py-3 text-sm">
               <Badge tone={event.handled_by === "ai" ? "jade" : "iris"}>{event.handled_by === "ai" ? "AI" : "Human"}</Badge>
               <span className="min-w-0 flex-1 truncate text-mist-300">{event.summary}</span>
               <span className="text-xs text-mist-400">{relativeTime(event.created_at)}</span>

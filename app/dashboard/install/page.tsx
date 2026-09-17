@@ -26,7 +26,7 @@ export default async function InstallPage() {
       />
 
       <div className="grid gap-5 xl:grid-cols-[1fr_19rem]">
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <section>
             <h2 className="mb-2 font-semibold">1. Make it yours, then paste it before &lt;/body&gt;</h2>
             <WidgetCustomizer
