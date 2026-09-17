@@ -1,5 +1,7 @@
 import { Card, PageHeader } from "@/components/ui";
 import { updateSettingsAction } from "../actions";
+import { ConnectionTest } from "@/components/connection-test";
+import { assistantConfigured } from "@/lib/assistant";
 import { activeBusiness } from "@/lib/session";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -127,6 +129,10 @@ export default async function SettingsPage() {
           <p className="text-xs text-mist-400">Applies to the next message your assistant handles.</p>
         </div>
       </form>
+
+      <Card className="mt-5">
+        <ConnectionTest initiallyConfigured={assistantConfigured()} />
+      </Card>
 
       <Card className="mt-5">
         <h2 className="font-semibold">Your data</h2>

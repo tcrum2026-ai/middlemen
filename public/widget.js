@@ -24,6 +24,30 @@
 
   var origin = new URL(script.src, window.location.href).origin;
   var accent = script.getAttribute("data-accent") || "#19c37d";
+
+  /**
+   * Picks black or white for text sitting on the accent, so a dark brand colour
+   * doesn't produce an unreadable launcher.
+   */
+  function readableOn(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim());
+    if (!m) return "#07080a";
+    var n = parseInt(m[1], 16);
+    var channel = function (c) {
+      var s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    var luminance =
+      0.2126 * channel((n >> 16) & 255) +
+      0.7152 * channel((n >> 8) & 255) +
+      0.0722 * channel(n & 255);
+    // WCAG contrast against black vs white; take whichever reads better.
+    var onBlack = (luminance + 0.05) / 0.05;
+    var onWhite = 1.05 / (luminance + 0.05);
+    return onBlack >= onWhite ? "#07080a" : "#ffffff";
+  }
+
+  var onAccent = readableOn(accent);
   var title = script.getAttribute("data-title") || "Chat with us";
   var side = script.getAttribute("data-position") === "left" ? "left" : "right";
   var greeting = script.getAttribute("data-greeting") || "Hi! Ask me anything — pricing, availability, booking.";
@@ -39,7 +63,7 @@
     "* { box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }",
     ".launcher { position: fixed; bottom: 20px; " + side + ": 20px; z-index: 2147483000;",
     "  display: flex; align-items: center; gap: 8px; border: 0; border-radius: 999px;",
-    "  padding: 13px 18px; background: " + accent + "; color: #07080a; font-size: 15px; font-weight: 600;",
+    "  padding: 13px 18px; background: " + accent + "; color: " + onAccent + "; font-size: 15px; font-weight: 600;",
     "  cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,.28); }",
     ".panel { position: fixed; bottom: 88px; " + side + ": 20px; z-index: 2147483000;",
     "  width: 370px; max-width: calc(100vw - 32px); height: 520px; max-height: calc(100vh - 120px);",
@@ -54,14 +78,14 @@
     ".log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }",
     ".msg { max-width: 85%; padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }",
     ".them { align-self: flex-start; background: #161a23; border: 1px solid #212733; }",
-    ".me { align-self: flex-end; background: " + accent + "; color: #07080a; }",
+    ".me { align-self: flex-end; background: " + accent + "; color: " + onAccent + "; }",
     ".acts { align-self: flex-start; font-size: 11px; color: #8d96ab; padding-left: 4px; }",
     "form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #212733; }",
     "input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 9px; border: 1px solid #212733;",
     "  background: #07080a; color: #e7eaf1; font-size: 14px; outline: none; }",
     "input:focus { border-color: " + accent + "; }",
     "form button { border: 0; border-radius: 9px; padding: 0 14px; background: " + accent + ";",
-    "  color: #07080a; font-weight: 600; font-size: 14px; cursor: pointer; }",
+    "  color: " + onAccent + "; font-weight: 600; font-size: 14px; cursor: pointer; }",
     ".foot { padding: 0 14px 10px; font-size: 11px; color: #5c6476; text-align: center; }",
   ].join("\n");
   root.appendChild(style);

@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { Card, PageHeader } from "@/components/ui";
 import { CopyBlock } from "@/components/copy-block";
+import { WidgetCustomizer } from "@/components/widget-customizer";
 import { activeBusiness } from "@/lib/session";
 
 export default async function InstallPage() {
@@ -9,11 +10,6 @@ export default async function InstallPage() {
   const host = headerList.get("host") ?? "localhost:3000";
   const protocol = host.startsWith("localhost") ? "http" : "https";
   const origin = `${protocol}://${host}`;
-
-  const snippet = `<script src="${origin}/widget.js"
-        data-key="${business.widget_key}"
-        data-title="Chat with ${business.name}"
-        defer></script>`;
 
   const apiExample = `curl -X POST ${origin}/api/chat \\
   -H "Content-Type: application/json" \\
@@ -29,15 +25,19 @@ export default async function InstallPage() {
         subtitle="One line on your site and your assistant is answering. No build step, no framework, no dependencies."
       />
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
+      <div className="grid gap-5 xl:grid-cols-[1fr_19rem]">
         <div className="space-y-5">
           <section>
-            <h2 className="mb-2 font-semibold">1. Paste this before &lt;/body&gt;</h2>
-            <CopyBlock code={snippet} label="Website widget" />
+            <h2 className="mb-2 font-semibold">1. Make it yours, then paste it before &lt;/body&gt;</h2>
+            <WidgetCustomizer
+              origin={origin}
+              widgetKey={business.widget_key}
+              businessName={business.name}
+              defaultGreeting={business.greeting}
+            />
             <p className="mt-2 text-xs text-mist-400">
-              Optional attributes: <code className="font-mono">data-accent</code>,{" "}
-              <code className="font-mono">data-position</code> (left or right),{" "}
-              <code className="font-mono">data-greeting</code>.
+              The snippet carries your choices as data attributes — nothing to save here, and no build step on your
+              side.
             </p>
           </section>
 
