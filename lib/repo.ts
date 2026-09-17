@@ -1156,3 +1156,114 @@ export function contactTimeline(businessId: string, contactId: string): ContactT
 
   return items.sort((a, b) => (a.at < b.at ? 1 : -1));
 }
+
+/* ------------------------------------------------------------- setup state */
+
+export interface SetupStep {
+  id: string;
+  title: string;
+  body: string;
+  href: string;
+  cta: string;
+  done: boolean;
+}
+
+/**
+ * Derived entirely from what's actually in the workspace — nothing here is a
+ * checkbox someone can tick without doing the work.
+ */
+export function setupSteps(businessId: string): SetupStep[] {
+  const business = getBusiness(businessId);
+  const articles = listKb(businessId);
+  const real = articles.filter((article) => !isPlaceholder(article));
+  const stubs = articles.filter(isPlaceholder);
+  const conversations = listConversations(businessId);
+  const events = getDb()
+    .prepare("SELECT COUNT(*) AS count FROM events WHERE business_id = ? AND kind = 'readiness_check'")
+    .get(businessId) as { count: number };
+
+  return [
+    {
+      id: "knowledge",
+      title: "Teach it what you know",
+      body: "Prices, hours, policies. Three solid articles is enough to start answering.",
+      href: "/dashboard/knowledge",
+      cta: "Add knowledge",
+      done: real.length >= 3,
+    },
+    {
+      id: "placeholders",
+      title: "Replace the placeholders",
+      body: "Unedited starter articles are treated as missing — the assistant won't quote them.",
+      href: "/dashboard/knowledge",
+      cta: "Finish them",
+      done: stubs.length === 0,
+    },
+    {
+      id: "calls",
+      title: "Say who takes the calls",
+      body: "Callbacks are queued for a person. Tell us which number your team answers.",
+      href: "/dashboard/settings",
+      cta: "Set the number",
+      done: Boolean(business?.call_handoff_number),
+    },
+    {
+      id: "playground",
+      title: "Test it before anyone sees it",
+      body: "Run the readiness check and see which common questions you can't answer yet.",
+      href: "/dashboard/playground",
+      cta: "Run the check",
+      done: events.count > 0,
+    },
+    {
+      id: "live",
+      title: "Put it in front of customers",
+      body: "One script tag, a hosted link, or your forwarded inbox.",
+      href: "/dashboard/install",
+      cta: "Get the snippet",
+      done: conversations.length > 0,
+    },
+    {
+      id: "team",
+      title: "Add whoever answers the phone",
+      body: "Teammates share the inbox, the call queue and approvals.",
+      href: "/dashboard/team",
+      cta: "Add a teammate",
+      done: listTeammates(businessId).length > 0,
+    },
+  ];
+}
+
+/* ----------------------------------------------------------------- usage */
+
+export interface Usage {
+  conversationsThisMonth: number;
+  messagesThisMonth: number;
+  aiHandled: number;
+  escalated: number;
+  callsQueued: number;
+  followUpsSent: number;
+  /** Plan allowance for the seeded demo plan. */
+  included: number;
+}
+
+export function usage(businessId: string, included = 2500): Usage {
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const since = monthStart.toISOString();
+
+  const conversations = listConversations(businessId).filter((c) => c.created_at >= since);
+  const messages = conversations.reduce((sum, c) => sum + listMessages(c.id).length, 0);
+  const events = listEvents(businessId, 2000).filter((event) => event.created_at >= since);
+
+  return {
+    conversationsThisMonth: conversations.length,
+    messagesThisMonth: messages,
+    aiHandled: events.filter((e) => e.handled_by === "ai").length,
+    escalated: events.filter((e) => e.kind === "chat_escalated" || e.kind === "call_queued").length,
+    callsQueued: listCallRequests(businessId).filter((c) => c.created_at >= since).length,
+    followUpsSent: listFollowUps(businessId).filter((f) => f.status === "sent").length,
+    included,
+  };
+}

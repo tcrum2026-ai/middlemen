@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
 import { runAssistantTurn } from "@/lib/assistant";
+import { logEvent } from "@/lib/repo";
 import { activeBusiness } from "@/lib/session";
 import type { Business, Conversation, Message } from "@/lib/types";
 
@@ -103,6 +104,15 @@ export async function POST(request: Request) {
         verdict: verdict(turn.actions, turn.escalated),
       });
     }
+    // The dry run itself writes no customer records; this only notes that the
+    // owner ran the check, which the setup checklist reads.
+    logEvent({
+      business_id: business.id,
+      kind: "readiness_check",
+      summary: `Readiness check: ${results.filter((r) => r.verdict === "no-knowledge").length} gap(s) of ${results.length}`,
+      handled_by: "human",
+    });
+
     return NextResponse.json({ mode: "suite", results });
   }
 

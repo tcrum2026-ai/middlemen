@@ -41,6 +41,7 @@ const ITEMS: { href: string; label: string; icon: ComponentType<SVGProps<SVGSVGE
   { href: "/dashboard/team", label: "Team", icon: LeadIcon },
   { href: "/dashboard/analytics", label: "Analytics", icon: ChartIcon },
   { href: "/dashboard/install", label: "Install", icon: SparkIcon },
+  { href: "/dashboard/billing", label: "Billing", icon: ChartIcon },
   { href: "/dashboard/settings", label: "Settings", icon: GearIcon },
 ];
 

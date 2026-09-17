@@ -44,6 +44,18 @@ flow that ends in one line of code.
 An unedited placeholder article is never quoted to a customer — the assistant treats it as
 missing knowledge and says it doesn't know, which is the honest answer.
 
+A **setup checklist** on the overview is derived entirely from workspace state — real
+articles written, placeholders cleared, callback number set, readiness check actually run,
+first conversation received, teammate added. Nothing there can be ticked without doing it.
+
+**Billing & usage** (`/dashboard/billing`) shows the plan, conversations against the
+allowance, a breakdown of what the month actually contained, and what happens if you stop.
+
+**Export** (`/api/export`) hands back contacts, leads, conversations, appointments, call
+briefs and knowledge as CSV, or the whole workspace as JSON — no request form, no waiting
+period. It's reachable from Settings and from the billing page, because "your data leaves
+when you do" should be a button, not a paragraph.
+
 ### Starter packs
 
 Six trade packs (`lib/templates.ts`) load real articles — pricing, hours, policies, warranty

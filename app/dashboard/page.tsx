@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, Card, PageHeader, StatTile, formatDateTime, relativeTime, usd } from "@/components/ui";
 import { ArrowIcon, PhoneIcon, ShieldIcon, SparkIcon } from "@/components/icons";
+import { SetupChecklist } from "@/components/setup-checklist";
 import { activeBusiness } from "@/lib/session";
 import {
   listAppointments,
@@ -9,6 +10,7 @@ import {
   listConversations,
   listEvents,
   metrics,
+  setupSteps,
 } from "@/lib/repo";
 
 export default async function OverviewPage({
@@ -26,6 +28,7 @@ export default async function OverviewPage({
     .slice(0, 4);
   const conversations = listConversations(business.id).slice(0, 5);
   const events = listEvents(business.id, 6);
+  const steps = setupSteps(business.id);
 
   return (
     <div>
@@ -44,6 +47,8 @@ export default async function OverviewPage({
           </Link>
         </div>
       ) : null}
+
+      <SetupChecklist steps={steps} />
 
       <PageHeader
         title={`Good to see you, ${business.name}`}

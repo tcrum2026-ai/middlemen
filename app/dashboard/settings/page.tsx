@@ -127,6 +127,28 @@ export default async function SettingsPage() {
           <p className="text-xs text-mist-400">Applies to the next message your assistant handles.</p>
         </div>
       </form>
+
+      <Card className="mt-5">
+        <h2 className="font-semibold">Your data</h2>
+        <p className="mt-1 text-sm text-mist-400">
+          Everything in this workspace, in formats you can open. No request form, no waiting period.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            ["all", "Everything (JSON)"],
+            ["contacts", "Contacts (CSV)"],
+            ["leads", "Leads (CSV)"],
+            ["conversations", "Conversations (CSV)"],
+            ["appointments", "Appointments (CSV)"],
+            ["calls", "Call briefs (CSV)"],
+            ["knowledge", "Knowledge base (CSV)"],
+          ].map(([type, label]) => (
+            <a key={type} href={`/api/export?type=${type}`} className="btn btn-ghost px-3 py-1.5 text-xs">
+              {label}
+            </a>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
