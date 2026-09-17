@@ -3,6 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaTool } from "@anthropic-ai/sdk/helpers/beta/json-schema";
 import {
   availableSlots,
+  hasConfidentKbMatch,
+  recordKbGap,
   createAppointment,
   createApproval,
   createCallRequest,
@@ -94,7 +96,10 @@ function buildTools(
   conversation: Conversation,
   record: (action: AssistantAction) => void,
   markEscalated: () => void,
+  /** In dry-run the write tools report what they would do and persist nothing. */
+  dryRun = false,
 ) {
+  const wouldHave = (text: string) => (dryRun ? `[dry run — nothing was saved] ${text}` : text);
   const searchKnowledge = betaTool({
     name: "search_knowledge",
     description:
@@ -114,6 +119,7 @@ function buildTools(
         detail: articles.length ? articles.map((a) => a.title).join(" · ") : `No match for "${input.query}"`,
       });
       if (articles.length === 0) {
+        if (!dryRun) recordKbGap(business.id, input.query);
         return "No knowledge base article matched. Do not guess — offer a human follow-up instead.";
       }
       return articles.map((a) => `## ${a.title}\n${a.body}`).join("\n\n");
@@ -163,6 +169,14 @@ function buildTools(
       additionalProperties: false,
     },
     run: (input) => {
+      if (dryRun) {
+        record({
+          tool: "book_appointment",
+          label: "Would book appointment",
+          detail: `${formatSlot(input.starts_at)} · ${input.service}`,
+        });
+        return wouldHave(`Would book ${input.service} for ${formatSlot(input.starts_at)}.`);
+      }
       const contact = upsertContact(business.id, {
         name: input.customer_name,
         email: input.email ?? null,
@@ -213,6 +227,10 @@ function buildTools(
       additionalProperties: false,
     },
     run: (input) => {
+      if (dryRun) {
+        record({ tool: "capture_lead", label: "Would capture lead", detail: `${input.customer_name} · ${input.intent}` });
+        return wouldHave(`Would file a lead: ${input.intent}.`);
+      }
       const contact = upsertContact(business.id, {
         name: input.customer_name,
         email: input.email ?? null,
@@ -266,6 +284,11 @@ function buildTools(
       additionalProperties: false,
     },
     run: (input) => {
+      if (dryRun) {
+        const total = input.line_items.reduce((sum, li) => sum + li.quantity * li.unit_price_usd * 100, 0);
+        record({ tool: "draft_quote", label: "Would draft quote", detail: `${input.title} · ${usd(total)}` });
+        return wouldHave(`Would draft a quote totalling ${usd(total)}.`);
+      }
       const quote = createQuote({
         business_id: business.id,
         title: input.title,
@@ -327,6 +350,15 @@ function buildTools(
       additionalProperties: false,
     },
     run: (input) => {
+      if (dryRun) {
+        markEscalated();
+        record({
+          tool: "request_human_callback",
+          label: "Would queue a human callback",
+          detail: `${input.reason} · ${input.urgency ?? "normal"}`,
+        });
+        return wouldHave(`Would queue a callback: ${input.reason}.`);
+      }
       const contact = upsertContact(business.id, {
         name: input.customer_name,
         phone: input.phone ?? null,
@@ -377,6 +409,11 @@ function buildTools(
       additionalProperties: false,
     },
     run: (input) => {
+      if (dryRun) {
+        markEscalated();
+        record({ tool: "send_to_human_review", label: "Would send for teammate approval", detail: input.title });
+        return wouldHave(`Would hold this for approval: ${input.title}.`);
+      }
       createApproval({
         business_id: business.id,
         conversation_id: conversation.id,
@@ -422,8 +459,10 @@ export async function runAssistantTurn(args: {
   business: Business;
   conversation: Conversation;
   history: Message[];
+  /** Test-bench mode: tools report what they would do and write nothing. */
+  dryRun?: boolean;
 }): Promise<AssistantTurn> {
-  const { business, conversation, history } = args;
+  const { business, conversation, history, dryRun = false } = args;
   const actions: AssistantAction[] = [];
   let escalated = false;
   const record = (a: AssistantAction) => actions.push(a);
@@ -432,11 +471,11 @@ export async function runAssistantTurn(args: {
   };
 
   if (!assistantConfigured()) {
-    return simulateTurn({ business, conversation, history, record, markEscalated, actions, escalatedRef: () => escalated });
+    return simulateTurn({ business, conversation, history, record, markEscalated, actions, dryRun });
   }
 
   const client = new Anthropic();
-  const tools = buildTools(business, conversation, record, markEscalated);
+  const tools = buildTools(business, conversation, record, markEscalated, dryRun);
   const messages = toApiMessages(history);
 
   if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
@@ -469,7 +508,7 @@ export async function runAssistantTurn(args: {
     const final = await runner;
 
     if (final.stop_reason === "refusal") {
-      createApproval({
+      if (!dryRun) createApproval({
         business_id: business.id,
         conversation_id: conversation.id,
         kind: "reply",
@@ -493,13 +532,15 @@ export async function runAssistantTurn(args: {
       .join("\n")
       .trim();
 
-    logEvent({
-      business_id: business.id,
-      kind: escalated ? "chat_escalated" : "chat_resolved",
-      summary: `${conversation.channel} · ${conversation.subject}`,
-      handled_by: "ai",
-      minutes_saved: escalated ? 4 : 9,
-    });
+    if (!dryRun) {
+      logEvent({
+        business_id: business.id,
+        kind: escalated ? "chat_escalated" : "chat_resolved",
+        summary: `${conversation.channel} · ${conversation.subject}`,
+        handled_by: "ai",
+        minutes_saved: escalated ? 4 : 9,
+      });
+    }
 
     return {
       reply: reply || "Let me get a teammate to confirm that for you.",
@@ -513,7 +554,7 @@ export async function runAssistantTurn(args: {
     } else {
       console.error("Assistant error:", error);
     }
-    createApproval({
+    if (!dryRun) createApproval({
       business_id: business.id,
       conversation_id: conversation.id,
       kind: "reply",
@@ -538,7 +579,22 @@ export async function runAssistantTurn(args: {
 /* Offline fallback                                                            */
 /* -------------------------------------------------------------------------- */
 
-const CALL_WORDS = ["call me", "speak to someone", "talk to a person", "on the phone", "human", "representative"];
+const CALL_WORDS = [
+  "call me",
+  "give me a call",
+  "speak to a person",
+  "speak to someone",
+  "speak with someone",
+  "talk to a person",
+  "talk to someone",
+  "talk to a human",
+  "real person",
+  "on the phone",
+  "phone call",
+  "representative",
+  "manager",
+  "owner",
+];
 const URGENT_WORDS = ["emergency", "urgent", "flooding", "leaking", "no heat", "burst", "spraying", "sewage"];
 const BOOK_WORDS = ["book", "appointment", "schedule", "come out", "visit", "slot"];
 const PRICE_WORDS = ["price", "cost", "quote", "how much", "pricing", "rate", "fee"];
@@ -559,15 +615,16 @@ function simulateTurn(args: {
   record: (a: AssistantAction) => void;
   markEscalated: () => void;
   actions: AssistantAction[];
-  escalatedRef: () => boolean;
+  dryRun: boolean;
 }): AssistantTurn {
-  const { business, conversation, history, record, markEscalated, actions } = args;
+  const { business, conversation, history, record, markEscalated, actions, dryRun } = args;
   const last = [...history].reverse().find((m) => m.role === "customer");
   const text = (last?.body ?? "").toLowerCase();
   let reply: string;
   let escalated = false;
 
-  const articles = searchKb(business.id, text);
+  const confident = hasConfidentKbMatch(business.id, text);
+  const articles = confident ? searchKb(business.id, text) : [];
   if (articles.length > 0) {
     record({
       tool: "search_knowledge",
@@ -577,7 +634,7 @@ function simulateTurn(args: {
   }
 
   if (hits(text, REFUND_WORDS)) {
-    createApproval({
+    if (!dryRun) createApproval({
       business_id: business.id,
       conversation_id: conversation.id,
       kind: "refund",
@@ -594,7 +651,7 @@ function simulateTurn(args: {
       "I'm sorry about that. Refunds and warranty claims go to a teammate rather than to me, so I've passed the " +
       "details over and someone will come back to you today.";
   } else if (hits(text, CALL_WORDS) || hits(text, URGENT_WORDS)) {
-    createCallRequest({
+    if (!dryRun) createCallRequest({
       business_id: business.id,
       conversation_id: conversation.id,
       reason: hits(text, URGENT_WORDS) ? "Possible emergency raised in chat" : "Customer asked to speak to a person",
@@ -621,7 +678,8 @@ function simulateTurn(args: {
   } else if (articles.length > 0) {
     reply = `${articles[0].body}\n\nAnything else I can pull up for you?`;
   } else {
-    createApproval({
+    if (!dryRun) recordKbGap(business.id, last?.body ?? "");
+    if (!dryRun) createApproval({
       business_id: business.id,
       conversation_id: conversation.id,
       kind: "reply",
@@ -639,13 +697,15 @@ function simulateTurn(args: {
       "with an answer shortly.";
   }
 
-  logEvent({
-    business_id: business.id,
-    kind: escalated ? "chat_escalated" : "chat_resolved",
-    summary: `${conversation.channel} · ${conversation.subject}`,
-    handled_by: "ai",
-    minutes_saved: escalated ? 4 : 9,
-  });
+  if (!dryRun) {
+    logEvent({
+      business_id: business.id,
+      kind: escalated ? "chat_escalated" : "chat_resolved",
+      summary: `${conversation.channel} · ${conversation.subject}`,
+      handled_by: "ai",
+      minutes_saved: escalated ? 4 : 9,
+    });
+  }
 
   return { reply, actions, escalated, live: false };
 }

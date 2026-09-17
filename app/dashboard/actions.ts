@@ -5,6 +5,13 @@ import { cookies } from "next/headers";
 import {
   addKbArticle,
   addMessage,
+  addTeammate,
+  listKb,
+  removeTeammate,
+  setFollowUpStatus,
+  setKbGapStatus,
+  syncFollowUps,
+  updateAutomationRule,
   deleteKbArticle,
   listMessages,
   logEvent,
@@ -19,7 +26,8 @@ import {
 } from "@/lib/repo";
 import { runAssistantTurn } from "@/lib/assistant";
 import { activeBusiness, BUSINESS_COOKIE } from "@/lib/session";
-import type { Appointment, Approval, CallRequest, Lead } from "@/lib/types";
+import { getTemplate } from "@/lib/templates";
+import type { Appointment, Approval, AutomationKind, CallRequest, Lead } from "@/lib/types";
 
 function str(data: FormData, key: string): string {
   const value = data.get(key);
@@ -210,4 +218,115 @@ export async function updateSettingsAction(data: FormData) {
     hours,
   });
   revalidatePath("/dashboard", "layout");
+}
+
+/* ------------------------------------------------------------ knowledge gaps */
+
+export async function answerGapAction(data: FormData) {
+  const gapId = str(data, "gap_id");
+  const title = str(data, "title");
+  const body = str(data, "body");
+  if (!gapId || !title || !body) return;
+
+  const business = await activeBusiness();
+  addKbArticle(business.id, title, body, "gap-closed");
+  setKbGapStatus(gapId, "answered");
+  logEvent({
+    business_id: business.id,
+    kind: "knowledge_added",
+    summary: `Closed a knowledge gap: ${title}`,
+    handled_by: "human",
+  });
+  revalidatePath("/dashboard/gaps");
+  revalidatePath("/dashboard/knowledge");
+}
+
+export async function setGapStatusAction(data: FormData) {
+  const gapId = str(data, "gap_id");
+  const status = str(data, "status") as "open" | "answered" | "dismissed";
+  if (!gapId || !status) return;
+  setKbGapStatus(gapId, status);
+  revalidatePath("/dashboard/gaps");
+}
+
+/* --------------------------------------------------------------- templates */
+
+export async function applyTemplateAction(data: FormData) {
+  const slug = str(data, "template");
+  const template = getTemplate(slug);
+  if (!template) return;
+
+  const business = await activeBusiness();
+  const existing = new Set(listKb(business.id).map((article) => article.title.toLowerCase()));
+  for (const article of template.articles) {
+    if (existing.has(article.title.toLowerCase())) continue;
+    addKbArticle(business.id, article.title, article.body, `template:${template.slug}`);
+  }
+  revalidatePath("/dashboard/knowledge");
+}
+
+/* -------------------------------------------------------------- automations */
+
+export async function updateAutomationAction(data: FormData) {
+  const kind = str(data, "kind") as AutomationKind;
+  if (!kind) return;
+  const business = await activeBusiness();
+  const delay = Number(str(data, "delay_hours"));
+
+  updateAutomationRule(business.id, kind, {
+    enabled: str(data, "enabled") === "on",
+    delay_hours: Number.isFinite(delay) && delay > 0 ? delay : undefined,
+    channel: (str(data, "channel") || undefined) as "sms" | "email" | undefined,
+    template: str(data, "template") || undefined,
+  });
+  syncFollowUps(business.id);
+  revalidatePath("/dashboard/automations");
+}
+
+export async function syncFollowUpsAction() {
+  const business = await activeBusiness();
+  syncFollowUps(business.id);
+  revalidatePath("/dashboard/automations");
+}
+
+export async function setFollowUpStatusAction(data: FormData) {
+  const followUpId = str(data, "follow_up_id");
+  const status = str(data, "status") as "scheduled" | "sent" | "cancelled";
+  if (!followUpId || !status) return;
+
+  const business = await activeBusiness();
+  setFollowUpStatus(followUpId, status);
+  if (status === "sent") {
+    logEvent({
+      business_id: business.id,
+      kind: "follow_up_sent",
+      summary: "Follow-up sent",
+      minutes_saved: 5,
+    });
+  }
+  revalidatePath("/dashboard/automations");
+}
+
+/* ---------------------------------------------------------------- teammates */
+
+export async function addTeammateAction(data: FormData) {
+  const name = str(data, "name");
+  const email = str(data, "email");
+  if (!name || !email) return;
+  const business = await activeBusiness();
+  addTeammate({
+    business_id: business.id,
+    name,
+    email,
+    role: (str(data, "role") || "agent") as "owner" | "agent",
+    takes_calls: str(data, "takes_calls") === "on",
+  });
+  revalidatePath("/dashboard/team");
+}
+
+export async function removeTeammateAction(data: FormData) {
+  const teammateId = str(data, "teammate_id");
+  if (!teammateId) return;
+  removeTeammate(teammateId);
+  revalidatePath("/dashboard/team");
 }

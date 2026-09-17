@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
 import {
   CalendarIcon,
+  SendIcon,
   ChartIcon,
   GearIcon,
   HomeIcon,
@@ -21,6 +22,7 @@ export interface NavCounts {
   inbox: number;
   calls: number;
   approvals: number;
+  gaps: number;
 }
 
 const ITEMS: { href: string; label: string; icon: ComponentType<SVGProps<SVGSVGElement>>; badge?: keyof NavCounts }[] = [
@@ -30,8 +32,13 @@ const ITEMS: { href: string; label: string; icon: ComponentType<SVGProps<SVGSVGE
   { href: "/dashboard/approvals", label: "Approvals", icon: ShieldIcon, badge: "approvals" },
   { href: "/dashboard/appointments", label: "Schedule", icon: CalendarIcon },
   { href: "/dashboard/leads", label: "Leads", icon: LeadIcon },
+  { href: "/dashboard/contacts", label: "Contacts", icon: LeadIcon },
+  { href: "/dashboard/automations", label: "Follow-ups", icon: SendIcon },
   { href: "/dashboard/knowledge", label: "Knowledge", icon: BookIcon },
+  { href: "/dashboard/gaps", label: "Gaps", icon: BookIcon, badge: "gaps" },
+  { href: "/dashboard/playground", label: "Playground", icon: SparkIcon },
   { href: "/dashboard/integrations", label: "Integrations", icon: PlugIcon },
+  { href: "/dashboard/team", label: "Team", icon: LeadIcon },
   { href: "/dashboard/analytics", label: "Analytics", icon: ChartIcon },
   { href: "/dashboard/install", label: "Install", icon: SparkIcon },
   { href: "/dashboard/settings", label: "Settings", icon: GearIcon },

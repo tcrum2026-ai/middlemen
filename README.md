@@ -24,8 +24,31 @@ the same records the dashboard reads.
 | `send_to_human_review` | Holds refunds, warranty disputes and low-confidence answers for approval. |
 
 Around those: a unified inbox, a call queue, an approvals queue, a schedule, a lead
-pipeline, an editable knowledge base, an integrations directory, analytics, and a
-four-step onboarding flow that ends in one line of code.
+pipeline, a contacts CRM with a full per-customer timeline, an editable knowledge base,
+follow-up automations, an integrations directory, analytics, and a four-step onboarding
+flow that ends in one line of code.
+
+### The three loops that make it get better
+
+- **Playground** (`/dashboard/playground`) — ask it anything with every tool in **dry-run**:
+  it will tell you it *would* book Thursday at 2pm and write nothing to your calendar, CRM
+  or call queue. The readiness check runs the eight questions every business gets asked and
+  scores what you have no answer for.
+- **Knowledge gaps** (`/dashboard/gaps`) — every question the assistant couldn't answer is
+  recorded and deduped by meaning, ranked by how often it's asked. Write the article once
+  and the gap closes for everyone who asks next.
+- **Follow-ups** (`/dashboard/automations`) — reminders before appointments, one polite
+  chase on a quiet quote, a review request after the job. The assistant drafts and queues
+  them; you edit, send or cancel.
+
+An unedited placeholder article is never quoted to a customer — the assistant treats it as
+missing knowledge and says it doesn't know, which is the honest answer.
+
+### Starter packs
+
+Six trade packs (`lib/templates.ts`) load real articles — pricing, hours, policies, warranty
+terms and the lines the assistant must never cross — plus a matching persona and autonomy
+setting. Applied during onboarding or from the knowledge page, previewable at `/templates`.
 
 ## Running it
 
@@ -77,6 +100,9 @@ The marketing surface is part of the product, not a wrapper around it:
   including a section on when to buy something else instead.
 - **Six industry pages** at `/for/<trade>` (home services, dental, salon, legal, real estate, auto repair), each
   with its own sample conversation, day-one knowledge list, and what always reaches a person.
+- **Four honest comparison pages** at `/vs/<alternative>` that lead with where the alternative wins.
+- **A product tour** at `/tour` linking every screen in the order you'd use it, and a `/security` page that states
+  plainly which compliance certifications we don't have.
 - Guardrails section, annual/monthly pricing, objection-handling FAQ, generated OG image, sitemap and structured
   data.
 
@@ -89,15 +115,22 @@ is the one thing a page about not making things up shouldn't do.
 app/
   page.tsx              sales site with a live assistant demo
   for/[industry]/       per-trade landing pages
+  vs/[competitor]/      comparison pages
+  tour, templates,      product tour, starter-pack gallery, guardrails
+  security/
   connect/              four-step onboarding wizard
   chat/[key]/           hosted chat page
-  dashboard/            inbox, calls, approvals, schedule, leads,
-                        knowledge, integrations, analytics, install, settings
+  dashboard/            inbox, calls, approvals, schedule, leads, contacts,
+                        follow-ups, knowledge, gaps, playground, team,
+                        integrations, analytics, install, settings
   api/chat/             public chat endpoint (CORS-open, widget-key scoped)
+  api/playground/       dry-run endpoint for the test bench
   api/onboarding/       creates a workspace
 lib/
   marketing.ts          sales-site copy (capabilities, plans, FAQ, comparison)
   industries.ts         per-trade content
+  versus.ts             comparison-page content
+  templates.ts          starter knowledge packs per trade
   assistant.ts          Claude tool-use engine + scripted fallback
   repo.ts               data access
   db.ts                 SQLite schema

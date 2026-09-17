@@ -2,6 +2,7 @@ import "server-only";
 import { getDb } from "./db";
 import {
   addKbArticle,
+  recordKbGap,
   addMessage,
   createAppointment,
   createApproval,
@@ -327,6 +328,17 @@ function seedDemoBusiness(): Business {
       "Ava has offered a free return visit with a camera inspection and has NOT promised any money back. " +
       "Decision needed: full refund, partial credit, or return visit only.",
   });
+
+  /* ------------------------------------------ questions nobody wrote down yet */
+
+  for (const question of [
+    "Do you install tankless water heaters?",
+    "Do you install tankless water heaters or only tanks?",
+    "Can you service a mini split?",
+    "Do you offer a maintenance plan for landlords?",
+  ]) {
+    recordKbGap(business.id, question);
+  }
 
   /* --------------------------------------------- 14 days of activity history */
 

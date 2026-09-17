@@ -158,3 +158,53 @@ export interface ActivityEvent {
   minutes_saved: number;
   created_at: string;
 }
+
+export interface KbGap {
+  id: string;
+  business_id: string;
+  question: string;
+  normalized: string;
+  hits: number;
+  status: "open" | "answered" | "dismissed";
+  last_seen: string;
+  created_at: string;
+}
+
+export type AutomationKind =
+  | "appointment_reminder"
+  | "quote_chase"
+  | "review_request"
+  | "no_reply_nudge";
+
+export interface AutomationRule {
+  id: string;
+  business_id: string;
+  kind: AutomationKind;
+  enabled: boolean;
+  delay_hours: number;
+  channel: "sms" | "email";
+  template: string;
+}
+
+export interface FollowUp {
+  id: string;
+  business_id: string;
+  contact_id: string | null;
+  conversation_id: string | null;
+  rule: AutomationKind;
+  channel: "sms" | "email";
+  body: string;
+  due_at: string;
+  status: "scheduled" | "sent" | "cancelled";
+  created_at: string;
+}
+
+export interface Teammate {
+  id: string;
+  business_id: string;
+  name: string;
+  email: string;
+  role: "owner" | "agent";
+  takes_calls: boolean;
+  created_at: string;
+}

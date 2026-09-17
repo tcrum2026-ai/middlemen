@@ -2,6 +2,11 @@ import "server-only";
 import { getDb, id, now } from "./db";
 import type {
   ActivityEvent,
+  AutomationKind,
+  AutomationRule,
+  FollowUp,
+  KbGap,
+  Teammate,
   Appointment,
   Approval,
   Business,
@@ -188,25 +193,58 @@ export function deleteKbArticle(articleId: string): void {
   getDb().prepare("DELETE FROM kb_articles WHERE id = ?").run(articleId);
 }
 
+/** Marker written into starter outlines so unedited stubs are recognisable. */
+export const PLACEHOLDER_MARKER = "TODO —";
+
+export function isPlaceholder(article: Pick<KbArticle, "body">): boolean {
+  return article.body.includes(PLACEHOLDER_MARKER);
+}
+
 /** Keyword scoring is enough here: knowledge bases are per-business and small. */
-export function searchKb(businessId: string, query: string, limit = 4): KbArticle[] {
+export function searchKbRanked(
+  businessId: string,
+  query: string,
+  limit = 4,
+): { article: KbArticle; score: number; terms: number }[] {
   const terms = query
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((t) => t.length > 2);
-  const articles = listKb(businessId);
-  if (terms.length === 0) return articles.slice(0, limit);
+    .filter((t) => t.length > 2 && !STOP_WORDS.has(t));
+  // An unedited stub is worse than no article: it reads like an answer.
+  const articles = listKb(businessId).filter((article) => !isPlaceholder(article));
+  if (terms.length === 0) {
+    return articles.slice(0, limit).map((article) => ({ article, score: 0, terms: 0 }));
+  }
 
   return articles
     .map((article) => {
       const haystack = `${article.title} ${article.body}`.toLowerCase();
-      const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
-      return { article, score };
+      // A hit in the title is worth more than one buried in the body.
+      const score = terms.reduce((sum, term) => {
+        if (article.title.toLowerCase().includes(term)) return sum + 2;
+        return sum + (haystack.includes(term) ? 1 : 0);
+      }, 0);
+      return { article, score, terms: terms.length };
     })
-    .filter((r) => r.score > 0)
+    .filter((result) => result.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((r) => r.article);
+    .slice(0, limit);
+}
+
+export function searchKb(businessId: string, query: string, limit = 4): KbArticle[] {
+  return searchKbRanked(businessId, query, limit).map((result) => result.article);
+}
+
+/**
+ * True when the best match is strong enough to answer from without a model's
+ * judgement — used by the scripted fallback, which has none.
+ */
+export function hasConfidentKbMatch(businessId: string, query: string): boolean {
+  const [best] = searchKbRanked(businessId, query, 1);
+  if (!best) return false;
+  if (best.terms <= 2) return best.score >= 2;
+  // Either a lot of overlap in absolute terms, or a decent share of what was asked.
+  return best.score >= 4 || (best.score >= 2 && best.score / best.terms >= 0.4);
 }
 
 /* ---------------------------------------------------------------- contacts */
@@ -746,4 +784,375 @@ export function metrics(businessId: string): Metrics {
     byDay: [...dayMap.entries()].map(([date, v]) => ({ date, ...v })),
     byChannel: [...channelMap.entries()].map(([channel, count]) => ({ channel, count })),
   };
+}
+
+/* --------------------------------------------------------------- kb gaps */
+
+function normalizeQuestion(question: string): string {
+  return question
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && !STOP_WORDS.has(word))
+    .sort()
+    .join(" ")
+    .slice(0, 180);
+}
+
+const STOP_WORDS = new Set([
+  "the", "and", "you", "your", "for", "are", "can", "does", "did", "how", "what", "when", "where", "who", "why",
+  "with", "have", "has", "will", "would", "could", "should", "any", "get", "got", "there", "this", "that", "they",
+]);
+
+/** Records a question the assistant had no article for, deduped by content. */
+export function recordKbGap(businessId: string, question: string): void {
+  const trimmed = question.trim().slice(0, 400);
+  if (trimmed.length < 4) return;
+  const normalized = normalizeQuestion(trimmed);
+  if (!normalized) return;
+
+  getDb()
+    .prepare(
+      `INSERT INTO kb_gaps (id, business_id, question, normalized, hits, status, last_seen, created_at)
+       VALUES (@id, @business_id, @question, @normalized, 1, 'open', @now, @now)
+       ON CONFLICT (business_id, normalized)
+       DO UPDATE SET hits = hits + 1, last_seen = excluded.last_seen,
+                     status = CASE WHEN kb_gaps.status = 'dismissed' THEN 'dismissed' ELSE 'open' END`,
+    )
+    .run({
+      id: id("gap"),
+      business_id: businessId,
+      question: trimmed,
+      normalized,
+      now: now(),
+    });
+}
+
+export function listKbGaps(businessId: string): KbGap[] {
+  return getDb()
+    .prepare("SELECT * FROM kb_gaps WHERE business_id = ? ORDER BY status = 'open' DESC, hits DESC, last_seen DESC")
+    .all(businessId) as KbGap[];
+}
+
+export function setKbGapStatus(gapId: string, status: KbGap["status"]): void {
+  getDb().prepare("UPDATE kb_gaps SET status = ? WHERE id = ?").run(status, gapId);
+}
+
+/* ----------------------------------------------------------- automations */
+
+export const DEFAULT_RULES: { kind: AutomationRule["kind"]; delay_hours: number; channel: "sms" | "email"; template: string; }[] = [
+  {
+    kind: "appointment_reminder",
+    delay_hours: 24,
+    channel: "sms",
+    template:
+      "Hi {{name}} — reminder that {{business}} is booked for {{appointment}}. Reply here if you need to move it.",
+  },
+  {
+    kind: "quote_chase",
+    delay_hours: 72,
+    channel: "email",
+    template:
+      "Hi {{name}}, just checking whether you had questions on the quote we sent. Happy to walk through it or " +
+      "adjust the scope.",
+  },
+  {
+    kind: "review_request",
+    delay_hours: 48,
+    channel: "sms",
+    template: "Thanks for having us out, {{name}}. If we did right by you, a quick review helps a lot: {{link}}",
+  },
+  {
+    kind: "no_reply_nudge",
+    delay_hours: 24,
+    channel: "sms",
+    template: "Hi {{name}} — still happy to help with {{topic}} whenever you're ready. Just reply here.",
+  },
+];
+
+export function listAutomationRules(businessId: string): AutomationRule[] {
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT * FROM automation_rules WHERE business_id = ?")
+    .all(businessId) as (Omit<AutomationRule, "enabled"> & { enabled: number })[];
+
+  const byKind = new Map(existing.map((rule) => [rule.kind, rule]));
+  for (const preset of DEFAULT_RULES) {
+    if (byKind.has(preset.kind)) continue;
+    const rule = { id: id("rule"), business_id: businessId, enabled: 1, ...preset };
+    db.prepare(
+      `INSERT INTO automation_rules (id, business_id, kind, enabled, delay_hours, channel, template)
+       VALUES (@id, @business_id, @kind, @enabled, @delay_hours, @channel, @template)`,
+    ).run(rule);
+    byKind.set(preset.kind, rule as (typeof existing)[number]);
+  }
+
+  return DEFAULT_RULES.map((preset) => {
+    const row = byKind.get(preset.kind)!;
+    return { ...row, enabled: Boolean(row.enabled) } as AutomationRule;
+  });
+}
+
+export function updateAutomationRule(
+  businessId: string,
+  kind: AutomationRule["kind"],
+  patch: { enabled?: boolean; delay_hours?: number; channel?: "sms" | "email"; template?: string },
+): void {
+  const current = listAutomationRules(businessId).find((rule) => rule.kind === kind);
+  if (!current) return;
+  const merged = { ...current, ...patch };
+  getDb()
+    .prepare(
+      `UPDATE automation_rules SET enabled = ?, delay_hours = ?, channel = ?, template = ?
+       WHERE business_id = ? AND kind = ?`,
+    )
+    .run(merged.enabled ? 1 : 0, merged.delay_hours, merged.channel, merged.template, businessId, kind);
+}
+
+export function listFollowUps(businessId: string): FollowUp[] {
+  return getDb()
+    .prepare("SELECT * FROM follow_ups WHERE business_id = ? ORDER BY due_at")
+    .all(businessId) as FollowUp[];
+}
+
+export function createFollowUp(input: {
+  business_id: string;
+  contact_id?: string | null;
+  conversation_id?: string | null;
+  rule: AutomationKind;
+  channel: "sms" | "email";
+  body: string;
+  due_at: string;
+}): FollowUp {
+  const followUp: FollowUp = {
+    id: id("fu"),
+    business_id: input.business_id,
+    contact_id: input.contact_id ?? null,
+    conversation_id: input.conversation_id ?? null,
+    rule: input.rule,
+    channel: input.channel,
+    body: input.body,
+    due_at: input.due_at,
+    status: "scheduled",
+    created_at: now(),
+  };
+  getDb()
+    .prepare(
+      `INSERT INTO follow_ups (id, business_id, contact_id, conversation_id, rule, channel, body, due_at, status, created_at)
+       VALUES (@id, @business_id, @contact_id, @conversation_id, @rule, @channel, @body, @due_at, @status, @created_at)`,
+    )
+    .run(followUp);
+  return followUp;
+}
+
+export function setFollowUpStatus(followUpId: string, status: FollowUp["status"]): void {
+  getDb().prepare("UPDATE follow_ups SET status = ? WHERE id = ?").run(status, followUpId);
+}
+
+/**
+ * Schedules follow-ups the enabled rules imply and that don't exist yet.
+ * Idempotent: re-running never double-books the same contact and rule.
+ */
+export function syncFollowUps(businessId: string): number {
+  const business = getBusiness(businessId);
+  if (!business) return 0;
+
+  const rules = listAutomationRules(businessId).filter((rule) => rule.enabled);
+  const existing = new Set(
+    listFollowUps(businessId)
+      .filter((followUp) => followUp.status !== "cancelled")
+      .map((followUp) => `${followUp.rule}:${followUp.contact_id ?? ""}:${followUp.due_at.slice(0, 10)}`),
+  );
+
+  const render = (template: string, values: Record<string, string>) =>
+    template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => values[key] ?? `{{${key}}}`);
+
+  let created = 0;
+
+  for (const rule of rules) {
+    if (rule.kind === "appointment_reminder") {
+      for (const appointment of listAppointments(businessId)) {
+        if (appointment.status === "cancelled" || appointment.status === "completed") continue;
+        const dueAt = new Date(new Date(appointment.starts_at).getTime() - rule.delay_hours * 3_600_000);
+        if (dueAt.getTime() < Date.now() - 86_400_000) continue;
+        const contact = appointment.contact_id ? getContact(appointment.contact_id) : null;
+        const key = `${rule.kind}:${appointment.contact_id ?? ""}:${dueAt.toISOString().slice(0, 10)}`;
+        if (existing.has(key)) continue;
+        createFollowUp({
+          business_id: businessId,
+          contact_id: appointment.contact_id,
+          rule: rule.kind,
+          channel: rule.channel,
+          due_at: dueAt.toISOString(),
+          body: render(rule.template, {
+            name: contact?.name.split(" ")[0] ?? "there",
+            business: business.name,
+            appointment: new Date(appointment.starts_at).toLocaleString("en-US", {
+              weekday: "long",
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+          }),
+        });
+        existing.add(key);
+        created += 1;
+      }
+    }
+
+    if (rule.kind === "quote_chase") {
+      for (const quote of listQuotes(businessId)) {
+        if (quote.status !== "draft" && quote.status !== "sent") continue;
+        const lead = quote.lead_id ? listLeads(businessId).find((l) => l.id === quote.lead_id) : null;
+        const contact = lead?.contact_id ? getContact(lead.contact_id) : null;
+        const dueAt = new Date(new Date(quote.created_at).getTime() + rule.delay_hours * 3_600_000);
+        const key = `${rule.kind}:${contact?.id ?? ""}:${dueAt.toISOString().slice(0, 10)}`;
+        if (existing.has(key)) continue;
+        createFollowUp({
+          business_id: businessId,
+          contact_id: contact?.id ?? null,
+          rule: rule.kind,
+          channel: rule.channel,
+          due_at: dueAt.toISOString(),
+          body: render(rule.template, { name: contact?.name.split(" ")[0] ?? "there", business: business.name }),
+        });
+        existing.add(key);
+        created += 1;
+      }
+    }
+
+    if (rule.kind === "no_reply_nudge") {
+      for (const conversation of listConversations(businessId)) {
+        if (conversation.status === "closed") continue;
+        const messages = listMessages(conversation.id);
+        const last = messages[messages.length - 1];
+        if (!last || last.role === "customer") continue;
+        const dueAt = new Date(new Date(last.created_at).getTime() + rule.delay_hours * 3_600_000);
+        const contact = conversation.contact_id ? getContact(conversation.contact_id) : null;
+        const key = `${rule.kind}:${conversation.contact_id ?? ""}:${dueAt.toISOString().slice(0, 10)}`;
+        if (existing.has(key)) continue;
+        createFollowUp({
+          business_id: businessId,
+          contact_id: conversation.contact_id,
+          conversation_id: conversation.id,
+          rule: rule.kind,
+          channel: rule.channel,
+          due_at: dueAt.toISOString(),
+          body: render(rule.template, {
+            name: contact?.name.split(" ")[0] ?? "there",
+            topic: conversation.subject.toLowerCase(),
+          }),
+        });
+        existing.add(key);
+        created += 1;
+      }
+    }
+  }
+
+  return created;
+}
+
+/* --------------------------------------------------------------- teammates */
+
+export function listTeammates(businessId: string): Teammate[] {
+  return (
+    getDb()
+      .prepare("SELECT * FROM teammates WHERE business_id = ? ORDER BY created_at")
+      .all(businessId) as (Omit<Teammate, "takes_calls"> & { takes_calls: number })[]
+  ).map((row) => ({ ...row, takes_calls: Boolean(row.takes_calls) }));
+}
+
+export function addTeammate(input: {
+  business_id: string;
+  name: string;
+  email: string;
+  role?: Teammate["role"];
+  takes_calls?: boolean;
+}): Teammate {
+  const teammate: Teammate = {
+    id: id("tm"),
+    business_id: input.business_id,
+    name: input.name,
+    email: input.email,
+    role: input.role ?? "agent",
+    takes_calls: input.takes_calls ?? true,
+    created_at: now(),
+  };
+  getDb()
+    .prepare(
+      `INSERT INTO teammates (id, business_id, name, email, role, takes_calls, created_at)
+       VALUES (@id, @business_id, @name, @email, @role, @takes_calls, @created_at)`,
+    )
+    .run({ ...teammate, takes_calls: teammate.takes_calls ? 1 : 0 });
+  return teammate;
+}
+
+export function removeTeammate(teammateId: string): void {
+  getDb().prepare("DELETE FROM teammates WHERE id = ?").run(teammateId);
+}
+
+/* ------------------------------------------------- contact timeline view */
+
+export interface ContactTimelineItem {
+  kind: "message" | "appointment" | "lead" | "call";
+  at: string;
+  title: string;
+  detail: string;
+  href?: string;
+}
+
+export function contactTimeline(businessId: string, contactId: string): ContactTimelineItem[] {
+  const items: ContactTimelineItem[] = [];
+
+  for (const conversation of listConversations(businessId)) {
+    if (conversation.contact_id !== contactId) continue;
+    for (const message of listMessages(conversation.id)) {
+      items.push({
+        kind: "message",
+        at: message.created_at,
+        title:
+          message.role === "customer"
+            ? `Message on ${conversation.channel}`
+            : message.role === "agent"
+              ? "Teammate replied"
+              : "Assistant replied",
+        detail: message.body.slice(0, 220),
+        href: `/dashboard/inbox/${conversation.id}`,
+      });
+    }
+  }
+
+  for (const appointment of listAppointments(businessId)) {
+    if (appointment.contact_id !== contactId) continue;
+    items.push({
+      kind: "appointment",
+      at: appointment.created_at,
+      title: `Booked: ${appointment.title}`,
+      detail: `${new Date(appointment.starts_at).toLocaleString("en-US")} · ${appointment.location}`,
+      href: "/dashboard/appointments",
+    });
+  }
+
+  for (const lead of listLeads(businessId)) {
+    if (lead.contact_id !== contactId) continue;
+    items.push({
+      kind: "lead",
+      at: lead.created_at,
+      title: `Lead: ${lead.intent}`,
+      detail: `Stage ${lead.stage} · score ${lead.score}`,
+      href: "/dashboard/leads",
+    });
+  }
+
+  for (const call of listCallRequests(businessId)) {
+    if (call.contact_id !== contactId) continue;
+    items.push({
+      kind: "call",
+      at: call.created_at,
+      title: `Callback: ${call.reason}`,
+      detail: call.status === "done" ? (call.outcome ?? "Completed") : `${call.urgency} · ${call.status}`,
+      href: "/dashboard/calls",
+    });
+  }
+
+  return items.sort((a, b) => (a.at < b.at ? 1 : -1));
 }

@@ -5,7 +5,7 @@ import { switchBusinessAction } from "./actions";
 import { BusinessSwitcher } from "./business-switcher";
 import { Logo } from "@/components/ui";
 import { activeBusiness } from "@/lib/session";
-import { listApprovals, listBusinesses, listCallRequests, listConversations } from "@/lib/repo";
+import { listApprovals, listBusinesses, listCallRequests, listConversations, listKbGaps } from "@/lib/repo";
 import { assistantConfigured } from "@/lib/assistant";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
@@ -15,6 +15,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     inbox: listConversations(business.id).filter((c) => c.status !== "closed").length,
     calls: listCallRequests(business.id).filter((c) => c.status !== "done").length,
     approvals: listApprovals(business.id).filter((a) => a.status === "pending").length,
+    gaps: listKbGaps(business.id).filter((g) => g.status === "open").length,
   };
 
   return (

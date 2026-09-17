@@ -5,10 +5,11 @@ import { useState } from "react";
 import { Logo } from "@/components/ui";
 
 const LINKS = [
-  { href: "/#how", label: "How it works" },
-  { href: "/#calls", label: "Calls" },
+  { href: "/tour", label: "Tour" },
+  { href: "/templates", label: "Starter packs" },
   { href: "/#math", label: "The math" },
   { href: "/#compare", label: "Compare" },
+  { href: "/security", label: "Security" },
   { href: "/#pricing", label: "Pricing" },
 ];
 

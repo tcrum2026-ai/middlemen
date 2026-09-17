@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowIcon, CheckIcon } from "@/components/icons";
+import { TEMPLATES, templateToText } from "@/lib/templates";
 
 const INDUSTRIES = [
   "Home services (plumbing & HVAC)",
@@ -31,17 +32,21 @@ const INTEGRATION_OPTIONS = [
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
+/**
+ * Each line is marked so the assistant refuses to quote it until it's replaced —
+ * a half-filled knowledge base should look empty, not confident.
+ */
 const STARTER_KNOWLEDGE = `Services and pricing:
-List what you sell and what it costs. The assistant quotes only from what it reads here.
+TODO — list what you sell and what it costs.
 
 Hours and service area:
-Where you work, when you work, and what happens after hours.
+TODO — where you work, when you work, and what happens after hours.
 
 Booking and cancellation policy:
-How appointments work, how much notice you need, and any fees.
+TODO — how appointments work, how much notice you need, and any fees.
 
 Warranty and guarantees:
-What you stand behind, for how long, and what needs owner approval.`;
+TODO — what you stand behind, for how long, and what needs owner approval.`;
 
 type Hours = Record<string, string>;
 
@@ -288,10 +293,35 @@ export function ConnectWizard() {
         {step === 3 ? (
           <div className="space-y-4">
             <div>
+              <p className="label">Start from a pack for your trade</p>
+              <div className="flex flex-wrap gap-2">
+                {TEMPLATES.map((template) => (
+                  <button
+                    key={template.slug}
+                    type="button"
+                    onClick={() => {
+                      setKnowledge(templateToText(template));
+                      setAssistantName(template.assistantName);
+                      setTone(template.tone);
+                      setAutonomy(template.autonomy);
+                    }}
+                    className="rounded-full border border-ink-700 px-3 py-1.5 text-xs text-mist-300 transition hover:border-jade-500/50 hover:text-mist-100"
+                  >
+                    {template.name}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-mist-400">
+                Loads real starter articles — pricing, hours, policies, and what must always reach a person. Edit
+                anything before or after you go live.
+              </p>
+            </div>
+
+            <div>
               <div className="flex items-center justify-between">
                 <label className="label" htmlFor="knowledge">Prices, policies and FAQs</label>
                 <button type="button" onClick={() => setKnowledge(STARTER_KNOWLEDGE)} className="text-xs text-jade-400 hover:underline">
-                  Use a starter template
+                  Blank outline
                 </button>
               </div>
               <textarea

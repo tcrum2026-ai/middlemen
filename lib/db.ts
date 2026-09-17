@@ -156,6 +156,52 @@ CREATE TABLE IF NOT EXISTS events (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS kb_gaps (
+  id TEXT PRIMARY KEY,
+  business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  normalized TEXT NOT NULL,
+  hits INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'open',
+  last_seen TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (business_id, normalized)
+);
+
+CREATE TABLE IF NOT EXISTS follow_ups (
+  id TEXT PRIMARY KEY,
+  business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  contact_id TEXT REFERENCES contacts(id) ON DELETE SET NULL,
+  conversation_id TEXT REFERENCES conversations(id) ON DELETE SET NULL,
+  rule TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'sms',
+  body TEXT NOT NULL,
+  due_at TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'scheduled',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS automation_rules (
+  id TEXT PRIMARY KEY,
+  business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  delay_hours INTEGER NOT NULL DEFAULT 24,
+  channel TEXT NOT NULL DEFAULT 'sms',
+  template TEXT NOT NULL,
+  UNIQUE (business_id, kind)
+);
+
+CREATE TABLE IF NOT EXISTS teammates (
+  id TEXT PRIMARY KEY,
+  business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'agent',
+  takes_calls INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_business ON conversations(business_id);
 CREATE INDEX IF NOT EXISTS idx_events_business ON events(business_id);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui";
 import { INDUSTRIES } from "@/lib/industries";
+import { VERSUS } from "@/lib/versus";
 
 export function SiteFooter() {
   return (
@@ -17,8 +18,9 @@ export function SiteFooter() {
           <div>
             <h3 className="text-sm font-semibold">Product</h3>
             <ul className="mt-3 space-y-2 text-sm text-mist-400">
-              <li><Link className="hover:text-mist-100" href="/#how">How it works</Link></li>
-              <li><Link className="hover:text-mist-100" href="/#compare">Compare</Link></li>
+              <li><Link className="hover:text-mist-100" href="/tour">Tour</Link></li>
+              <li><Link className="hover:text-mist-100" href="/templates">Starter packs</Link></li>
+              <li><Link className="hover:text-mist-100" href="/security">Security</Link></li>
               <li><Link className="hover:text-mist-100" href="/#pricing">Pricing</Link></li>
               <li><Link className="hover:text-mist-100" href="/dashboard">Live dashboard</Link></li>
               <li><Link className="hover:text-mist-100" href="/dashboard/install">Install</Link></li>
@@ -39,11 +41,16 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold">Start</h3>
+            <h3 className="text-sm font-semibold">Compared with</h3>
             <ul className="mt-3 space-y-2 text-sm text-mist-400">
+              {VERSUS.map((item) => (
+                <li key={item.slug}>
+                  <Link className="hover:text-mist-100" href={`/vs/${item.slug}`}>
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
               <li><Link className="hover:text-mist-100" href="/connect">Connect your business</Link></li>
-              <li><Link className="hover:text-mist-100" href="/#faq">Questions</Link></li>
-              <li><Link className="hover:text-mist-100" href="/#trust">Guardrails</Link></li>
             </ul>
           </div>
         </div>
