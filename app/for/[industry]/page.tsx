@@ -54,7 +54,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ indus
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-mist-300">{industry.subhead}</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link href="/connect" className="btn btn-primary px-5 py-3">
+            <Link href="/signup" className="btn btn-primary px-5 py-3">
               Connect your business
               <ArrowIcon width={16} height={16} />
             </Link>

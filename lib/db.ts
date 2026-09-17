@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
+import { randomBytes } from "node:crypto";
 import Database from "better-sqlite3";
 
 const DATA_DIR = process.env.MIDDLEMEN_DATA_DIR
@@ -9,6 +10,21 @@ const DATA_DIR = process.env.MIDDLEMEN_DATA_DIR
 const DB_PATH = path.join(DATA_DIR, "middlemen.db");
 
 const SCHEMA = `
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS businesses (
   id TEXT PRIMARY KEY,
   slug TEXT UNIQUE NOT NULL,
@@ -205,7 +221,42 @@ CREATE TABLE IF NOT EXISTS teammates (
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_business ON conversations(business_id);
 CREATE INDEX IF NOT EXISTS idx_events_business ON events(business_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 `;
+
+/**
+ * Columns added after the first release. SQLite has no "ADD COLUMN IF NOT
+ * EXISTS", so each one is checked against the live table before it is applied.
+ */
+const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
+  { table: "businesses", column: "owner_id", ddl: "ALTER TABLE businesses ADD COLUMN owner_id TEXT" },
+];
+
+function migrate(db: Database.Database): void {
+  for (const { table, column, ddl } of ADDED_COLUMNS) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (!columns.some((c) => c.name === column)) db.exec(ddl);
+  }
+  rotateLegacyWidgetKeys(db);
+}
+
+/**
+ * Widget keys used to be minted from Math.random(). A key is the only credential
+ * /api/chat accepts, so any key in the old shape (ten lowercase base36 chars) is
+ * replaced with a cryptographically random one the first time the app opens the
+ * database. Re-paste the snippet from the install page after this runs.
+ */
+function rotateLegacyWidgetKeys(db: Database.Database): void {
+  const legacy = db
+    .prepare("SELECT id, widget_key FROM businesses WHERE length(widget_key) < 20")
+    .all() as { id: string; widget_key: string }[];
+
+  const update = db.prepare("UPDATE businesses SET widget_key = ? WHERE id = ?");
+  for (const row of legacy) {
+    if (!/^mm_[a-z0-9]{10}$/.test(row.widget_key)) continue;
+    update.run(`mm_${randomBytes(18).toString("base64url")}`, row.id);
+  }
+}
 
 declare global {
   var __middlemenDb: Database.Database | undefined;
@@ -217,6 +268,7 @@ function open(): Database.Database {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 
@@ -231,8 +283,9 @@ export function getDb(): Database.Database {
   return globalThis.__middlemenDb;
 }
 
+/** Cryptographically random: ids double as lookup handles in URLs and forms. */
 export function id(prefix: string): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
+  return `${prefix}_${randomBytes(9).toString("base64url")}`;
 }
 
 export function now(): string {

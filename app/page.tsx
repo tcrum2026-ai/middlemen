@@ -75,16 +75,16 @@ export default async function LandingPage() {
               of a voicemail.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link href="/connect" className="btn btn-primary px-5 py-3">
+              <Link href="/signup" className="btn btn-primary px-5 py-3">
                 Connect your business
                 <ArrowIcon width={16} height={16} />
               </Link>
               <Link href="/dashboard" className="btn btn-ghost px-5 py-3">
-                See a live workspace
+                Explore the demo workspace
               </Link>
             </div>
             <p className="mt-4 text-sm text-mist-400">
-              14 days free · no card · live in under ten minutes
+              14 days free · no card · live in under ten minutes. The demo workspace opens with no account at all.
             </p>
             <dl className="mt-9 grid max-w-lg grid-cols-3 gap-6 border-t border-ink-800 pt-6">
               {[
@@ -437,7 +437,7 @@ export default async function LandingPage() {
             answered.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link href="/connect" className="btn btn-primary px-5 py-3">
+            <Link href="/signup" className="btn btn-primary px-5 py-3">
               Connect your business
               <ArrowIcon width={16} height={16} />
             </Link>

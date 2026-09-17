@@ -76,7 +76,7 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <Link href="/connect" className={`btn mt-6 ${plan.featured ? "btn-primary" : "btn-ghost"} justify-center`}>
+              <Link href="/signup" className={`btn mt-6 ${plan.featured ? "btn-primary" : "btn-ghost"} justify-center`}>
                 {shown === null ? "Contact sales" : "Start free"}
               </Link>
             </div>

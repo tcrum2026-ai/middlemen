@@ -50,7 +50,7 @@ export function SiteFooter() {
                   </Link>
                 </li>
               ))}
-              <li><Link className="hover:text-mist-100" href="/connect">Connect your business</Link></li>
+              <li><Link className="hover:text-mist-100" href="/signup">Connect your business</Link></li>
             </ul>
           </div>
         </div>

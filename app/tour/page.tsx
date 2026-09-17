@@ -126,7 +126,7 @@ export default function TourPage() {
               Jump into the workspace
               <ArrowIcon width={16} height={16} />
             </Link>
-            <Link href="/connect" className="btn btn-ghost px-5 py-3">
+            <Link href="/signup" className="btn btn-ghost px-5 py-3">
               Set up your own
             </Link>
           </div>

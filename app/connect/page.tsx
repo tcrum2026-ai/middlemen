@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ConnectWizard } from "./connect-wizard";
 import { Logo } from "@/components/ui";
+import { currentUser } from "@/lib/auth";
 
 export const metadata = { title: "Connect your business — Middlemen" };
 
-export default function ConnectPage() {
+export default async function ConnectPage() {
+  const user = await currentUser();
+  if (!user) redirect("/signup");
+
   return (
     <div className="min-h-screen bg-ink-950">
       <header className="border-b border-ink-800">
@@ -12,9 +17,7 @@ export default function ConnectPage() {
           <Link href="/">
             <Logo />
           </Link>
-          <Link href="/dashboard" className="text-sm text-mist-400 hover:text-mist-100">
-            Skip to demo workspace
-          </Link>
+          <span className="text-sm text-mist-400">Signed in as {user.name}</span>
         </div>
       </header>
 

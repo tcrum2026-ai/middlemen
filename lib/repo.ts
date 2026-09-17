@@ -1,4 +1,5 @@
 import "server-only";
+import { randomBytes } from "node:crypto";
 import { getDb, id, now } from "./db";
 import type {
   ActivityEvent,
@@ -51,11 +52,20 @@ function toQuote(row: Row): Quote {
 
 /* ---------------------------------------------------------------- business */
 
-export function listBusinesses(): Business[] {
-  return getDb()
-    .prepare("SELECT * FROM businesses ORDER BY created_at")
-    .all()
-    .map((r) => toBusiness(r as Row));
+export function listBusinesses(ownerId?: string | null): Business[] {
+  const db = getDb();
+  const rows =
+    ownerId === undefined
+      ? db.prepare("SELECT * FROM businesses ORDER BY created_at").all()
+      : ownerId === null
+        ? db.prepare("SELECT * FROM businesses WHERE owner_id IS NULL ORDER BY created_at").all()
+        : db.prepare("SELECT * FROM businesses WHERE owner_id = ? ORDER BY created_at").all(ownerId);
+  return rows.map((r) => toBusiness(r as Row));
+}
+
+/** The unowned workspace anyone can explore without an account. */
+export function demoBusiness(): Business | null {
+  return listBusinesses(null)[0] ?? null;
 }
 
 export function getBusiness(businessId: string): Business | null {
@@ -69,6 +79,7 @@ export function getBusinessByWidgetKey(key: string): Business | null {
 }
 
 export interface CreateBusinessInput {
+  owner_id?: string | null;
   name: string;
   industry: string;
   website?: string;
@@ -98,6 +109,7 @@ export function createBusiness(input: CreateBusinessInput): Business {
 
   const business: Business = {
     id: id("biz"),
+    owner_id: input.owner_id ?? null,
     slug,
     name: input.name,
     industry: input.industry,
@@ -121,15 +133,17 @@ export function createBusiness(input: CreateBusinessInput): Business {
     autonomy: input.autonomy ?? "balanced",
     auto_send_threshold: input.autonomy === "autonomous" ? 0.6 : input.autonomy === "cautious" ? 0.9 : 0.75,
     call_handoff_number: input.call_handoff_number ?? null,
-    widget_key: `mm_${Math.random().toString(36).slice(2, 12)}`,
+    // The widget key is the only credential /api/chat accepts, so it must not
+    // come from a predictable PRNG.
+    widget_key: `mm_${randomBytes(18).toString("base64url")}`,
     created_at: now(),
   };
 
   db.prepare(
-    `INSERT INTO businesses (id, slug, name, industry, website, email, phone, timezone, hours,
+    `INSERT INTO businesses (id, owner_id, slug, name, industry, website, email, phone, timezone, hours,
        assistant_name, tone, greeting, services, autonomy, auto_send_threshold,
        call_handoff_number, widget_key, created_at)
-     VALUES (@id, @slug, @name, @industry, @website, @email, @phone, @timezone, @hours,
+     VALUES (@id, @owner_id, @slug, @name, @industry, @website, @email, @phone, @timezone, @hours,
        @assistant_name, @tone, @greeting, @services, @autonomy, @auto_send_threshold,
        @call_handoff_number, @widget_key, @created_at)`,
   ).run({
@@ -1266,4 +1280,35 @@ export function usage(businessId: string, included = 2500): Usage {
     followUpsSent: listFollowUps(businessId).filter((f) => f.status === "sent").length,
     included,
   };
+}
+
+/* ----------------------------------------------------------- authorization */
+
+/**
+ * Confirms a record belongs to the given business before any action mutates it.
+ * Actions receive raw ids from form posts, so ownership has to be re-checked
+ * server-side rather than inferred from the page the form was rendered on.
+ */
+export function belongsToBusiness(
+  kind: "conversation" | "approval" | "call" | "lead" | "appointment" | "quote" | "gap" | "teammate" | "follow_up" | "kb",
+  recordId: string,
+  businessId: string,
+): boolean {
+  const table = {
+    conversation: "conversations",
+    approval: "approvals",
+    call: "call_requests",
+    lead: "leads",
+    appointment: "appointments",
+    quote: "quotes",
+    gap: "kb_gaps",
+    teammate: "teammates",
+    follow_up: "follow_ups",
+    kb: "kb_articles",
+  }[kind];
+
+  const row = getDb()
+    .prepare(`SELECT business_id FROM ${table} WHERE id = ?`)
+    .get(recordId) as { business_id: string } | undefined;
+  return row?.business_id === businessId;
 }

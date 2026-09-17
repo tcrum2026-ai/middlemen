@@ -5,13 +5,13 @@ import { MobileNav } from "./mobile-nav";
 import { switchBusinessAction } from "./actions";
 import { BusinessSwitcher } from "./business-switcher";
 import { Logo } from "@/components/ui";
-import { activeBusiness } from "@/lib/session";
-import { listApprovals, listBusinesses, listCallRequests, listConversations, listKbGaps } from "@/lib/repo";
+import { workspace } from "@/lib/session";
+import { signOutAction } from "@/app/auth-actions";
+import { listApprovals, listCallRequests, listConversations, listKbGaps } from "@/lib/repo";
 import { assistantConfigured } from "@/lib/assistant";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const business = await activeBusiness();
-  const businesses = listBusinesses();
+  const { business, user, canWrite, options } = await workspace();
   const counts = {
     inbox: listConversations(business.id).filter((c) => c.status !== "closed").length,
     calls: listCallRequests(business.id).filter((c) => c.status !== "done").length,
@@ -28,13 +28,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <Logo />
           </Link>
 
-          <div className="min-w-0 max-w-[12rem] sm:max-w-none">
-            <BusinessSwitcher
-              businesses={businesses}
-              current={business.id}
-              action={switchBusinessAction}
-            />
-          </div>
+          {options.length > 1 ? (
+            <div className="min-w-0 max-w-[12rem] sm:max-w-none">
+              <BusinessSwitcher businesses={options} current={business.id} action={switchBusinessAction} />
+            </div>
+          ) : (
+            <span className="min-w-0 truncate text-sm font-medium">{business.name}</span>
+          )}
 
           <div className="ml-auto flex shrink-0 items-center gap-3 text-xs text-mist-400">
             {assistantConfigured() ? (
@@ -52,12 +52,47 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 <span className="sm:hidden">Scripted</span>
               </span>
             )}
-            <Link href="/connect" className="btn btn-ghost hidden px-3 py-1.5 sm:inline-flex">
-              Add business
-            </Link>
+            {user ? (
+              <>
+                <Link href="/connect" className="btn btn-ghost hidden px-3 py-1.5 sm:inline-flex">
+                  Add business
+                </Link>
+                <form action={signOutAction}>
+                  <button
+                    className="btn btn-ghost px-3 py-1.5"
+                    title={`Signed in as ${user.email}`}
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Link href="/signin" className="btn btn-ghost hidden px-3 py-1.5 sm:inline-flex">
+                  Sign in
+                </Link>
+                <Link href="/signup" className="btn btn-primary px-3 py-1.5">
+                  Start free
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
+
+      {!canWrite ? (
+        <div className="border-b border-amber-glow/25 bg-amber-glow/[0.06]">
+          <div className="mx-auto flex max-w-[92rem] flex-wrap items-center gap-3 px-4 py-2.5 text-sm sm:px-5">
+            <span className="text-mist-300">
+              You&apos;re exploring the <span className="font-medium text-mist-100">demo workspace</span>. Click
+              anything — changes are refused, not saved.
+            </span>
+            <Link href="/signup" className="btn btn-primary ml-auto px-3 py-1.5 text-xs">
+              Get your own
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mx-auto flex max-w-[92rem] gap-6 px-4 py-6 sm:px-5">
         <aside className="hidden w-52 shrink-0 lg:block">

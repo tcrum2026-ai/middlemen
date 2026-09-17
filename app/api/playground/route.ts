@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
 import { runAssistantTurn } from "@/lib/assistant";
 import { logEvent } from "@/lib/repo";
-import { activeBusiness } from "@/lib/session";
+import { workspace } from "@/lib/session";
 import type { Business, Conversation, Message } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const business = await activeBusiness();
+  const { business, canWrite } = await workspace();
   const conversation = scratchConversation(business);
 
   if (parsed.data.mode === "suite") {
@@ -104,9 +104,9 @@ export async function POST(request: Request) {
         verdict: verdict(turn.actions, turn.escalated),
       });
     }
-    // The dry run itself writes no customer records; this only notes that the
-    // owner ran the check, which the setup checklist reads.
-    logEvent({
+    // The dry run writes no customer records. This single audit row is the one
+    // write, so it is skipped entirely on the read-only demo.
+    if (canWrite) logEvent({
       business_id: business.id,
       kind: "readiness_check",
       summary: `Readiness check: ${results.filter((r) => r.verdict === "no-knowledge").length} gap(s) of ${results.length}`,

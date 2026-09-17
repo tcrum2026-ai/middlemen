@@ -3,6 +3,8 @@ export type Autonomy = "cautious" | "balanced" | "autonomous";
 
 export interface Business {
   id: string;
+  /** null for the public demo workspace. */
+  owner_id: string | null;
   slug: string;
   name: string;
   industry: string;

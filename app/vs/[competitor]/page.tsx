@@ -82,7 +82,7 @@ export default async function VersusPage({ params }: { params: Promise<{ competi
           <Card className="border-jade-500/30 bg-jade-500/[0.04]">
             <h2 className="font-semibold">The honest verdict</h2>
             <p className="mt-2 text-sm leading-relaxed text-mist-300">{versus.verdict}</p>
-            <Link href="/connect" className="btn btn-primary mt-4">
+            <Link href="/signup" className="btn btn-primary mt-4">
               Try it free for 14 days
               <ArrowIcon width={16} height={16} />
             </Link>

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
 import { addKbArticle, createBusiness, setIntegrationStatus } from "@/lib/repo";
 import { BUSINESS_COOKIE } from "@/lib/session";
+import { currentUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,11 @@ function toArticles(raw: string): { title: string; body: string }[] {
 export async function POST(request: Request) {
   ensureSeeded();
 
+  const user = await currentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in before creating a workspace." }, { status: 401 });
+  }
+
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
@@ -54,6 +60,7 @@ export async function POST(request: Request) {
   const input = parsed.data;
 
   const business = createBusiness({
+    owner_id: user.id,
     name: input.name,
     industry: input.industry,
     website: input.website || undefined,

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import {
   addKbArticle,
+  belongsToBusiness,
   addMessage,
   addTeammate,
   listKb,
@@ -25,7 +26,12 @@ import {
   getConversation,
 } from "@/lib/repo";
 import { runAssistantTurn } from "@/lib/assistant";
-import { activeBusiness, BUSINESS_COOKIE } from "@/lib/session";
+import {
+  BUSINESS_COOKIE,
+  businessOwnedBy,
+  requireWritableBusiness,
+  workspace,
+} from "@/lib/session";
 import { getTemplate } from "@/lib/templates";
 import type { Appointment, Approval, AutomationKind, CallRequest, Lead } from "@/lib/types";
 
@@ -34,9 +40,21 @@ function str(data: FormData, key: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/**
+ * Every mutation goes through here. The public demo is browsable by anyone, so
+ * "read-only" has to be enforced on the server, not just hidden in the UI.
+ */
+async function writableBusiness() {
+  return requireWritableBusiness();
+}
+
 export async function switchBusinessAction(data: FormData) {
   const businessId = str(data, "business_id");
   if (!businessId) return;
+
+  const { user } = await workspace();
+  if (!user || !businessOwnedBy(businessId, user.id)) return;
+
   const store = await cookies();
   store.set(BUSINESS_COOKIE, businessId, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 31_536_000 });
   revalidatePath("/dashboard", "layout");
@@ -49,7 +67,8 @@ export async function sendHumanReplyAction(data: FormData) {
   const body = str(data, "body");
   if (!conversationId || !body) return;
 
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("conversation", conversationId, business.id)) return;
   addMessage({ conversation_id: conversationId, role: "agent", body });
   updateConversation(conversationId, { handled_by: "human", status: "open" });
   logEvent({
@@ -67,7 +86,8 @@ export async function aiReplyAction(data: FormData) {
   const conversationId = str(data, "conversation_id");
   if (!conversationId) return;
 
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
   const conversation = getConversation(conversationId);
   if (!conversation || conversation.business_id !== business.id) return;
 
@@ -91,6 +111,9 @@ export async function setConversationStatusAction(data: FormData) {
   const conversationId = str(data, "conversation_id");
   const status = str(data, "status") as "open" | "waiting" | "closed";
   if (!conversationId || !status) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("conversation", conversationId, business.id)) return;
   updateConversation(conversationId, { status });
   revalidatePath(`/dashboard/inbox/${conversationId}`);
   revalidatePath("/dashboard/inbox");
@@ -103,7 +126,9 @@ export async function resolveApprovalAction(data: FormData) {
   const status = str(data, "status") as Approval["status"];
   if (!approvalId || (status !== "approved" && status !== "rejected")) return;
 
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
+  if (!belongsToBusiness("approval", approvalId, business.id)) return;
   resolveApproval(approvalId, status);
   logEvent({
     business_id: business.id,
@@ -123,7 +148,9 @@ export async function updateCallAction(data: FormData) {
   const outcome = str(data, "outcome");
   if (!callId) return;
 
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
+  if (!belongsToBusiness("call", callId, business.id)) return;
   updateCallRequest(callId, {
     status: status || undefined,
     outcome: outcome || undefined,
@@ -147,6 +174,9 @@ export async function setLeadStageAction(data: FormData) {
   const leadId = str(data, "lead_id");
   const stage = str(data, "stage") as Lead["stage"];
   if (!leadId || !stage) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("lead", leadId, business.id)) return;
   setLeadStage(leadId, stage);
   revalidatePath("/dashboard/leads");
 }
@@ -155,6 +185,9 @@ export async function setAppointmentStatusAction(data: FormData) {
   const appointmentId = str(data, "appointment_id");
   const status = str(data, "status") as Appointment["status"];
   if (!appointmentId || !status) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("appointment", appointmentId, business.id)) return;
   setAppointmentStatus(appointmentId, status);
   revalidatePath("/dashboard/appointments");
   revalidatePath("/dashboard");
@@ -166,7 +199,8 @@ export async function addKbAction(data: FormData) {
   const title = str(data, "title");
   const body = str(data, "body");
   if (!title || !body) return;
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
   addKbArticle(business.id, title, body);
   revalidatePath("/dashboard/knowledge");
 }
@@ -174,6 +208,9 @@ export async function addKbAction(data: FormData) {
 export async function deleteKbAction(data: FormData) {
   const articleId = str(data, "article_id");
   if (!articleId) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("kb", articleId, business.id)) return;
   deleteKbArticle(articleId);
   revalidatePath("/dashboard/knowledge");
 }
@@ -184,7 +221,8 @@ export async function toggleIntegrationAction(data: FormData) {
   const provider = str(data, "provider");
   const next = str(data, "next") as "connected" | "disconnected";
   if (!provider || !next) return;
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
   setIntegrationStatus(business.id, provider, next);
   revalidatePath("/dashboard/integrations");
 }
@@ -192,7 +230,8 @@ export async function toggleIntegrationAction(data: FormData) {
 /* -------------------------------------------------------------- settings */
 
 export async function updateSettingsAction(data: FormData) {
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
   const hours: Record<string, string> = {};
   for (const day of ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) {
     hours[day] = str(data, `hours_${day}`) || "closed";
@@ -228,7 +267,9 @@ export async function answerGapAction(data: FormData) {
   const body = str(data, "body");
   if (!gapId || !title || !body) return;
 
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
+  if (!belongsToBusiness("gap", gapId, business.id)) return;
   addKbArticle(business.id, title, body, "gap-closed");
   setKbGapStatus(gapId, "answered");
   logEvent({
@@ -245,6 +286,9 @@ export async function setGapStatusAction(data: FormData) {
   const gapId = str(data, "gap_id");
   const status = str(data, "status") as "open" | "answered" | "dismissed";
   if (!gapId || !status) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("gap", gapId, business.id)) return;
   setKbGapStatus(gapId, status);
   revalidatePath("/dashboard/gaps");
 }
@@ -256,7 +300,8 @@ export async function applyTemplateAction(data: FormData) {
   const template = getTemplate(slug);
   if (!template) return;
 
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
   const existing = new Set(listKb(business.id).map((article) => article.title.toLowerCase()));
   for (const article of template.articles) {
     if (existing.has(article.title.toLowerCase())) continue;
@@ -270,7 +315,8 @@ export async function applyTemplateAction(data: FormData) {
 export async function updateAutomationAction(data: FormData) {
   const kind = str(data, "kind") as AutomationKind;
   if (!kind) return;
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
   const delay = Number(str(data, "delay_hours"));
 
   updateAutomationRule(business.id, kind, {
@@ -284,7 +330,8 @@ export async function updateAutomationAction(data: FormData) {
 }
 
 export async function syncFollowUpsAction() {
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
   syncFollowUps(business.id);
   revalidatePath("/dashboard/automations");
 }
@@ -294,7 +341,9 @@ export async function setFollowUpStatusAction(data: FormData) {
   const status = str(data, "status") as "scheduled" | "sent" | "cancelled";
   if (!followUpId || !status) return;
 
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
+  if (!belongsToBusiness("follow_up", followUpId, business.id)) return;
   setFollowUpStatus(followUpId, status);
   if (status === "sent") {
     logEvent({
@@ -313,7 +362,8 @@ export async function addTeammateAction(data: FormData) {
   const name = str(data, "name");
   const email = str(data, "email");
   if (!name || !email) return;
-  const business = await activeBusiness();
+  const business = await writableBusiness();
+  if (!business) return;
   addTeammate({
     business_id: business.id,
     name,
@@ -327,6 +377,9 @@ export async function addTeammateAction(data: FormData) {
 export async function removeTeammateAction(data: FormData) {
   const teammateId = str(data, "teammate_id");
   if (!teammateId) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("teammate", teammateId, business.id)) return;
   removeTeammate(teammateId);
   revalidatePath("/dashboard/team");
 }

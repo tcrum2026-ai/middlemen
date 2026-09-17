@@ -30,7 +30,7 @@ export default function TemplatesPage() {
             never cross — plus a persona tuned for the trade. Edit every word. Nothing here is locked.
           </p>
           <div className="mt-7">
-            <Link href="/connect" className="btn btn-primary px-5 py-3">
+            <Link href="/signup" className="btn btn-primary px-5 py-3">
               Start with a pack
               <ArrowIcon width={16} height={16} />
             </Link>

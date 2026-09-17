@@ -181,10 +181,31 @@ SQLite via better-sqlite3, `@anthropic-ai/sdk`. Data lives in `.data/middlemen.d
 - Widget text colour is chosen against the accent by WCAG contrast ratio, so a dark brand
   colour can't produce an unreadable launcher.
 
+## Accounts and tenancy
+
+- Email + password accounts, hashed with **scrypt** and a per-user salt, compared with
+  `timingSafeEqual`. Sessions are random 256-bit tokens stored **hashed** (SHA-256), so a
+  copy of the database can't be replayed as a cookie; cookies are `httpOnly`, `sameSite=lax`
+  and `secure` in production.
+- A workspace belongs to the account that created it (`businesses.owner_id`). Signed-in
+  users only ever see workspaces they own — the workspace-switch cookie is validated against
+  ownership, so tampering with it changes nothing.
+- The **demo workspace is unowned and public**, so the marketing site can keep linking
+  straight into a real dashboard. It is read-only, enforced server-side: every mutating
+  action resolves a *writable* business first and returns early without one.
+- Actions that take a record id re-check that the record belongs to the caller's workspace
+  (`belongsToBusiness`) rather than trusting the page the form came from.
+- Widget keys and record ids come from `crypto.randomBytes`, not `Math.random()`. A key
+  minted before that change is rotated automatically the first time the app opens the
+  database — re-paste the snippet from the install page if you hit that.
+- The post-sign-in redirect resolves `next` against a sentinel origin and compares, rather
+  than prefix-matching: a backslash is parsed as a slash for http(s), so `/\evil.com` looks
+  relative but points off-site.
+
 ## Notes and limits
 
-- **No authentication.** Workspace selection is a cookie. Anyone who reaches the dashboard
-  sees it. Auth is the first thing to add before this faces the public.
+- **No email verification or password reset.** Accounts are real and isolated, but there's
+  no mail delivery wired up, so neither flow exists yet.
 - **Integrations are directory entries**, not live OAuth connections — connecting toggles
   state and shapes the UI. The tool layer is where real Gmail/Calendar/Stripe calls belong.
 - **Chart colours** in analytics are stepped for the dark surface and validated for

@@ -111,7 +111,7 @@ export default function SecurityPage() {
               needs SOC 2, HIPAA or a signed DPA before you can use a tool like this, ask us where we actually are
               rather than trusting a badge on a marketing page.
             </p>
-            <Link href="/connect" className="btn btn-ghost mt-4">
+            <Link href="/signup" className="btn btn-ghost mt-4">
               Try it on a workspace with no real data
             </Link>
           </Card>

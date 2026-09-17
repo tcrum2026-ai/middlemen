@@ -32,10 +32,10 @@ export function SiteNav() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Link href="/dashboard" className="btn btn-ghost hidden sm:inline-flex">
-            Dashboard
+          <Link href="/signin" className="btn btn-ghost hidden sm:inline-flex">
+            Sign in
           </Link>
-          <Link href="/connect" className="btn btn-primary">
+          <Link href="/signup" className="btn btn-primary">
             Start free
           </Link>
           <button
@@ -69,7 +69,14 @@ export function SiteNav() {
               onClick={() => setOpen(false)}
               className="rounded-lg px-2 py-2.5 text-sm text-mist-300 transition hover:bg-ink-850 hover:text-mist-100"
             >
-              Dashboard
+              Demo workspace
+            </Link>
+            <Link
+              href="/signin"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-2 py-2.5 text-sm text-mist-300 transition hover:bg-ink-850 hover:text-mist-100"
+            >
+              Sign in
             </Link>
           </div>
         </div>
