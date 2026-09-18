@@ -3,11 +3,11 @@ import fs from "node:fs";
 import { randomBytes } from "node:crypto";
 import Database from "better-sqlite3";
 
-const DATA_DIR = process.env.MIDDLEMEN_DATA_DIR
-  ? path.resolve(process.env.MIDDLEMEN_DATA_DIR)
+const DATA_DIR = process.env.LOBBY_DATA_DIR
+  ? path.resolve(process.env.LOBBY_DATA_DIR)
   : path.join(process.cwd(), ".data");
 
-const DB_PATH = path.join(DATA_DIR, "middlemen.db");
+const DB_PATH = path.join(DATA_DIR, "lobby.db");
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -287,7 +287,7 @@ function rotateLegacyWidgetKeys(db: Database.Database): void {
 }
 
 declare global {
-  var __middlemenDb: Database.Database | undefined;
+  var __lobbyDb: Database.Database | undefined;
 }
 
 function open(): Database.Database {
@@ -305,10 +305,10 @@ function open(): Database.Database {
  * would otherwise be rebuilt on every request.
  */
 export function getDb(): Database.Database {
-  if (!globalThis.__middlemenDb) {
-    globalThis.__middlemenDb = open();
+  if (!globalThis.__lobbyDb) {
+    globalThis.__lobbyDb = open();
   }
-  return globalThis.__middlemenDb;
+  return globalThis.__lobbyDb;
 }
 
 /** Cryptographically random: ids double as lookup handles in URLs and forms. */

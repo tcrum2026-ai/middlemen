@@ -91,7 +91,7 @@ export default async function InstallPage() {
             <ul className="mt-3 space-y-2.5 text-sm text-mist-300">
               <li>
                 <span className="text-mist-400">Email:</span> forward {business.email ?? "your support inbox"} to{" "}
-                <span className="font-mono text-xs">{business.slug}@inbound.middlemen.app</span>
+                <span className="font-mono text-xs">{business.slug}@inbound.lobby.app</span>
               </li>
               <li>
                 <span className="text-mist-400">SMS:</span> point your Twilio number&apos;s webhook at{" "}

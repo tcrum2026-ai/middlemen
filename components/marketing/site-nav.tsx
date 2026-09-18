@@ -4,12 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { Logo } from "@/components/ui";
 
+// Three is the whole menu. Starter packs, security and the trade pages are a
+// click away from the footer and from the pages they belong to.
 const LINKS = [
   { href: "/tour", label: "Tour" },
-  { href: "/templates", label: "Starter packs" },
-  { href: "/#math", label: "The math" },
-  { href: "/#compare", label: "Compare" },
-  { href: "/security", label: "Security" },
+  { href: "/compare", label: "Compare" },
   { href: "/#pricing", label: "Pricing" },
 ];
 

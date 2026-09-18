@@ -5,11 +5,13 @@ export function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 font-semibold tracking-tight ${className}`}>
       <span className="relative grid h-7 w-7 place-items-center rounded-lg bg-jade-500 text-ink-950">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-          <path d="M5 17V9M12 17V5M19 17v-5" />
+        {/* A doorway: the arch you walk through, and the floor you land on. */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 20v-8a6 6 0 0 1 12 0v8" />
+          <path d="M3.5 20h17" />
         </svg>
       </span>
-      Middlemen
+      Lobby
     </span>
   );
 }

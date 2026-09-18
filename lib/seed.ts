@@ -408,7 +408,7 @@ function seedDemoBusiness(): Business {
 /**
  * Makes sure the install has at least one workspace so every screen has
  * somewhere to point. On first run this is the fully populated demo business;
- * set MIDDLEMEN_SEED_DEMO=false to start from an empty workspace instead.
+ * set LOBBY_SEED_DEMO=false to start from an empty workspace instead.
  * Safe to call on every request.
  */
 export function ensureSeeded(): void {
@@ -416,7 +416,7 @@ export function ensureSeeded(): void {
   const { count } = db.prepare("SELECT COUNT(*) AS count FROM businesses").get() as { count: number };
   if (count > 0) return;
 
-  if (process.env.MIDDLEMEN_SEED_DEMO === "false") {
+  if (process.env.LOBBY_SEED_DEMO === "false") {
     createBusiness({ name: "My business", industry: "general" });
     return;
   }

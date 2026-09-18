@@ -11,17 +11,26 @@ export default function Icon() {
           width: "100%",
           height: "100%",
           display: "flex",
-          alignItems: "flex-end",
+          alignItems: "center",
           justifyContent: "center",
-          gap: 3,
           background: "#19c37d",
           borderRadius: 7,
-          paddingBottom: 8,
         }}
       >
-        <div style={{ width: 4, height: 9, background: "#07080a", borderRadius: 2 }} />
-        <div style={{ width: 4, height: 16, background: "#07080a", borderRadius: 2 }} />
-        <div style={{ width: 4, height: 12, background: "#07080a", borderRadius: 2 }} />
+        {/* The same doorway as the wordmark, so the tab matches the site. */}
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#07080a"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 20v-8a6 6 0 0 1 12 0v8" />
+          <path d="M3.5 20h17" />
+        </svg>
       </div>
     ),
     size,

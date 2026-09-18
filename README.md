@@ -1,4 +1,4 @@
-# Middlemen
+# Lobby
 
 An AI virtual assistant for small businesses. It handles the messages — web chat, email,
 SMS — and hands the phone calls to a person, briefed.
@@ -70,7 +70,7 @@ npm run dev
 ```
 
 Open http://localhost:3000. On first run the app seeds a fully populated demo business
-(Brightline Home Services) so every screen has real data. Set `MIDDLEMEN_SEED_DEMO=false`
+(Brightline Home Services) so every screen has real data. Set `LOBBY_SEED_DEMO=false`
 to start from an empty workspace instead.
 
 ### Live replies
@@ -163,8 +163,8 @@ public/widget.js        embeddable widget (shadow DOM, no dependencies)
 ## Stack
 
 Next.js 15 (App Router, server components, server actions), TypeScript, Tailwind v4,
-SQLite via better-sqlite3, `@anthropic-ai/sdk`. Data lives in `.data/middlemen.db`
-(override with `MIDDLEMEN_DATA_DIR`).
+SQLite via better-sqlite3, `@anthropic-ai/sdk`. Data lives in `.data/lobby.db`
+(override with `LOBBY_DATA_DIR`).
 
 ## Connecting the outside world
 

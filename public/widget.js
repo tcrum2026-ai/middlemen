@@ -1,5 +1,5 @@
 /**
- * Middlemen embeddable assistant.
+ * Lobby embeddable assistant.
  *
  *   <script src="https://your-host/widget.js" data-key="mm_xxx" defer></script>
  *
@@ -18,7 +18,7 @@
 
   var key = script.getAttribute("data-key");
   if (!key) {
-    console.warn("[middlemen] missing data-key on the widget script tag");
+    console.warn("[lobby] missing data-key on the widget script tag");
     return;
   }
 
@@ -53,7 +53,7 @@
   var greeting = script.getAttribute("data-greeting") || "Hi! Ask me anything — pricing, availability, booking.";
 
   var host = document.createElement("div");
-  host.setAttribute("data-middlemen", "");
+  host.setAttribute("data-lobby", "");
   document.body.appendChild(host);
   var root = host.attachShadow({ mode: "open" });
 

@@ -1,4 +1,4 @@
-# Deploying Middlemen
+# Deploying Lobby
 
 Everything below is "paste a value" work. No code changes are needed to go live.
 
@@ -7,9 +7,9 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | Variable | Needed for | Notes |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | Live replies | Without it the assistant runs its scripted fallback and every screen still works. Key from [console.anthropic.com](https://console.anthropic.com) → API keys; add credit under Billing (API usage is prepaid and separate from a Claude subscription). |
-| `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap, OG tags | e.g. `https://middlemen.app` |
-| `MIDDLEMEN_DATA_DIR` | Where SQLite lives | Defaults to `./.data`. Point it at a mounted volume. |
-| `MIDDLEMEN_SEED_DEMO` | Set `false` to start empty | Otherwise the demo workspace is seeded on first run. |
+| `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap, OG tags | e.g. `https://lobby.app` |
+| `LOBBY_DATA_DIR` | Where SQLite lives | Defaults to `./.data`. Point it at a mounted volume. |
+| `LOBBY_SEED_DEMO` | Set `false` to start empty | Otherwise the demo workspace is seeded on first run. |
 | `INBOUND_EMAIL_SECRET` | Inbound email webhook | Optional but recommended; the webhook checks it against `x-inbound-secret`. |
 
 Nothing else belongs in the environment — per-workspace keys (Resend, Twilio, Slack, Stripe) are
@@ -20,11 +20,11 @@ entered in the dashboard under **Integrations** and stored per workspace.
 **Docker**
 
 ```bash
-docker build -t middlemen .
-docker run -p 3000:3000 -v middlemen-data:/data \
+docker build -t lobby .
+docker run -p 3000:3000 -v lobby-data:/data \
   -e ANTHROPIC_API_KEY=sk-ant-... \
   -e NEXT_PUBLIC_SITE_URL=https://your-domain \
-  middlemen
+  lobby
 ```
 
 **Node directly**
@@ -55,7 +55,7 @@ All of this is done in the dashboard, per workspace:
 
 ## 4. Before real customers see it
 
-- Replace the demo workspace (`MIDDLEMEN_SEED_DEMO=false`, or delete it once you have your own).
+- Replace the demo workspace (`LOBBY_SEED_DEMO=false`, or delete it once you have your own).
 - Fill the knowledge base and clear every placeholder — the assistant refuses to quote them, which
   means it will say "I don't know" until you do.
 - Run the readiness check in **Playground** and close the gaps it finds.

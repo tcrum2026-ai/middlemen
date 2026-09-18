@@ -21,7 +21,7 @@ const FALLBACK = "/dashboard";
 function safeNext(raw: string): string {
   if (!raw || !raw.startsWith("/") || raw.includes("\\")) return FALLBACK;
   try {
-    const sentinel = "https://middlemen.invalid";
+    const sentinel = "https://lobby.invalid";
     const url = new URL(raw, sentinel);
     if (url.origin !== sentinel) return FALLBACK;
     return `${url.pathname}${url.search}`;

@@ -8,17 +8,17 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 const DESCRIPTION =
-  "Middlemen answers your messages, books your jobs, qualifies your leads and drafts your quotes — grounded in your " +
+  "Lobby answers your messages, books your jobs, qualifies your leads and drafts your quotes — grounded in your " +
   "own prices and policies. Phone calls stay with your team, briefed and ready.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Middlemen — the AI assistant that runs your front desk",
-    template: "%s — Middlemen",
+    default: "Lobby — the AI assistant that runs your front desk",
+    template: "%s — Lobby",
   },
   description: DESCRIPTION,
-  applicationName: "Middlemen",
+  applicationName: "Lobby",
   keywords: [
     "AI assistant for small business",
     "AI receptionist alternative",
@@ -30,14 +30,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    siteName: "Middlemen",
-    title: "Middlemen — the AI assistant that runs your front desk",
+    siteName: "Lobby",
+    title: "Lobby — the AI assistant that runs your front desk",
     description: DESCRIPTION,
     url: "/",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Middlemen — the AI assistant that runs your front desk",
+    title: "Lobby — the AI assistant that runs your front desk",
     description: DESCRIPTION,
   },
   robots: { index: true, follow: true },
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Middlemen",
+  name: "Lobby",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description: DESCRIPTION,
@@ -59,12 +59,6 @@ const STRUCTURED_DATA = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <head>
-        {/* Scroll-reveal is an enhancement: without JS every section stays visible. */}
-        <noscript>
-          <style>{`.reveal { opacity: 1 !important; transform: none !important; }`}</style>
-        </noscript>
-      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <script

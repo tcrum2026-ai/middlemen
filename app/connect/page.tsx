@@ -4,7 +4,7 @@ import { ConnectWizard } from "./connect-wizard";
 import { Logo } from "@/components/ui";
 import { currentUser } from "@/lib/auth";
 
-export const metadata = { title: "Connect your business — Middlemen" };
+export const metadata = { title: "Connect your business — Lobby" };
 
 export default async function ConnectPage() {
   const user = await currentUser();

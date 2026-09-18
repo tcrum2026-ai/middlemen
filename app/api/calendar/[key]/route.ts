@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ key
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Middlemen//Assistant//EN",
+    "PRODID:-//Lobby//Assistant//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapeText(business.name)} — booked work`,
@@ -55,7 +55,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ key
 
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${appointment.id}@middlemen`,
+      `UID:${appointment.id}@lobby`,
       `DTSTAMP:${icsTime(appointment.created_at)}`,
       `DTSTART:${icsTime(appointment.starts_at)}`,
       `DTEND:${icsTime(end.toISOString())}`,

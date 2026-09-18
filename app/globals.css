@@ -138,17 +138,6 @@ body {
   animation: rise 420ms ease both;
 }
 
-/* Sections fade up as they enter the viewport; see components/marketing/reveal. */
-.reveal {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 600ms ease, transform 600ms ease;
-}
-.reveal[data-shown="true"] {
-  opacity: 1;
-  transform: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -157,9 +146,5 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-  .reveal {
-    opacity: 1;
-    transform: none;
   }
 }

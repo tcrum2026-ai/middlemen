@@ -97,7 +97,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       <div className="mx-auto flex max-w-[92rem] gap-6 px-4 py-6 sm:px-5">
         <aside className="hidden w-52 shrink-0 lg:block">
-          <DashboardNav counts={counts} />
+          {/* Follows you down a long page; scrolls inside itself if it ever outgrows the screen. */}
+          <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pb-4">
+            <DashboardNav counts={counts} />
+          </div>
         </aside>
         <main className="min-w-0 flex-1 pb-16">{children}</main>
       </div>

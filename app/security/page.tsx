@@ -9,7 +9,7 @@ import { TRUST } from "@/lib/marketing";
 export const metadata: Metadata = {
   title: "Security and guardrails",
   description:
-    "How Middlemen keeps an AI assistant from embarrassing your business: grounded answers, approval gates, a full " +
+    "How Lobby keeps an AI assistant from embarrassing your business: grounded answers, approval gates, a full " +
     "audit trail, no voice recordings, and data you can export or delete at any time.",
   alternates: { canonical: "/security" },
 };

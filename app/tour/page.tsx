@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/marketing/site-nav";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { WorkspaceShowcase } from "@/components/marketing/workspace-showcase";
 import { Badge, Card } from "@/components/ui";
 import { ArrowIcon } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: "The tour — every screen, in the order you'd use it",
   description:
-    "A walk through Middlemen: onboarding, the shared inbox, the human call queue, approvals, the playground, " +
+    "A walk through Lobby: onboarding, the shared inbox, the human call queue, approvals, the playground, " +
     "knowledge gaps, follow-ups and reporting.",
   alternates: { canonical: "/tour" },
 };
@@ -151,6 +152,18 @@ export default function TourPage() {
               </div>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="border-t border-ink-800 bg-ink-900/40 py-16">
+        <div className="mx-auto max-w-6xl px-5">
+          <h2 className="text-2xl font-semibold tracking-tight">This is what you open on Monday.</h2>
+          <p className="mt-3 max-w-2xl text-mist-400">
+            Five screens do the work. The rest of the product exists to keep these five honest.
+          </p>
+          <div className="mt-10">
+            <WorkspaceShowcase />
+          </div>
         </div>
       </section>
 

@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Middlemen — AI handles the messages, people handle the calls";
+export const alt = "Lobby — AI handles the messages, people handle the calls";
 
 export default function OpengraphImage() {
   return new ImageResponse(
@@ -29,14 +29,23 @@ export default function OpengraphImage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#07080a",
-              fontSize: 26,
-              fontWeight: 700,
             }}
           >
-            M
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#07080a"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 20v-8a6 6 0 0 1 12 0v8" />
+              <path d="M3.5 20h17" />
+            </svg>
           </div>
-          <div style={{ color: "#e7eaf1", fontSize: 30, fontWeight: 600 }}>Middlemen</div>
+          <div style={{ color: "#e7eaf1", fontSize: 30, fontWeight: 600 }}>Lobby</div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>

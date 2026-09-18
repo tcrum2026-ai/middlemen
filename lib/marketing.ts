@@ -156,7 +156,7 @@ export const FAQS = [
       "customers are least forgiving. When a call is needed, the assistant queues it for a person with a written " +
       "brief, so the call takes two minutes instead of ten. If what you actually need is someone to answer the " +
       "phone around the clock, an AI voice service or an answering service is the better buy. Running one of those " +
-      "alongside Middlemen is a perfectly good setup.",
+      "alongside Lobby is a perfectly good setup.",
   },
   {
     q: "What stops it from making things up?",
@@ -216,7 +216,7 @@ export const FAQS = [
 
 export interface ComparisonRow {
   label: string;
-  middlemen: string;
+  lobby: string;
   voiceAi: string;
   answering: string;
   chatbot: string;
@@ -230,7 +230,7 @@ export interface ComparisonRow {
 export const COMPARISON: ComparisonRow[] = [
   {
     label: "Answers messages 24/7",
-    middlemen: "yes",
+    lobby: "yes",
     voiceAi: "no",
     answering: "no",
     chatbot: "yes",
@@ -238,7 +238,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Answers phone calls",
-    middlemen: "by design, no",
+    lobby: "by design, no",
     voiceAi: "yes",
     answering: "yes",
     chatbot: "no",
@@ -246,7 +246,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Knows your prices and policies",
-    middlemen: "yes",
+    lobby: "yes",
     voiceAi: "partly",
     answering: "from a script",
     chatbot: "rarely",
@@ -254,7 +254,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Books into your real calendar",
-    middlemen: "yes",
+    lobby: "yes",
     voiceAi: "sometimes",
     answering: "sometimes",
     chatbot: "no",
@@ -262,7 +262,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Files and scores the lead",
-    middlemen: "yes",
+    lobby: "yes",
     voiceAi: "no",
     answering: "no",
     chatbot: "no",
@@ -270,7 +270,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Drafts the quote",
-    middlemen: "yes",
+    lobby: "yes",
     voiceAi: "no",
     answering: "no",
     chatbot: "no",
@@ -278,7 +278,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Hands you a briefed callback",
-    middlemen: "yes",
+    lobby: "yes",
     voiceAi: "a transcript",
     answering: "a message slip",
     chatbot: "no",
@@ -286,7 +286,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Refuses to guess",
-    middlemen: "yes",
+    lobby: "yes",
     voiceAi: "varies",
     answering: "yes",
     chatbot: "no",
@@ -294,7 +294,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Time to go live",
-    middlemen: "minutes",
+    lobby: "minutes",
     voiceAi: "days",
     answering: "days to weeks",
     chatbot: "hours",
@@ -302,7 +302,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Typical monthly cost",
-    middlemen: "$49–$149",
+    lobby: "$49–$149",
     voiceAi: "$60–$300",
     answering: "$300+",
     chatbot: "$0–$50",

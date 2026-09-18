@@ -20,9 +20,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { industry: slug } = await params;
   const industry = getIndustry(slug);
-  if (!industry) return { title: "Not found — Middlemen" };
+  if (!industry) return { title: "Not found — Lobby" };
 
-  const title = `Middlemen for ${industry.name.toLowerCase()} — AI that answers, people who call`;
+  const title = `Lobby for ${industry.name.toLowerCase()} — AI that answers, people who call`;
   return {
     title,
     description: industry.metaDescription,

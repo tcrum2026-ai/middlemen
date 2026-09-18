@@ -1,7 +1,7 @@
 import { COMPARISON } from "@/lib/marketing";
 
 const COLUMNS = [
-  { key: "middlemen", label: "Middlemen", accent: true },
+  { key: "lobby", label: "Lobby", accent: true },
   { key: "voiceAi", label: "AI voice receptionist", accent: false },
   { key: "answering", label: "Answering service", accent: false },
   { key: "chatbot", label: "Website chatbot", accent: false },
@@ -56,9 +56,9 @@ export function Comparison() {
         <h3 className="font-semibold">When we&apos;re the wrong answer</h3>
         <p className="mt-2 text-sm leading-relaxed text-mist-300">
           If the thing keeping you up at night is a ringing phone nobody picks up, buy an AI voice receptionist or a
-          human answering service — that is their job and it isn&apos;t ours. Middlemen is for the businesses drowning
+          human answering service — that is their job and it isn&apos;t ours. Lobby is for the businesses drowning
           in <em>messages</em>: the after-hours form fills, the “how much for…” texts, the reschedules, the quote
-          chases. Running an answering service for voice alongside Middlemen for everything else is a perfectly good
+          chases. Running an answering service for voice alongside Lobby for everything else is a perfectly good
           setup — and the briefs we hand your team make those calls shorter too.
         </p>
       </div>

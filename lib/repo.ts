@@ -218,6 +218,49 @@ export function isPlaceholder(article: Pick<KbArticle, "body">): boolean {
   return article.body.includes(PLACEHOLDER_MARKER);
 }
 
+/**
+ * Customers and knowledge bases rarely pick the same word for the same thing:
+ * people ask what you *charge*, owners write down their *prices*. Each term is
+ * matched against its alternatives too, so one vocabulary gap doesn't turn an
+ * answerable question into an escalation.
+ */
+const SYNONYMS: Record<string, string[]> = {
+  charge: ["pricing", "price", "cost", "fee", "rate"],
+  charges: ["pricing", "price", "cost", "fee", "rate"],
+  cost: ["pricing", "price", "fee", "rate"],
+  costs: ["pricing", "price", "fee", "rate"],
+  price: ["pricing", "cost", "fee", "rate"],
+  prices: ["pricing", "cost", "fee", "rate"],
+  quote: ["pricing", "price", "cost", "estimate"],
+  estimate: ["quote", "pricing", "price", "cost"],
+  expensive: ["pricing", "price", "cost"],
+  much: ["pricing", "price", "cost"],
+  open: ["hours", "schedule"],
+  closed: ["hours", "schedule"],
+  hours: ["open", "schedule"],
+  area: ["serve", "service area", "coverage"],
+  cover: ["serve", "area", "coverage"],
+  refund: ["warranty", "guarantee", "money back"],
+  guarantee: ["warranty", "refund"],
+  warranty: ["guarantee", "refund"],
+  cancel: ["cancellation", "reschedule"],
+  reschedule: ["cancellation", "cancel", "booking"],
+  book: ["booking", "appointment", "schedule"],
+  booking: ["book", "appointment", "schedule"],
+  appointment: ["booking", "schedule"],
+  emergency: ["urgent", "after-hours"],
+};
+
+function variants(term: string): string[] {
+  return [term, ...(SYNONYMS[term] ?? [])];
+}
+
+/** Plenty of price lists name no prices — they just list dollar figures. */
+const MONEY_WORDS = new Set([
+  "charge", "charges", "cost", "costs", "price", "prices", "pricing",
+  "quote", "estimate", "expensive", "fee", "rate", "much",
+]);
+
 /** Keyword scoring is enough here: knowledge bases are per-business and small. */
 export function searchKbRanked(
   businessId: string,
@@ -241,9 +284,13 @@ export function searchKbRanked(
       // mentions everything in passing beats the one actually about the subject:
       // "do you cover my area?" was answering out of the pricing article because
       // it happened to contain both words.
+      const title = article.title.toLowerCase();
+      const quotesFigures = /\$\d/.test(article.body);
       const score = terms.reduce((sum, term) => {
-        if (article.title.toLowerCase().includes(term)) return sum + 3;
-        return sum + (haystack.includes(term) ? 1 : 0);
+        const forms = variants(term);
+        if (forms.some((form) => title.includes(form))) return sum + 3;
+        if (forms.some((form) => haystack.includes(form))) return sum + 1;
+        return sum + (MONEY_WORDS.has(term) && quotesFigures ? 1 : 0);
       }, 0);
       return { article, score, terms: terms.length };
     })
