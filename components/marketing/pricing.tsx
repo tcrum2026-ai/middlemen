@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CheckIcon } from "@/components/icons";
 import { Badge } from "@/components/ui";
 import { PLANS } from "@/lib/marketing";
+import { LEGAL } from "@/lib/legal";
 
 /** Annual billing bills ten months for twelve — the discount is stated, not implied. */
 const ANNUAL_MONTHS_CHARGED = 10;
@@ -76,9 +77,23 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <Link href="/signup" className={`btn mt-6 ${plan.featured ? "btn-primary" : "btn-ghost"} justify-center`}>
-                {shown === null ? "Contact sales" : "Start free"}
-              </Link>
+              {/* "Contact sales" is only offered when there is an address behind it;
+                  otherwise the quoted tier starts the same way as the others. */}
+              {shown === null && LEGAL.contactEmail ? (
+                <a
+                  href={`mailto:${LEGAL.contactEmail}?subject=${encodeURIComponent("Lobby — " + plan.name + " plan")}`}
+                  className={`btn mt-6 ${plan.featured ? "btn-primary" : "btn-ghost"} justify-center`}
+                >
+                  Contact sales
+                </a>
+              ) : (
+                <Link
+                  href="/signup"
+                  className={`btn mt-6 ${plan.featured ? "btn-primary" : "btn-ghost"} justify-center`}
+                >
+                  Start free
+                </Link>
+              )}
             </div>
           );
         })}

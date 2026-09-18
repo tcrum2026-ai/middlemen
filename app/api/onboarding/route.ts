@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
+import { QUOTAS, clientIp, rateLimitAll, tooManyRequests } from "@/lib/rate-limit";
 import { addKbArticle, createBusiness, setIntegrationStatus } from "@/lib/repo";
 import { BUSINESS_COOKIE } from "@/lib/session";
 import { currentUser } from "@/lib/auth";
@@ -57,6 +58,12 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Sign in before creating a workspace." }, { status: 401 });
   }
+
+  const limit = rateLimitAll([
+    { key: `onboard:user:${user.id}`, quota: QUOTAS.signUpPerIp },
+    { key: `onboard:ip:${clientIp(request)}`, quota: QUOTAS.signUpPerIp },
+  ]);
+  if (!limit.ok) return tooManyRequests(limit, "Too many workspaces created just now.");
 
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

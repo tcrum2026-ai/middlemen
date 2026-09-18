@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
+import { QUOTAS, clientIp, rateLimitAll, tooManyRequests } from "@/lib/rate-limit";
 import { streamAssistantTurn } from "@/lib/assistant";
 import {
   addMessage,
@@ -42,6 +43,16 @@ export async function POST(request: Request) {
   const business = getBusinessByWidgetKey(widgetKey);
   if (!business) {
     return Response.json({ error: "Unknown widget key" }, { status: 404, headers: CORS });
+  }
+
+  // Checked after the key resolves so an unknown key can't be used to probe the
+  // limiter, and before any model call so a flood costs nothing.
+  const limit = rateLimitAll([
+    { key: `chat:ip:${clientIp(request)}`, quota: QUOTAS.chatPerIp },
+    { key: `chat:biz:${business.id}`, quota: QUOTAS.chatPerWorkspace },
+  ]);
+  if (!limit.ok) {
+    return tooManyRequests(limit, "Too many messages just now. Try again shortly.", CORS);
   }
 
   let conversation = conversationId ? getConversation(conversationId) : null;

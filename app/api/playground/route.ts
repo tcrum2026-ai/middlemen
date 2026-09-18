@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
+import { QUOTAS, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { runAssistantTurn } from "@/lib/assistant";
 import { logEvent } from "@/lib/repo";
 import { workspace } from "@/lib/session";
@@ -83,6 +84,11 @@ export async function POST(request: Request) {
   }
 
   const { business, canWrite } = await workspace();
+
+  // A suite run is eight model calls behind one click, so bound it per workspace.
+  const limit = rateLimit(`playground:${business.id}`, QUOTAS.playgroundPerWorkspace);
+  if (!limit.ok) return tooManyRequests(limit, "Give the playground a moment — too many runs just now.");
+
   const conversation = scratchConversation(business);
 
   if (parsed.data.mode === "suite") {

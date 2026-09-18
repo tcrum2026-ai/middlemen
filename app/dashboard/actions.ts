@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { QUOTAS, rateLimit } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
 import {
   addKbArticle,
@@ -94,6 +95,9 @@ export async function aiReplyAction(data: FormData) {
   if (!business) return;
   const conversation = getConversation(conversationId);
   if (!conversation || conversation.business_id !== business.id) return;
+
+  // Authenticated, but still a model call per click.
+  if (!rateLimit(`aireply:${business.id}`, QUOTAS.playgroundPerWorkspace).ok) return;
 
   const turn = await runAssistantTurn({
     business,

@@ -20,6 +20,14 @@ export function ConnectionTest({ initiallyConfigured }: { initiallyConfigured: b
     setBusy(true);
     try {
       const response = await fetch("/api/assistant-status");
+      if (response.status === 401) {
+        setStatus({ configured: true, ok: false, hint: "Sign in to run this check — the demo workspace can't." });
+        return;
+      }
+      if (response.status === 429) {
+        setStatus({ configured: true, ok: false, hint: "Checked too often just now. Try again in a minute." });
+        return;
+      }
       setStatus((await response.json()) as Status);
     } catch {
       setStatus({ configured: true, ok: false, hint: "The check itself failed to run." });

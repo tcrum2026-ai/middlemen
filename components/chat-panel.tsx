@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { SendIcon, SparkIcon } from "./icons";
 import type { AssistantAction } from "@/lib/types";
 
+/** Marks a refusal we can explain, as opposed to a network failure we can't. */
+class PacedError extends Error {}
+
 interface Bubble {
   role: "customer" | "assistant";
   body: string;
@@ -75,6 +78,16 @@ export function ChatPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ widgetKey, conversationId, message: body }),
       });
+      if (response.status === 429) {
+        // Say what actually happened; "couldn't reach the assistant" would be a lie.
+        const wait = await response.json().catch(() => ({ retryAfter: 60 }));
+        const seconds = Number(wait.retryAfter) || 60;
+        throw new PacedError(
+          `That's a lot of messages at once. Try again in ${
+            seconds < 60 ? `${seconds} seconds` : `${Math.ceil(seconds / 60)} minutes`
+          }.`,
+        );
+      }
       if (!response.ok || !response.body) throw new Error(`Chat failed: ${response.status}`);
 
       const reader = response.body.getReader();
@@ -118,12 +131,15 @@ export function ChatPanel({
           }
         }
       }
-    } catch {
+    } catch (error) {
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          body: "I couldn't reach the assistant just now. A teammate will pick this up and follow up with you.",
+          body:
+            error instanceof PacedError
+              ? error.message
+              : "I couldn't reach the assistant just now. A teammate will pick this up and follow up with you.",
         },
       ]);
     } finally {

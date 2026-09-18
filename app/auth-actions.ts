@@ -1,10 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { authenticate, createUser, endSession, startSession } from "@/lib/auth";
 import { ensureSeeded } from "@/lib/seed";
 import { BUSINESS_COOKIE } from "@/lib/session";
+import { QUOTAS, rateLimitAll } from "@/lib/rate-limit";
 
 function field(data: FormData, key: string): string {
   const value = data.get(key);
@@ -12,6 +13,14 @@ function field(data: FormData, key: string): string {
 }
 
 const FALLBACK = "/dashboard";
+
+/** Server actions don't receive the Request, so the address comes from headers(). */
+async function callerIp(): Promise<string> {
+  const headerList = await headers();
+  const forwarded = headerList.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return headerList.get("x-real-ip")?.trim() || "unknown";
+}
 
 /**
  * Only same-site paths. Prefix checks are not enough: the URL parser treats a
@@ -36,6 +45,16 @@ export async function signInAction(_prev: { error?: string } | null, data: FormD
   const password = field(data, "password");
   if (!email || !password) return { error: "Email and password, please." };
 
+  // Counted per address and per account, so guessing can be spread across
+  // neither many accounts from one machine nor one account from many.
+  const limit = rateLimitAll([
+    { key: `signin:ip:${await callerIp()}`, quota: QUOTAS.signInPerIp },
+    { key: `signin:email:${email.trim().toLowerCase()}`, quota: QUOTAS.signInPerIp },
+  ]);
+  if (!limit.ok) {
+    return { error: `Too many sign-in attempts. Try again in ${Math.ceil(limit.retryAfter / 60)} minutes.` };
+  }
+
   const user = await authenticate(email, password);
   if (!user) return { error: "That email and password don't match an account." };
 
@@ -45,6 +64,12 @@ export async function signInAction(_prev: { error?: string } | null, data: FormD
 
 export async function signUpAction(_prev: { error?: string } | null, data: FormData) {
   ensureSeeded();
+
+  const limit = rateLimitAll([{ key: `signup:ip:${await callerIp()}`, quota: QUOTAS.signUpPerIp }]);
+  if (!limit.ok) {
+    return { error: "Too many accounts created from here recently. Try again later." };
+  }
+
   const result = await createUser({
     email: field(data, "email"),
     name: field(data, "name"),

@@ -70,6 +70,15 @@ export function AuthForm({
         {pending ? "One moment…" : isSignUp ? "Create account" : "Sign in"}
       </button>
 
+      {isSignUp ? (
+        <p className="text-center text-xs leading-relaxed text-mist-400">
+          Creating an account accepts our{" "}
+          <Link href="/terms" className="text-mist-300 underline underline-offset-2 hover:text-mist-100">terms</Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-mist-300 underline underline-offset-2 hover:text-mist-100">privacy policy</Link>.
+        </p>
+      ) : null}
+
       <p className="text-center text-sm text-mist-400">
         {isSignUp ? (
           <>

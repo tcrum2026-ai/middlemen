@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { assistantConfigured } from "@/lib/assistant";
+import { currentUser } from "@/lib/auth";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +13,16 @@ const MODEL = "claude-opus-5";
  * Verifies credentials without spending tokens: retrieving a model exercises
  * auth, network and the base URL, but generates nothing.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  // A setup diagnostic, not a public endpoint: it makes an outbound API call on
+  // every hit and reports which base URL and model this deployment is wired to.
+  const user = await currentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Sign in to check assistant status." }, { status: 401 });
+  }
+  const limit = rateLimit(`status:${user.id}:${clientIp(request)}`, { limit: 10, windowMs: 60_000 });
+  if (!limit.ok) return tooManyRequests(limit, "Checked too often. Try again shortly.");
+
   if (!assistantConfigured()) {
     return NextResponse.json({
       configured: false,

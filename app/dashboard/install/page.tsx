@@ -8,6 +8,8 @@ export default async function InstallPage() {
   const business = await activeBusiness();
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
+  // Whatever domain the operator points at /api/webhooks/email, if any.
+  const inboundDomain = process.env.INBOUND_EMAIL_DOMAIN?.trim() || "";
   const protocol = host.startsWith("localhost") ? "http" : "https";
   const origin = `${protocol}://${host}`;
 
@@ -90,8 +92,20 @@ export default async function InstallPage() {
             <h2 className="text-sm font-semibold">Forward your channels</h2>
             <ul className="mt-3 space-y-2.5 text-sm text-mist-300">
               <li>
-                <span className="text-mist-400">Email:</span> forward {business.email ?? "your support inbox"} to{" "}
-                <span className="font-mono text-xs">{business.slug}@inbound.lobby.app</span>
+                <span className="text-mist-400">Email:</span>{" "}
+                {inboundDomain ? (
+                  <>
+                    forward {business.email ?? "your support inbox"} to{" "}
+                    <span className="font-mono text-xs">
+                      {business.slug}@{inboundDomain}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-mist-400">
+                    not set up on this deployment yet — it needs an inbound mail domain pointed at{" "}
+                    <span className="font-mono text-xs">/api/webhooks/email</span>.
+                  </span>
+                )}
               </li>
               <li>
                 <span className="text-mist-400">SMS:</span> point your Twilio number&apos;s webhook at{" "}

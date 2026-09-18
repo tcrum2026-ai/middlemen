@@ -1,6 +1,8 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
+import { QUOTAS, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { runAssistantTurn } from "@/lib/assistant";
 import { sendEmail } from "@/lib/delivery";
 import {
@@ -44,8 +46,15 @@ function businessForRecipient(to: string): ReturnType<typeof listBusinesses>[num
 export async function POST(request: Request) {
   ensureSeeded();
 
+  // Fails closed. Unset, this endpoint would let anyone trigger an assistant
+  // reply — and a paid model call — against any workspace.
   const secret = process.env.INBOUND_EMAIL_SECRET;
-  if (secret && request.headers.get("x-inbound-secret") !== secret) {
+  if (!secret) {
+    console.error("Inbound email rejected: INBOUND_EMAIL_SECRET is not set.");
+    return NextResponse.json({ error: "Inbound email is not configured" }, { status: 503 });
+  }
+  const provided = request.headers.get("x-inbound-secret") ?? "";
+  if (provided.length !== secret.length || !timingSafeEqual(Buffer.from(provided), Buffer.from(secret))) {
     return NextResponse.json({ error: "Bad secret" }, { status: 403 });
   }
 
@@ -55,6 +64,9 @@ export async function POST(request: Request) {
 
   const business = businessForRecipient(to);
   if (!business) return NextResponse.json({ error: "No workspace for that address" }, { status: 404 });
+
+  const limit = rateLimit(`inbound:email:${emailAddress(from)}`, QUOTAS.inboundPerSender);
+  if (!limit.ok) return tooManyRequests(limit, "Too many messages from that address.");
 
   const contact = upsertContact(business.id, { name: addressName(from), email: emailAddress(from) });
   const existing = listConversations(business.id).find(

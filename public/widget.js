@@ -186,6 +186,16 @@
       body: JSON.stringify({ widgetKey: key, conversationId: conversationId, message: text }),
     })
       .then(function (response) {
+        if (response.status === 429) {
+          // Say what actually happened rather than blaming the connection.
+          return response.json().catch(function () { return {}; }).then(function (data) {
+            var seconds = Number(data.retryAfter) || 60;
+            started = true;
+            pending.textContent =
+              "That's a lot of messages at once. Try again in " +
+              (seconds < 60 ? seconds + " seconds" : Math.ceil(seconds / 60) + " minutes") + ".";
+          });
+        }
         if (!response.ok || !response.body) throw new Error("chat failed");
         var reader = response.body.getReader();
         var decoder = new TextDecoder();

@@ -55,7 +55,11 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-ink-800 pt-6 text-xs text-mist-400">
-          <p>© {new Date().getFullYear()} Lobby</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <p>© {new Date().getFullYear()} Lobby</p>
+            <Link className="hover:text-mist-100" href="/privacy">Privacy</Link>
+            <Link className="hover:text-mist-100" href="/terms">Terms</Link>
+          </div>
           <p>Built as a demonstration product — no real customer data lives here.</p>
         </div>
       </div>

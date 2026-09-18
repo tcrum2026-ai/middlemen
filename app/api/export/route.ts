@@ -1,4 +1,5 @@
 import { ensureSeeded } from "@/lib/seed";
+import { QUOTAS, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { activeBusiness } from "@/lib/session";
 import {
   contactTimeline,
@@ -50,6 +51,10 @@ function download(body: string, filename: string, contentType: string): Response
 export async function GET(request: Request) {
   ensureSeeded();
   const business = await activeBusiness();
+
+  const limit = rateLimit(`export:${business.id}`, QUOTAS.exportPerWorkspace);
+  if (!limit.ok) return tooManyRequests(limit, "Too many exports in the last hour.");
+
   const url = new URL(request.url);
   const type = url.searchParams.get("type") ?? "all";
   const stamp = new Date().toISOString().slice(0, 10);
