@@ -114,3 +114,41 @@ export const ChatIcon = (p: IconProps) => (
     <path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />
   </svg>
 );
+
+export const ContactsIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="4" y="3" width="16" height="18" rx="2" />
+    <path d="M2 8h3M2 12h3M2 16h3" />
+    <circle cx="12" cy="10" r="2.5" />
+    <path d="M8 17a4 4 0 0 1 8 0" />
+  </svg>
+);
+
+export const TeamIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M2.5 19v-.8A4.7 4.7 0 0 1 7.2 13.5h3.6a4.7 4.7 0 0 1 4.7 4.7v.8" />
+    <path d="M16.5 5.6a3.2 3.2 0 0 1 0 6.1M17.5 13.6a4.2 4.2 0 0 1 4 4.2V19" />
+  </svg>
+);
+
+export const GapIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2-2.4 3.6" />
+    <path d="M12 17.2h.01" />
+  </svg>
+);
+
+export const CodeIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M8.5 8 4 12l4.5 4M15.5 8l4.5 4-4.5 4M13.8 5l-3.6 14" />
+  </svg>
+);
+
+export const CardIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+    <path d="M2.5 10h19M6 15h3" />
+  </svg>
+);

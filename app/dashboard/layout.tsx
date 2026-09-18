@@ -43,14 +43,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 <span className="hidden sm:inline">Assistant live</span>
               </span>
             ) : (
-              <span
-                title="No ANTHROPIC_API_KEY set — replies come from the scripted fallback"
-                className="inline-flex items-center gap-1.5 rounded-full border border-ink-700 px-2 py-1"
+              <Link
+                href="/dashboard/integrations#assistant"
+                title="No ANTHROPIC_API_KEY set — replies come from the scripted fallback. Click for setup steps."
+                className="inline-flex items-center gap-1.5 rounded-full border border-ink-700 px-2 py-1 transition hover:border-amber-glow/40 hover:text-mist-200"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-glow" />
                 <span className="hidden sm:inline">Scripted mode — set ANTHROPIC_API_KEY</span>
                 <span className="sm:hidden">Scripted</span>
-              </span>
+              </Link>
             )}
             {user ? (
               <>

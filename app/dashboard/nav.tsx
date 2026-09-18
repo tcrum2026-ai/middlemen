@@ -5,6 +5,10 @@ import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
 import {
   CalendarIcon,
+  CardIcon,
+  CodeIcon,
+  ContactsIcon,
+  GapIcon,
   SendIcon,
   ChartIcon,
   GearIcon,
@@ -16,6 +20,7 @@ import {
   PlugIcon,
   ShieldIcon,
   SparkIcon,
+  TeamIcon,
 } from "@/components/icons";
 
 export interface NavCounts {
@@ -32,16 +37,16 @@ const ITEMS: { href: string; label: string; icon: ComponentType<SVGProps<SVGSVGE
   { href: "/dashboard/approvals", label: "Approvals", icon: ShieldIcon, badge: "approvals" },
   { href: "/dashboard/appointments", label: "Schedule", icon: CalendarIcon },
   { href: "/dashboard/leads", label: "Leads", icon: LeadIcon },
-  { href: "/dashboard/contacts", label: "Contacts", icon: LeadIcon },
+  { href: "/dashboard/contacts", label: "Contacts", icon: ContactsIcon },
   { href: "/dashboard/automations", label: "Follow-ups", icon: SendIcon },
   { href: "/dashboard/knowledge", label: "Knowledge", icon: BookIcon },
-  { href: "/dashboard/gaps", label: "Gaps", icon: BookIcon, badge: "gaps" },
+  { href: "/dashboard/gaps", label: "Gaps", icon: GapIcon, badge: "gaps" },
   { href: "/dashboard/playground", label: "Playground", icon: SparkIcon },
   { href: "/dashboard/integrations", label: "Integrations", icon: PlugIcon },
-  { href: "/dashboard/team", label: "Team", icon: LeadIcon },
+  { href: "/dashboard/team", label: "Team", icon: TeamIcon },
   { href: "/dashboard/analytics", label: "Analytics", icon: ChartIcon },
-  { href: "/dashboard/install", label: "Install", icon: SparkIcon },
-  { href: "/dashboard/billing", label: "Billing", icon: ChartIcon },
+  { href: "/dashboard/install", label: "Install", icon: CodeIcon },
+  { href: "/dashboard/billing", label: "Billing", icon: CardIcon },
   { href: "/dashboard/settings", label: "Settings", icon: GearIcon },
 ];
 

@@ -17,8 +17,16 @@ import {
 } from "./repo";
 import type { Business } from "./types";
 
-function hoursFromNow(h: number): string {
-  return new Date(Date.now() + h * 3_600_000).toISOString();
+/**
+ * A weekday slot inside the 8am-6pm office hours the knowledge base advertises —
+ * seeded appointments landing at 1am made the schedule look made up.
+ */
+function upcoming(daysAhead: number, hour: number, minute = 0, skipWeekend = true): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  if (skipWeekend) while (date.getDay() === 0 || date.getDay() === 6) date.setDate(date.getDate() + 1);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
 }
 
 function daysAgo(d: number, hour = 10): string {
@@ -215,7 +223,7 @@ function seedDemoBusiness(): Business {
     business_id: business.id,
     contact_id: dana.id,
     title: "Water heater assessment — Dana Whitfield",
-    starts_at: hoursFromNow(22),
+    starts_at: upcoming(1, 12, 0, false),
     duration_min: 120,
     location: "412 Kestrel Ln",
     notes: "Leak at base of tank. Likely replacement. Customer shut off cold supply.",
@@ -224,7 +232,7 @@ function seedDemoBusiness(): Business {
     business_id: business.id,
     contact_id: priya.id,
     title: "HVAC tune-up — Priya Raman",
-    starts_at: hoursFromNow(54),
+    starts_at: upcoming(2, 13, 30),
     duration_min: 60,
     location: "88 Alderbrook Ct",
   });
@@ -232,7 +240,7 @@ function seedDemoBusiness(): Business {
     business_id: business.id,
     contact_id: marcus.id,
     title: "Tune-ups (3 units) — Bell Property Group",
-    starts_at: hoursFromNow(120),
+    starts_at: upcoming(5, 8),
     duration_min: 180,
     location: "Cedar Row Apartments",
     notes: "Units 1A, 2B, 3C. Second batch the following Tuesday.",

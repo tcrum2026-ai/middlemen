@@ -80,6 +80,9 @@
     ".them { align-self: flex-start; background: #161a23; border: 1px solid #212733; }",
     ".me { align-self: flex-end; background: " + accent + "; color: " + onAccent + "; }",
     ".acts { align-self: flex-start; font-size: 11px; color: #8d96ab; padding-left: 4px; }",
+    ".pend { opacity: .55; animation: mmpulse 1.2s ease-in-out infinite; }",
+    "@keyframes mmpulse { 0%, 100% { opacity: .35 } 50% { opacity: .8 } }",
+    "@media (prefers-reduced-motion: reduce) { .pend { animation: none } }",
     "form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #212733; }",
     "input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 9px; border: 1px solid #212733;",
     "  background: #07080a; color: #e7eaf1; font-size: 14px; outline: none; }",
@@ -110,6 +113,7 @@
   var log = panel.querySelector(".log");
   var form = panel.querySelector("form");
   var input = panel.querySelector("input");
+  var send = form.querySelector("button");
   var conversationId = null;
   var greeted = false;
 
@@ -122,17 +126,12 @@
     return el;
   }
 
-  function actions(list) {
-    if (!list || !list.length) return;
-    var el = document.createElement("div");
-    el.className = "acts";
-    el.textContent = list
+  function actionText(list) {
+    return list
       .map(function (a) {
-        return a.detail ? a.label + " — " + a.detail : a.label;
+        return a.detail ? a.label + " \u2014 " + a.detail : a.label;
       })
-      .join(" · ");
-    log.appendChild(el);
-    log.scrollTop = log.scrollHeight;
+      .join(" \u00b7 ");
   }
 
   function toggle(open) {
@@ -159,25 +158,92 @@
     if (!text) return;
     input.value = "";
     bubble(text, true);
-    var pending = bubble("…", false);
 
-    fetch(origin + "/api/chat", {
+    // The steps go above the reply and stay there, so the visitor can see the
+    // assistant checked something rather than taking a paragraph on faith.
+    var steps = document.createElement("div");
+    steps.className = "acts";
+    steps.hidden = true;
+    log.appendChild(steps);
+    var pending = bubble("\u2026", false);
+    pending.classList.add("pend");
+    var started = false;
+
+    // One request at a time: a second send would interleave two replies.
+    input.disabled = true;
+    send.disabled = true;
+
+    function fail() {
+      if (!started) {
+        pending.textContent =
+          "Sorry \u2014 I couldn't reach the assistant. Your message has been noted and someone will follow up.";
+      }
+    }
+
+    fetch(origin + "/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ widgetKey: key, conversationId: conversationId, message: text }),
     })
       .then(function (response) {
-        if (!response.ok) throw new Error("chat failed");
-        return response.json();
+        if (!response.ok || !response.body) throw new Error("chat failed");
+        var reader = response.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = "";
+
+        function handle(name, data) {
+          if (name === "open") {
+            conversationId = data.conversationId;
+          } else if (name === "tool") {
+            steps.hidden = false;
+            steps.textContent = steps.textContent
+              ? steps.textContent + " \u00b7 " + actionText([data])
+              : actionText([data]);
+          } else if (name === "text") {
+            if (!started) {
+              started = true;
+              pending.textContent = "";
+              pending.classList.remove("pend");
+            }
+            pending.textContent += data.chunk;
+          } else if (name === "done") {
+            if (data.actions && data.actions.length) {
+              steps.hidden = false;
+              steps.textContent = actionText(data.actions);
+            }
+          } else if (name === "error") {
+            throw new Error(data.message);
+          }
+          log.scrollTop = log.scrollHeight;
+        }
+
+        // SSE frames are "event: <name>\ndata: <json>\n\n" and can straddle chunks.
+        function pump() {
+          return reader.read().then(function (result) {
+            if (result.done) return;
+            buffer += decoder.decode(result.value, { stream: true });
+            var boundary = buffer.indexOf("\n\n");
+            while (boundary !== -1) {
+              var frame = buffer.slice(0, boundary);
+              buffer = buffer.slice(boundary + 2);
+              boundary = buffer.indexOf("\n\n");
+              var name = /^event: (.+)$/m.exec(frame);
+              var payload = /^data: (.+)$/m.exec(frame);
+              if (name && payload) handle(name[1], JSON.parse(payload[1]));
+            }
+            return pump();
+          });
+        }
+
+        return pump();
       })
-      .then(function (data) {
-        conversationId = data.conversationId;
-        pending.textContent = data.reply;
-        actions(data.actions);
-      })
-      .catch(function () {
-        pending.textContent =
-          "Sorry — I couldn't reach the assistant. Your message has been noted and someone will follow up.";
+      .catch(fail)
+      .then(function () {
+        if (!steps.textContent) steps.remove();
+        pending.classList.remove("pend");
+        input.disabled = false;
+        send.disabled = false;
+        input.focus();
       });
   });
 })();

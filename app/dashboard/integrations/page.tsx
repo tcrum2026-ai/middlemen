@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import { Badge, Card, PageHeader, relativeTime } from "@/components/ui";
-import { CheckIcon, PlugIcon } from "@/components/icons";
+import { CopyBlock } from "@/components/copy-block";
+import { CheckIcon, PlugIcon, SparkIcon } from "@/components/icons";
+import { assistantConfigured } from "@/lib/assistant";
 import { disconnectIntegrationAction, saveIntegrationAction } from "../actions";
 import { activeBusiness } from "@/lib/session";
 import { PROVIDERS, isConnected, maskedCredentials } from "@/lib/integrations";
@@ -31,6 +33,7 @@ export default async function IntegrationsPage() {
   const host = headerList.get("host") ?? "localhost:3000";
   const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
   const deliveries = listDeliveries(business.id, 8);
+  const brainLive = assistantConfigured();
 
   return (
     <div>
@@ -38,6 +41,63 @@ export default async function IntegrationsPage() {
         title="Integrations"
         subtitle="Paste a key, and the thing it powers starts working on the next message. Nothing here is required to go live."
       />
+
+      <section className="mb-8" id="assistant">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">The assistant itself</h2>
+        <Card>
+          <div className="flex flex-wrap items-center gap-3">
+            <SparkIcon width={16} height={16} className={brainLive ? "text-jade-400" : "text-amber-glow"} />
+            <h3 className="font-semibold">Anthropic API key</h3>
+            <Badge tone={brainLive ? "jade" : "amber"}>{brainLive ? "live" : "scripted mode"}</Badge>
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-mist-400">
+            {brainLive
+              ? "Replies are written by Claude against your knowledge base. This is the only key the assistant itself needs."
+              : "Without it every screen still works, but replies come from a small keyword script instead of Claude — " +
+                "it answers what it can match and hands everything else to a person."}
+          </p>
+
+          <ol className="mt-4 space-y-3 text-sm text-mist-300">
+            <li className="flex gap-3">
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-ink-700 text-xs text-mist-400">1</span>
+              <span>
+                Create a key at{" "}
+                <a
+                  href="https://console.anthropic.com/settings/keys"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-jade-400 underline underline-offset-2"
+                >
+                  console.anthropic.com/settings/keys
+                </a>
+                . You will need billing on the account — usage is pay-as-you-go.
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-ink-700 text-xs text-mist-400">2</span>
+              <span>
+                Put it in <code className="font-mono text-xs text-mist-200">.env.local</code> next to{" "}
+                <code className="font-mono text-xs text-mist-200">package.json</code>, or in your host&apos;s
+                environment variables (Vercel → Settings → Environment Variables).
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-ink-700 text-xs text-mist-400">3</span>
+              <span>Restart the server. The badge above turns green and the next message is answered by Claude.</span>
+            </li>
+          </ol>
+
+          <div className="mt-4">
+            <CopyBlock label=".env.local" code={"ANTHROPIC_API_KEY=sk-ant-..."} />
+          </div>
+
+          <p className="mt-3 text-xs leading-relaxed text-mist-400">
+            There is deliberately no field for this key on this page. It belongs to the server, not to one workspace, so
+            it never travels through a browser form or gets written to the database — unlike the per-workspace keys
+            below.
+          </p>
+        </Card>
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">Nothing to configure</h2>
