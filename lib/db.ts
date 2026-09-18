@@ -51,6 +51,10 @@ CREATE TABLE IF NOT EXISTS businesses (
   auto_send_threshold REAL NOT NULL DEFAULT 0.75,
   effort TEXT NOT NULL DEFAULT 'medium',
   call_handoff_number TEXT,
+  voice_enabled INTEGER NOT NULL DEFAULT 0,
+  voice_disclosure TEXT NOT NULL DEFAULT 'Just so you know, you are speaking with an AI assistant.',
+  voice_name TEXT NOT NULL DEFAULT 'en-US-Journey-O',
+  voice_greeting TEXT NOT NULL DEFAULT '',
   widget_key TEXT UNIQUE NOT NULL,
   created_at TEXT NOT NULL
 );
@@ -260,6 +264,16 @@ CREATE INDEX IF NOT EXISTS idx_deliveries_business ON deliveries(business_id);
  * EXISTS", so each one is checked against the live table before it is applied.
  */
 const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
+  { table: "businesses", column: "voice_enabled", ddl: "ALTER TABLE businesses ADD COLUMN voice_enabled INTEGER NOT NULL DEFAULT 0" },
+  {
+    table: "businesses",
+    column: "voice_disclosure",
+    ddl:
+      "ALTER TABLE businesses ADD COLUMN voice_disclosure TEXT NOT NULL DEFAULT " +
+      "'Just so you know, you are speaking with an AI assistant.'",
+  },
+  { table: "businesses", column: "voice_name", ddl: "ALTER TABLE businesses ADD COLUMN voice_name TEXT NOT NULL DEFAULT 'en-US-Journey-O'" },
+  { table: "businesses", column: "voice_greeting", ddl: "ALTER TABLE businesses ADD COLUMN voice_greeting TEXT NOT NULL DEFAULT ''" },
   { table: "businesses", column: "owner_id", ddl: "ALTER TABLE businesses ADD COLUMN owner_id TEXT" },
   {
     table: "businesses",

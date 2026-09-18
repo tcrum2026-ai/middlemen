@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const CHANNELS = ["all", "web", "email", "sms", "whatsapp"] as const;
+const CHANNELS = ["all", "web", "voice", "email", "sms", "whatsapp"] as const;
 const STATES = [
   { value: "open", label: "Open" },
   { value: "waiting", label: "Waiting on us" },

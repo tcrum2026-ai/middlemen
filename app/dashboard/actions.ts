@@ -259,6 +259,13 @@ export async function updateSettingsAction(data: FormData) {
     call_handoff_number: str(data, "call_handoff_number"),
     auto_send_threshold: Number(str(data, "auto_send_threshold") || business.auto_send_threshold),
     effort: (str(data, "effort") || business.effort) as typeof business.effort,
+    voice_enabled: str(data, "voice_enabled") === "on" ? 1 : 0,
+    // The disclosure can be reworded but not emptied: a caller is always told.
+    voice_disclosure:
+      str(data, "voice_disclosure").trim() ||
+      "Just so you know, you are speaking with an AI assistant.",
+    voice_name: str(data, "voice_name") || business.voice_name,
+    voice_greeting: str(data, "voice_greeting"),
     services: str(data, "services")
       .split(",")
       .map((s) => s.trim())

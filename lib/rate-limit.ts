@@ -126,4 +126,10 @@ export const QUOTAS = {
   exportPerWorkspace: { limit: 10, windowMs: 60 * 60_000 },
   /** Inbound mail and SMS, per sending address. */
   inboundPerSender: { limit: 20, windowMs: 60 * 60_000 },
+  /** Calls answered from one number. A phone call costs far more than a chat. */
+  voicePerCaller: { limit: 5, windowMs: 60 * 60_000 },
+  /** A whole workspace's answered-call volume per hour. */
+  voicePerWorkspace: { limit: 60, windowMs: 60 * 60_000 },
+  /** Utterances within one call — an open mic must not bill indefinitely. */
+  voiceTurnsPerCall: { limit: 60, windowMs: 30 * 60_000 },
 } as const;

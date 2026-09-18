@@ -1,5 +1,5 @@
 import { SubmitButton } from "@/components/submit-button";
-import { Card, PageHeader } from "@/components/ui";
+import { Badge, Card, PageHeader } from "@/components/ui";
 import { updateSettingsAction } from "../actions";
 import { ConnectionTest } from "@/components/connection-test";
 import { assistantConfigured } from "@/lib/assistant";
@@ -121,6 +121,71 @@ export default async function SettingsPage() {
                 defaultValue={business.call_handoff_number ?? ""}
                 className="field"
               />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="font-semibold">Phone calls</h2>
+            <Badge tone={business.voice_enabled ? "jade" : "slate"}>
+              {business.voice_enabled ? "answering calls" : "off"}
+            </Badge>
+          </div>
+          <p className="mt-1 text-sm leading-relaxed text-mist-400">
+            When this is on, your Twilio number is answered by the assistant instead of ringing. It can book, quote
+            and answer from your knowledge base exactly as it does in chat, and put the caller through to the number
+            below when it should not decide something itself.
+          </p>
+
+          <label className="mt-4 flex items-start gap-3 rounded-lg border border-ink-700 p-3">
+            <input
+              type="checkbox"
+              name="voice_enabled"
+              defaultChecked={Boolean(business.voice_enabled)}
+              className="mt-0.5 h-4 w-4 accent-jade-500"
+            />
+            <span className="text-sm">
+              <span className="font-medium">Answer incoming calls with AI</span>
+              <span className="mt-0.5 block text-xs text-mist-400">
+                Off by default. With it off, calls to your Twilio number ring the handoff number instead.
+              </span>
+            </span>
+          </label>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="voice_disclosure">What callers are told first</label>
+              <input
+                id="voice_disclosure"
+                name="voice_disclosure"
+                defaultValue={business.voice_disclosure}
+                className="field"
+              />
+              <p className="mt-1.5 text-xs leading-relaxed text-mist-400">
+                Spoken before anything else, on every call. You can word it your way, but it cannot be turned off —
+                several places require telling people they have reached an AI, and it is the right thing to do
+                anyway.
+              </p>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="voice_greeting">Then it says</label>
+              <input
+                id="voice_greeting"
+                name="voice_greeting"
+                defaultValue={business.voice_greeting}
+                placeholder={`Thanks for calling ${business.name}. How can I help?`}
+                className="field"
+              />
+            </div>
+
+            <div>
+              <label className="label" htmlFor="voice_name">Voice</label>
+              <input id="voice_name" name="voice_name" defaultValue={business.voice_name} className="field" />
+              <p className="mt-1.5 text-xs text-mist-400">
+                A Twilio ConversationRelay voice id.
+              </p>
             </div>
           </div>
         </Card>

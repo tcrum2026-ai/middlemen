@@ -22,6 +22,14 @@ import type { AssistantAction, Business, Conversation, Message } from "./types";
 /** Customer-facing chat: Opus 5 at medium effort keeps replies quick without dropping judgement. */
 const MODEL = "claude-opus-5";
 
+/** What the voice bridge should do once the turn's audio has been spoken. */
+export interface CallSignal {
+  kind: "continue" | "transfer" | "hangup";
+  reason?: string;
+  brief?: string;
+  urgency?: "normal" | "urgent";
+}
+
 export interface AssistantTurn {
   reply: string;
   actions: AssistantAction[];
@@ -29,6 +37,8 @@ export interface AssistantTurn {
   escalated: boolean;
   /** False when the reply came from the offline fallback rather than the API. */
   live: boolean;
+  /** Only set on voice turns: whether to transfer or hang up after speaking. */
+  signal?: CallSignal;
 }
 
 export function assistantConfigured(): boolean {
@@ -49,14 +59,47 @@ function formatSlot(iso: string): string {
   });
 }
 
-function systemPrompt(business: Business): string {
+export type TurnMode = "text" | "voice";
+
+/**
+ * Spoken replies are a different medium, not the same text read aloud: the
+ * caller cannot re-read a sentence, cannot see a bulleted list, and will talk
+ * over anything that runs long.
+ */
+function voiceStyle(): string[] {
+  return [
+    `YOU ARE ON A LIVE PHONE CALL`,
+    `- Everything you say is spoken aloud by a text-to-speech voice, and the caller hears it as you write it.`,
+    `- Two or three sentences at a time, maximum. Then stop and let them speak.`,
+    `- No markdown, no bullet points, no URLs, no emoji, no headings. None of it can be heard.`,
+    `- Write numbers the way they are said: "eighty-nine dollars", "two to four p.m.", "five five five, one two one two".`,
+    `- One question per turn. Never stack two questions.`,
+    `- Read back anything you are about to commit to — date, time, price, address, spelling of a name —`,
+    `  and wait for a yes before you act on it.`,
+    `- The caller's words reach you through speech recognition and will sometimes be wrong. If something`,
+    `  reads as nonsense or a name looks mangled, ask them to repeat or spell it rather than guessing.`,
+    `- If they interrupt you, drop what you were saying and answer what they just asked.`,
+    `- Never say you will "send a link" unless you also offer to text it.`,
+    ``,
+    `ENDING OR HANDING OFF THE CALL`,
+    `- transfer_to_human: the caller asks for a person, is upset, raises an emergency or safety issue, or wants`,
+    `  something you are not allowed to decide. Tell them you are putting them through, then call the tool.`,
+    `- end_call: only once the caller's business is genuinely finished and they have said goodbye or confirmed`,
+    `  there is nothing else. Say goodbye first, then call the tool.`,
+    `- If a transfer is not possible, say so plainly and take a message instead.`,
+  ];
+}
+
+function systemPrompt(business: Business, mode: TurnMode = "text"): string {
   const hours = Object.entries(business.hours)
     .map(([day, value]) => `${day}: ${value}`)
     .join(", ");
 
   return [
     `You are ${business.assistant_name}, the virtual assistant for ${business.name}, a ${business.industry} business.`,
-    `You handle inbound customer conversations across web chat, email and SMS on the business's behalf.`,
+    mode === "voice"
+      ? `You are speaking with a caller on the telephone, right now, on the business's behalf.`
+      : `You handle inbound customer conversations across web chat, email and SMS on the business's behalf.`,
     ``,
     `BUSINESS PROFILE`,
     `- Services: ${business.services.join(", ") || "see knowledge base"}`,
@@ -71,24 +114,39 @@ function systemPrompt(business: Business): string {
     `- Capture and qualify leads with capture_lead, and draft pricing with draft_quote.`,
     ``,
     `WHAT YOU NEVER DO`,
-    `- You cannot make or take phone calls. Never say you will call someone, never claim to be on a call,`,
-    `  and never imply a voice conversation with you is possible. A person at ${business.name} makes every call.`,
-    `  When a customer wants to talk to someone, or the situation clearly needs a voice conversation, use`,
-    `  request_human_callback and tell them a teammate will call.`,
     `- Do not approve refunds, credits, warranty claims, legal or safety commitments, or discounts you were not`,
     `  given. Route those through send_to_human_review and tell the customer a teammate is reviewing it.`,
+    ...(mode === "voice"
+      ? [
+          `- Never claim to be a human being. If the caller asks whether you are a person or a robot, tell them`,
+          `  plainly that you are an AI assistant for ${business.name}, then carry on.`,
+        ]
+      : [
+          `- You cannot make or take phone calls. Never say you will call someone, never claim to be on a call,`,
+          `  and never imply a voice conversation with you is possible. A person at ${business.name} makes every call.`,
+          `  When a customer wants to talk to someone, or the situation clearly needs a voice conversation, use`,
+          `  request_human_callback and tell them a teammate will call.`,
+        ]),
     ``,
     `WHEN TO PUT A HUMAN IN THE LOOP`,
-    `- request_human_callback: the customer asks to speak to someone, an emergency or safety issue,`,
-    `  an active leak/outage/hazard, or a negotiation that needs a voice.`,
+    ...(mode === "voice"
+      ? [`- transfer_to_human: see the call rules below.`]
+      : [
+          `- request_human_callback: the customer asks to speak to someone, an emergency or safety issue,`,
+          `  an active leak/outage/hazard, or a negotiation that needs a voice.`,
+        ]),
     `- send_to_human_review: refunds, warranty disputes, anything above the business's approval limits,`,
     `  an angry customer, or any answer you are not confident in.`,
     `Always write the brief or summary so the teammate can act without re-reading the thread.`,
     ``,
-    `STYLE`,
-    `- Tone: ${business.tone}. Plain language, no corporate filler, no emoji unless the customer uses them.`,
-    `- Keep replies under about 120 words. One question at a time.`,
-    `- Confirm concrete details back to the customer (date, time, price, address) whenever you act.`,
+    ...(mode === "voice"
+      ? voiceStyle()
+      : [
+          `STYLE`,
+          `- Tone: ${business.tone}. Plain language, no corporate filler, no emoji unless the customer uses them.`,
+          `- Keep replies under about 120 words. One question at a time.`,
+          `- Confirm concrete details back to the customer (date, time, price, address) whenever you act.`,
+        ]),
   ].join("\n");
 }
 
@@ -100,6 +158,9 @@ function buildTools(
   markEscalated: () => void,
   /** In dry-run the write tools report what they would do and persist nothing. */
   dryRun = false,
+  mode: TurnMode = "text",
+  /** Live-call control, mutated by the voice tools and read after the turn. */
+  signal: CallSignal = { kind: "continue" },
 ) {
   const wouldHave = (text: string) => (dryRun ? `[dry run — nothing was saved] ${text}` : text);
   const searchKnowledge = betaTool({
@@ -459,15 +520,75 @@ function buildTools(
     },
   });
 
-  return [
-    searchKnowledge,
-    checkAvailability,
-    bookAppointment,
-    captureLead,
-    draftQuote,
-    requestHumanCallback,
-    sendToHumanReview,
-  ];
+  /**
+   * Live-call control. These two don't write records — they signal the voice
+   * bridge, which owns the actual telephony. `signal` is read by the caller of
+   * runAssistantTurn once the turn finishes.
+   */
+  const transferToHuman = betaTool({
+    name: "transfer_to_human",
+    description:
+      "Hand the live call to a person. Use when the caller asks for someone, is upset, raises an emergency, " +
+      "or wants a decision you are not allowed to make. Say you are putting them through BEFORE calling this.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        reason: { type: "string", description: "One line a teammate can read while the call rings" },
+        urgency: { type: "string", enum: ["normal", "urgent"] },
+        brief: {
+          type: "string",
+          description: "What the caller wants, what you already told them, and what is still undecided",
+        },
+      },
+      required: ["reason", "brief"],
+      additionalProperties: false,
+    },
+    run: (input) => {
+      signal.kind = "transfer";
+      signal.reason = input.reason;
+      signal.brief = input.brief;
+      signal.urgency = input.urgency === "urgent" ? "urgent" : "normal";
+      markEscalated();
+      record({ tool: "transfer_to_human", label: "Transferred to a teammate", detail: input.reason });
+      if (!dryRun) {
+        createCallRequest({
+          business_id: business.id,
+          conversation_id: conversation.id,
+          reason: input.reason,
+          urgency: signal.urgency,
+          preferred_window: "Live transfer, in progress",
+          brief: input.brief,
+        });
+      }
+      return wouldHave("Transfer is being connected. Say one short reassuring line and then stop talking.");
+    },
+  });
+
+  const endCall = betaTool({
+    name: "end_call",
+    description:
+      "Hang up. Only once the caller's business is finished and they have said goodbye or confirmed there is " +
+      "nothing else. Say goodbye BEFORE calling this — nothing you write after it will be heard.",
+    inputSchema: {
+      type: "object",
+      properties: { summary: { type: "string", description: "One line on how the call was resolved" } },
+      required: ["summary"],
+      additionalProperties: false,
+    },
+    run: (input) => {
+      signal.kind = "hangup";
+      signal.reason = input.summary;
+      record({ tool: "end_call", label: "Ended the call", detail: input.summary });
+      return wouldHave("Call ending.");
+    },
+  });
+
+  const shared = [searchKnowledge, checkAvailability, bookAppointment, captureLead, draftQuote, sendToHumanReview];
+  // On a live call a queued callback is the wrong shape — the caller is already
+  // on the line, so the handoff is a transfer.
+  return mode === "voice"
+    ? [...shared, transferToHuman, endCall]
+    : [...shared, requestHumanCallback];
 }
 
 function toApiMessages(history: Message[]): Anthropic.Beta.BetaMessageParam[] {
@@ -489,9 +610,12 @@ export async function runAssistantTurn(args: {
   history: Message[];
   /** Test-bench mode: tools report what they would do and write nothing. */
   dryRun?: boolean;
+  /** "voice" swaps in spoken style and the live-call control tools. */
+  mode?: TurnMode;
 }): Promise<AssistantTurn> {
-  const { business, conversation, history, dryRun = false } = args;
+  const { business, conversation, history, dryRun = false, mode = "text" } = args;
   const actions: AssistantAction[] = [];
+  const signal: CallSignal = { kind: "continue" };
   let escalated = false;
   const record = (a: AssistantAction) => actions.push(a);
   const markEscalated = () => {
@@ -499,11 +623,11 @@ export async function runAssistantTurn(args: {
   };
 
   if (!assistantConfigured()) {
-    return await simulateTurn({ business, conversation, history, record, markEscalated, actions, dryRun });
+    return await simulateTurn({ business, conversation, history, record, markEscalated, actions, dryRun, mode, signal });
   }
 
   const client = new Anthropic();
-  const tools = buildTools(business, conversation, record, markEscalated, dryRun);
+  const tools = buildTools(business, conversation, record, markEscalated, dryRun, mode, signal);
   const messages = toApiMessages(history);
 
   if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
@@ -525,7 +649,7 @@ export async function runAssistantTurn(args: {
       max_tokens: 16000,
       output_config: { effort: business.effort },
       system: [
-        { type: "text", text: systemPrompt(business), cache_control: { type: "ephemeral" } },
+        { type: "text", text: systemPrompt(business, mode), cache_control: { type: "ephemeral" } },
       ],
       tools,
       messages,
@@ -575,6 +699,7 @@ export async function runAssistantTurn(args: {
       actions,
       escalated,
       live: true,
+      signal,
     };
   } catch (error) {
     if (error instanceof Anthropic.APIError) {
@@ -741,6 +866,11 @@ export async function streamAssistantTurn(args: {
 /* Offline fallback                                                            */
 /* -------------------------------------------------------------------------- */
 
+const GOODBYE_WORDS = [
+  "goodbye", "good bye", "bye", "that's all", "thats all", "that's it", "thats it",
+  "nothing else", "we're done", "were done", "thank you, bye", "have a good",
+];
+
 const CALL_WORDS = [
   "call me",
   "give me a call",
@@ -795,12 +925,28 @@ async function simulateTurn(args: {
   markEscalated: () => void;
   actions: AssistantAction[];
   dryRun: boolean;
+  mode?: TurnMode;
+  signal?: CallSignal;
 }): Promise<AssistantTurn> {
-  const { business, conversation, history, record, markEscalated, actions, dryRun } = args;
+  const { business, conversation, history, record, markEscalated, actions, dryRun, mode = "text" } = args;
+  const signal: CallSignal = args.signal ?? { kind: "continue" };
   const last = [...history].reverse().find((m) => m.role === "customer");
   const text = (last?.body ?? "").toLowerCase();
   let reply: string;
   let escalated = false;
+
+  if (mode === "voice" && hits(text, GOODBYE_WORDS)) {
+    signal.kind = "hangup";
+    signal.reason = "Caller said goodbye";
+    record({ tool: "end_call", label: "Ended the call", detail: "Caller said goodbye" });
+    return {
+      reply: "Thanks for calling. Goodbye.",
+      actions,
+      escalated: false,
+      live: false,
+      signal,
+    };
+  }
 
   const confident = hasConfidentKbMatch(business.id, text);
   const articles = confident ? searchKb(business.id, text) : [];
@@ -896,5 +1042,16 @@ async function simulateTurn(args: {
     });
   }
 
-  return { reply, actions, escalated, live: false };
+  // On a live call the scripted path still has to be able to let the caller go:
+  // without this, a workspace running without an API key answers the phone and
+  // then never transfers or hangs up.
+  if (mode === "voice" && escalated && signal.kind === "continue") {
+    signal.kind = "transfer";
+    signal.reason = "Scripted mode escalation";
+    signal.brief = `Caller said: "${last?.body ?? ""}"`;
+    record({ tool: "transfer_to_human", label: "Transferred to a teammate", detail: "Scripted mode" });
+    reply = "Let me put you through to someone who can help with that.";
+  }
+
+  return { reply, actions, escalated, live: false, signal: mode === "voice" ? signal : undefined };
 }

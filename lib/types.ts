@@ -1,4 +1,4 @@
-export type Channel = "web" | "email" | "sms" | "whatsapp" | "voicemail";
+export type Channel = "web" | "email" | "sms" | "whatsapp" | "voice" | "voicemail";
 export type Autonomy = "cautious" | "balanced" | "autonomous";
 
 export interface Business {
@@ -22,6 +22,14 @@ export interface Business {
   /** Trades thoroughness against cost and latency on every reply. */
   effort: "low" | "medium" | "high";
   call_handoff_number: string | null;
+  /** When on, the Twilio number is answered by the assistant instead of ringing. */
+  voice_enabled: number;
+  /** Spoken first, before anything else, so callers are never misled about what they reached. */
+  voice_disclosure: string;
+  /** Twilio ConversationRelay voice id, e.g. an ElevenLabs voice. */
+  voice_name: string;
+  /** Spoken greeting after the disclosure. */
+  voice_greeting: string;
   widget_key: string;
   created_at: string;
 }

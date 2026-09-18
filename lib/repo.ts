@@ -135,6 +135,10 @@ export function createBusiness(input: CreateBusinessInput): Business {
     auto_send_threshold: input.autonomy === "autonomous" ? 0.6 : input.autonomy === "cautious" ? 0.9 : 0.75,
     effort: input.effort ?? "medium",
     call_handoff_number: input.call_handoff_number ?? null,
+    voice_enabled: 0,
+    voice_disclosure: "Just so you know, you are speaking with an AI assistant.",
+    voice_name: "en-US-Journey-O",
+    voice_greeting: "",
     // The widget key is the only credential /api/chat accepts, so it must not
     // come from a predictable PRNG.
     widget_key: `mm_${randomBytes(18).toString("base64url")}`,
@@ -144,10 +148,12 @@ export function createBusiness(input: CreateBusinessInput): Business {
   db.prepare(
     `INSERT INTO businesses (id, owner_id, slug, name, industry, website, email, phone, timezone, hours,
        assistant_name, tone, greeting, services, autonomy, auto_send_threshold, effort,
-       call_handoff_number, widget_key, created_at)
+       call_handoff_number, voice_enabled, voice_disclosure, voice_name, voice_greeting,
+       widget_key, created_at)
      VALUES (@id, @owner_id, @slug, @name, @industry, @website, @email, @phone, @timezone, @hours,
        @assistant_name, @tone, @greeting, @services, @autonomy, @auto_send_threshold, @effort,
-       @call_handoff_number, @widget_key, @created_at)`,
+       @call_handoff_number, @voice_enabled, @voice_disclosure, @voice_name, @voice_greeting,
+       @widget_key, @created_at)`,
   ).run({
     ...business,
     hours: JSON.stringify(business.hours),
@@ -160,6 +166,10 @@ export function createBusiness(input: CreateBusinessInput): Business {
 export function updateBusiness(businessId: string, patch: Partial<CreateBusinessInput> & {
   auto_send_threshold?: number;
   effort?: Business["effort"];
+  voice_enabled?: number;
+  voice_disclosure?: string;
+  voice_name?: string;
+  voice_greeting?: string;
 }): void {
   const current = getBusiness(businessId);
   if (!current) return;
@@ -170,7 +180,8 @@ export function updateBusiness(businessId: string, patch: Partial<CreateBusiness
          phone=@phone, timezone=@timezone, hours=@hours, assistant_name=@assistant_name,
          tone=@tone, greeting=@greeting, services=@services, autonomy=@autonomy,
          auto_send_threshold=@auto_send_threshold, effort=@effort,
-         call_handoff_number=@call_handoff_number
+         call_handoff_number=@call_handoff_number, voice_enabled=@voice_enabled,
+         voice_disclosure=@voice_disclosure, voice_name=@voice_name, voice_greeting=@voice_greeting
        WHERE id=@id`,
     )
     .run({
