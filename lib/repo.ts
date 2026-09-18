@@ -237,9 +237,12 @@ export function searchKbRanked(
   return articles
     .map((article) => {
       const haystack = `${article.title} ${article.body}`.toLowerCase();
-      // A hit in the title is worth more than one buried in the body.
+      // A hit in the title has to outweigh two in a body, or a long article that
+      // mentions everything in passing beats the one actually about the subject:
+      // "do you cover my area?" was answering out of the pricing article because
+      // it happened to contain both words.
       const score = terms.reduce((sum, term) => {
-        if (article.title.toLowerCase().includes(term)) return sum + 2;
+        if (article.title.toLowerCase().includes(term)) return sum + 3;
         return sum + (haystack.includes(term) ? 1 : 0);
       }, 0);
       return { article, score, terms: terms.length };
