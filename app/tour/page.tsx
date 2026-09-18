@@ -61,7 +61,7 @@ const STOPS = [
     href: "/dashboard/calls",
     linkLabel: "Open the call queue",
     body:
-      "The assistant never dials. Anything that needs a voice arrives here with a written brief: who, what happened, " +
+      "Calls the assistant transferred, and callbacks it promised. Each arrives with a written brief: who, what happened, " +
       "what was promised, and the decision the call has to reach.",
     detail: "Log the outcome in one line and the customer's thread stays in sync.",
   },

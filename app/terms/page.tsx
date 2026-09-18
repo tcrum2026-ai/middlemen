@@ -28,8 +28,9 @@ export default function TermsPage() {
           drafts quotes, and hands anything risky or unanswerable to a person on your team.
         </p>
         <p>
-          <strong className="text-mist-100">It never places or answers a phone call.</strong> There is no voice path
-          in the product. Calls are queued for your team with a written brief, and your team makes them.
+          With voice switched on, it also answers your phone number: it speaks with callers, books and quotes on the
+          same records, and transfers to your team when asked or when the conversation reaches something it is not
+          allowed to decide. Answering calls is off until you turn it on.
         </p>
       </Clause>
 
@@ -40,7 +41,8 @@ export default function TermsPage() {
             "The settings you choose, including which actions send without approval and what your approval limits are.",
             "Having the right to use the customer data you put into the service, and honouring your own obligations to those customers.",
             "Keeping your account credentials to yourself, and removing teammates who leave.",
-            "Whatever the assistant says on your behalf, exactly as if a member of your staff had said it.",
+            "Whatever the assistant says on your behalf, in writing or out loud, exactly as if a member of your staff had said it.",
+            "Your obligations around calls: disclosing and obtaining consent for any recording you switch on, and honouring do-not-call rules — under the law where you are and where your callers are. We disclose that the assistant is an AI on every call; the rest is yours.",
           ]}
         />
       </Clause>
@@ -66,7 +68,8 @@ export default function TermsPage() {
         <p>You may not use the service to:</p>
         <Bullets
           items={[
-            "Claim the assistant is a human being, or configure it to deny being AI when asked.",
+            "Claim the assistant is a human being, or configure it to deny being AI when asked. The spoken disclosure at the start of a call may be reworded, never removed or defeated.",
+            "Use the voice feature for outbound campaigns, cold calls or any automated dialling. Lobby answers calls placed to you; it does not place them, and the terms do not permit using it as a robodialler.",
             "Send unsolicited bulk messages, or contact people who have asked you to stop.",
             "Handle categories of data the service does not claim to protect — health records, card numbers, government identifiers — without your own legal basis and a written agreement with us.",
             "Attempt to reach another workspace's data, or to work around the rate limits on the public endpoints.",

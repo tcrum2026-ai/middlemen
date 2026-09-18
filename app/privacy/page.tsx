@@ -6,8 +6,8 @@ import { LEGAL, orBlank } from "@/lib/legal";
 export const metadata: Metadata = {
   title: "Privacy",
   description:
-    "What Lobby stores, who processes it, how long it is kept, and how to export or delete it. No voice recordings, " +
-    "no tracking cookies, no training on your customers' messages.",
+    "What Lobby stores, who processes it, how long it is kept, and how to export or delete it. Transcripts rather " +
+    "than call audio, no tracking cookies, no training on your customers' messages.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
       <Clause heading="What we never collect">
         <Bullets
           items={[
-            "Phone calls. The assistant does not place or answer them, so there are no recordings or transcripts to store, leak or subpoena.",
+            "Call audio. When the assistant answers a call, we store the written transcript, not a recording. If you switch recording on at your telephony provider, that audio sits with them under your account and your consent obligations.",
             "Payment card numbers. If you connect Stripe, card details go to Stripe and never touch this service.",
             "Analytics, advertising or tracking cookies. There are no third-party scripts on this site at all.",
             "Your customers' messages as training data. Nothing you or your customers write is used to train a shared model.",
@@ -62,8 +62,8 @@ export default function PrivacyPage() {
         <Bullets
           items={[
             "Anthropic (Claude) — receives the conversation and your knowledge base in order to write each reply. Anthropic does not train on API traffic.",
+            "Twilio — carries inbound and outbound SMS, and, when you enable it, answers calls: Twilio performs the speech-to-text and text-to-speech, so spoken words pass through them on the way to and from the assistant.",
             "Resend — if you connect it, sends confirmations, follow-ups and quotes from your address.",
-            "Twilio — if you connect it, carries inbound and outbound SMS.",
             "Slack — if you connect it, receives notifications about queued calls and approvals.",
             "Stripe — if you connect it, creates payment links and handles the payment itself.",
             "Whoever hosts this deployment, who necessarily stores the database and serves the traffic.",
@@ -95,6 +95,18 @@ export default function PrivacyPage() {
         <p>
           If one of your customers asks you to delete what you hold about them, you can do it yourself from the
           contact&apos;s page; it removes their messages along with the contact.
+        </p>
+      </Clause>
+
+      <Clause heading="Telling people they are talking to a machine">
+        <p>
+          Every call the assistant answers opens by telling the caller they are speaking with an AI, before anything
+          else is said. The wording is yours to set; the disclosure itself cannot be turned off. Several
+          jurisdictions require it, and callers are entitled to know regardless.
+        </p>
+        <p>
+          The chat widget carries the same notice, and asking for a person works on any channel — in a call it
+          transfers you, in writing it queues a human.
         </p>
       </Clause>
 

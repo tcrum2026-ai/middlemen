@@ -55,6 +55,12 @@ None of these are required to go live; the widget alone works on day one.
       `POST /api/webhooks/email`. The webhook rejects everything until the secret is set.
 - [ ] **SMS** — Integrations → Twilio, then point the number's webhook at
       `POST /api/webhooks/twilio`. Requests are signature-verified.
+- [ ] **Phone calls** — run `npm run voice` with `VOICE_BRIDGE_SECRET` set, put TLS in front of it,
+      point your number's Voice webhook at `POST /api/voice/incoming`, then turn on "Answer
+      incoming calls with AI" in Settings. **Call yourself before you point real customers at it**,
+      and listen for the AI disclosure at the start. Check your recording and consent obligations
+      where you are and where your callers are — Lobby stores transcripts, not audio, but if you
+      enable recording at Twilio that is yours to disclose.
 - [ ] **Calendar** — subscribe to the `.ics` URL from Integrations in Google, Apple or Outlook.
 
 ## 5. Watch the first week

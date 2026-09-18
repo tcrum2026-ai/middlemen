@@ -27,7 +27,7 @@ const CONTROLS = [
   {
     heading: "What it is never allowed to do",
     items: [
-      "Place or answer a phone call — there is no voice path in the product at all.",
+      "Claim to be a human being. Every call opens by saying it is an AI, and asking for a person transfers it.",
       "Approve a refund, credit, warranty claim or discount you didn't write down.",
       "Send a quote above your limit without a teammate approving it.",
       "Claim to be a human being.",
@@ -47,7 +47,7 @@ const CONTROLS = [
     items: [
       "Conversations, contacts, knowledge and call briefs export in full whenever you ask.",
       "Deleting a workspace deletes its records — there is no retention clause.",
-      "Because there are no calls, there are no voice recordings to store, transcribe or breach.",
+      "Calls are stored as written transcripts. Lobby keeps no audio of its own; if you switch on recording at your telephony provider, that recording and the consent for it are yours to manage.",
       "Customer messages are used to answer that customer, not to train a shared model.",
     ],
   },

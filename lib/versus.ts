@@ -17,29 +17,30 @@ export const VERSUS: Versus[] = [
     name: "AI voice receptionists",
     title: "Lobby vs an AI voice receptionist",
     subhead:
-      "They answer the phone with a synthetic voice. We answer everything else and hand your team a briefed call. " +
-      "These are different products for different bottlenecks.",
+      "Both answer the phone. The difference is what happens after hello — whether the thing on the line can " +
+      "actually book the job, or only take a message about it.",
     theyWin: [
-      "The phone actually gets answered at 2am, which we will never do.",
-      "Callers who refuse to use anything but a phone still get a response.",
-      "Simple call routing and voicemail replacement is solved on day one.",
+      "Voice is the whole product, so the call-handling edges — accents, noisy lines, hold, warm transfer trees — " +
+      "tend to be more polished.",
+      "Many offer outbound calling and campaigns. Lobby answers calls placed to you and will not dial out.",
+      "If the phone is your only channel, you are not paying for chat, email and SMS you never use.",
     ],
     weWin: [
-      "Messages — web chat, email, SMS, DMs — are handled properly rather than pushed to a call.",
-      "Bookings go into your real calendar with your working hours and notice rules applied.",
-      "Leads are scored and filed, quotes get drafted, follow-ups get scheduled.",
-      "A mistake is a typo in a message you can correct, not a promise made aloud to a customer.",
-      "No voice recordings exist, so there's nothing to store, transcribe or explain.",
+      "The voice shares one brain with the chat, the email and the texts: a caller and a web visitor book against " +
+      "the same calendar, from the same price list, into the same inbox.",
+      "It quotes only what you wrote down. Most voice bots are a script plus a scrape, so they improvise a price.",
+      "A caller who phoned this morning and emails this afternoon is one thread, not two strangers.",
+      "The whole call lands as a transcript with every tool call listed beside it, in the same place as everything else.",
     ],
     together:
-      "Run both. Let the voice service catch the phone and let Lobby handle the written channels — and the " +
-      "briefs we write make the calls your team does take considerably shorter.",
+      "Rarely worth it — they occupy the same slot. If you already have a voice product you are happy with, point " +
+      "it at your number and leave Lobby on the written channels; the records still end up in one place.",
     verdict:
-      "If your bottleneck is a ringing phone, buy the voice product. If it's a pile of unanswered messages and a " +
-      "calendar nobody has time to update, buy this one.",
+      "If the phone is your only channel and outbound matters, buy the voice product. If calls are one of several " +
+      "ways people reach you and you want them all answered the same way, buy this one.",
     metaDescription:
-      "An honest comparison of Lobby and AI voice receptionists: what each one actually solves, where voice AI " +
-      "wins, and why running both often makes sense.",
+      "An honest comparison of Lobby and AI voice receptionists: both answer the phone, but only one shares a " +
+      "calendar, price list and inbox with your other channels.",
   },
   {
     slug: "answering-service",
@@ -49,7 +50,7 @@ export const VERSUS: Versus[] = [
       "A room of people reading your script versus an assistant that knows your price list and writes to your " +
       "calendar.",
     theyWin: [
-      "A real person picks up the phone, which some customers will always prefer.",
+      "A real person picks up, which some customers will always prefer and some situations always need.",
       "Judgement on a strange call is better than any script or model.",
       "Legal and medical intake by a trained human carries less risk on the phone.",
     ],
@@ -61,11 +62,12 @@ export const VERSUS: Versus[] = [
       "Live in minutes, not after an onboarding call and a script-writing exercise.",
     ],
     together:
-      "Plenty of businesses keep an answering service for the phone line and put Lobby on every written " +
-      "channel. The two don't overlap much.",
+      "Keep the service for overflow and for the calls you want a person on, and let Lobby take the routine ones " +
+      "— hours, pricing, booking, rescheduling. It transfers anything it should not decide, so the humans get the " +
+      "calls worth their time.",
     verdict:
-      "If most of your inbound is voice, keep the humans. If most of it now arrives as text and your answering " +
-      "service is just taking messages you have to act on anyway, this replaces the whole loop.",
+      "If your calls are mostly judgement calls, keep the humans. If most of them are the same six questions and " +
+      "your service is taking messages you have to act on anyway, this closes the loop instead.",
     metaDescription:
       "Lobby compared with a human answering service: cost, speed, what each one can actually complete, and when " +
       "keeping both is the right call.",

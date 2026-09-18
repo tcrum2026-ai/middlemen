@@ -8,6 +8,7 @@ import { RoiCalculator } from "@/components/marketing/roi-calculator";
 import { Badge, Card } from "@/components/ui";
 import { ArrowIcon, CheckIcon, PhoneIcon } from "@/components/icons";
 import { INDUSTRIES, getIndustry } from "@/lib/industries";
+import { LEGAL } from "@/lib/legal";
 
 export function generateStaticParams() {
   return INDUSTRIES.map((industry) => ({ industry: industry.slug }));
@@ -171,7 +172,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ indus
           <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight sm:text-3xl">
             Pricing
           </h2>
-          <Pricing />
+          <Pricing contactEmail={LEGAL.contactEmail} />
         </div>
       </section>
 

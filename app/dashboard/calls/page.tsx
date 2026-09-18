@@ -16,7 +16,7 @@ export default async function CallsPage() {
     <div>
       <PageHeader
         title="Call queue"
-        subtitle={`${business.assistant_name} never picks up a phone. It gathers the facts and hands your team a call that takes two minutes instead of ten.`}
+        subtitle={`Calls ${business.assistant_name} handed over, and callbacks it promised. Each one arrives with what was already said, so nobody repeats themselves.`}
       />
 
       {queued.length === 0 ? (

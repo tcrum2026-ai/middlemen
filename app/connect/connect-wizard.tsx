@@ -318,7 +318,7 @@ export function ConnectWizard() {
               <label className="label" htmlFor="callnumber">Who takes the calls?</label>
               <input id="callnumber" className="field" value={callNumber} onChange={(e) => setCallNumber(e.target.value)} placeholder="(555) 000-0000 — the number your team answers" />
               <p className="mt-1.5 text-xs text-mist-400">
-                Queued callbacks show up in your dashboard with a brief. The assistant never places the call itself.
+                Used when a call is transferred, and for callbacks the assistant promises. Answering calls with AI is off until you turn it on in Settings.
               </p>
             </div>
           </div>

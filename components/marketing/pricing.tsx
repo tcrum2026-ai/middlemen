@@ -5,12 +5,17 @@ import { useState } from "react";
 import { CheckIcon } from "@/components/icons";
 import { Badge } from "@/components/ui";
 import { PLANS } from "@/lib/marketing";
-import { LEGAL } from "@/lib/legal";
 
 /** Annual billing bills ten months for twelve — the discount is stated, not implied. */
 const ANNUAL_MONTHS_CHARGED = 10;
 
-export function Pricing() {
+/**
+ * `contactEmail` arrives as a prop rather than being read from the environment
+ * here. NEXT_PUBLIC_* values are inlined into the client bundle at build time
+ * but read at runtime on the server, so a deployment whose build and runtime
+ * see different values hydrates with two different buttons.
+ */
+export function Pricing({ contactEmail = "" }: { contactEmail?: string }) {
   const [annual, setAnnual] = useState(false);
 
   return (
@@ -79,9 +84,9 @@ export function Pricing() {
 
               {/* "Contact sales" is only offered when there is an address behind it;
                   otherwise the quoted tier starts the same way as the others. */}
-              {shown === null && LEGAL.contactEmail ? (
+              {shown === null && contactEmail ? (
                 <a
-                  href={`mailto:${LEGAL.contactEmail}?subject=${encodeURIComponent("Lobby — " + plan.name + " plan")}`}
+                  href={`mailto:${contactEmail}?subject=${encodeURIComponent("Lobby — " + plan.name + " plan")}`}
                   className={`btn mt-6 ${plan.featured ? "btn-primary" : "btn-ghost"} justify-center`}
                 >
                   Contact sales

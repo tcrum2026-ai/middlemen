@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Lobby — AI handles the messages, people handle the calls";
+export const alt = "Lobby — an AI front desk that answers the messages and the phone";
 
 export default function OpengraphImage() {
   return new ImageResponse(
@@ -50,17 +50,17 @@ export default function OpengraphImage() {
 
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ color: "#e7eaf1", fontSize: 76, fontWeight: 700, lineHeight: 1.05 }}>
-            Your front desk,
+            Nobody waits
           </div>
-          <div style={{ color: "#35d99a", fontSize: 76, fontWeight: 700, lineHeight: 1.05 }}>handled.</div>
+          <div style={{ color: "#35d99a", fontSize: 76, fontWeight: 700, lineHeight: 1.05 }}>in the lobby.</div>
           <div style={{ color: "#aab3c5", fontSize: 30, marginTop: 28, maxWidth: 880, lineHeight: 1.4 }}>
-            AI answers every message, books the work and drafts the quote. Phone calls stay with your team —
-            briefed and ready.
+            An AI front desk that answers the chat, the email, the texts and the phone — booking and quoting from
+            your own prices.
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 14 }}>
-          {["Books real appointments", "Quotes from your price list", "0 calls answered by AI"].map((chip) => (
+          {["Answers the phone", "Books real appointments", "Transfers when asked"].map((chip) => (
             <div
               key={chip}
               style={{

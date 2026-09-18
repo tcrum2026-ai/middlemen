@@ -47,8 +47,8 @@ export const CAPABILITIES = [
     icon: "phone",
     title: "Callbacks, briefed",
     body:
-      "The assistant never picks up a phone. It queues the call for a teammate with a written brief: who, what, " +
-      "what's promised, what's still open.",
+      "It answers the phone, books from the same calendar and quotes from the same price list. When a call needs " +
+      "a person, it transfers mid-call with a brief instead of taking a message.",
   },
   {
     icon: "chart",
@@ -152,11 +152,10 @@ export const FAQS = [
   {
     q: "Does the AI actually talk to customers on the phone?",
     a:
-      "No, and that's deliberate. Voice is where AI is most likely to make a promise you can't keep and where " +
-      "customers are least forgiving. When a call is needed, the assistant queues it for a person with a written " +
-      "brief, so the call takes two minutes instead of ten. If what you actually need is someone to answer the " +
-      "phone around the clock, an AI voice service or an answering service is the better buy. Running one of those " +
-      "alongside Lobby is a perfectly good setup.",
+      "Yes. Point your Twilio number at Lobby and it answers, in a real voice, with the same knowledge base and " +
+      "calendar it uses in chat — so it can quote a price and book the slot while the caller is on the line. It " +
+      "opens by saying it is an AI, and it transfers to your team the moment someone asks for a person or the " +
+      "conversation reaches something it is not allowed to decide. Answering calls is off until you turn it on.",
   },
   {
     q: "What stops it from making things up?",
@@ -168,9 +167,10 @@ export const FAQS = [
   {
     q: "Will customers know they're talking to AI?",
     a:
-      "Yes. The widget says so, and the assistant never pretends to be a person or claims to be on a call. The " +
-      "version of this that annoys people is the one that stalls, guesses, and traps them in a loop with no way " +
-      "out — so asking for a person always works, and it takes one message.",
+      "Yes. The widget says so, and every phone call opens by telling the caller they are speaking with an AI — " +
+      "that line is editable but not removable. The version of this that annoys people is the one that stalls, " +
+      "guesses, and traps them in a loop with no way out, so asking for a person always works: one message in " +
+      "chat, one sentence on a call.",
   },
   {
     q: "What happens when it gets something wrong?",
@@ -202,8 +202,9 @@ export const FAQS = [
     q: "What happens to my data?",
     a:
       "It stays yours. Conversations, knowledge base and customer records export in full at any time, and deleting " +
-      "your workspace deletes them. Because the assistant never takes calls, there are no voice recordings to " +
-      "store, transcribe or worry about in the first place.",
+      "your workspace deletes them. Calls are kept as written transcripts in the inbox; Lobby itself stores no " +
+      "audio, though your telephony provider may if you enable recording there — which is your call to make, and " +
+      "your consent obligations to meet.",
   },
   {
     q: "Can I turn it off?",
@@ -238,7 +239,7 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Answers phone calls",
-    lobby: "by design, no",
+    lobby: "yes",
     voiceAi: "yes",
     answering: "yes",
     chatbot: "no",
@@ -277,7 +278,7 @@ export const COMPARISON: ComparisonRow[] = [
     nothing: "you do",
   },
   {
-    label: "Hands you a briefed callback",
+    label: "Hands you a briefed handoff",
     lobby: "yes",
     voiceAi: "a transcript",
     answering: "a message slip",
@@ -330,10 +331,10 @@ export const TRUST = [
       "anyone's word for it.",
   },
   {
-    title: "No calls means no recordings",
+    title: "Every caller is told it's AI",
     body:
-      "Because the assistant never takes a call, there is no voice data to store, transcribe, leak or explain to a " +
-      "customer who asks.",
+      "The first thing anyone hears is that they have reached an assistant, not a person. You can word it your " +
+      "way; you cannot switch it off. Asking for a human transfers the call.",
   },
   {
     title: "Your data leaves when you do",

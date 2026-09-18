@@ -22,6 +22,7 @@ import {
 import { activeBusiness } from "@/lib/session";
 import { assistantConfigured } from "@/lib/assistant";
 import { CAPABILITIES, FAQS, STEPS } from "@/lib/marketing";
+import { LEGAL } from "@/lib/legal";
 
 const ICONS = {
   inbox: InboxIcon,
@@ -56,16 +57,16 @@ export default async function LandingPage() {
             <div className="rise">
               <Badge tone="jade">
                 <span className="h-1.5 w-1.5 rounded-full bg-jade-500" />
-                AI handles the messages. People handle the calls.
+                It answers the chat, the email, the texts — and the phone.
               </Badge>
               <h1 className="mt-6 text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-                Your front desk,
+                Nobody waits
                 <br />
-                <span className="text-jade-400">handled.</span>
+                in the <span className="text-jade-400">lobby.</span>
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-mist-300">
-                Lobby answers every message, books the work and drafts the quote — using your prices and your
-                policies. When something needs a voice, your team gets a briefed call instead of a voicemail.
+                Lobby answers every message and every call, books the work and drafts the quote — using your
+                prices and your policies. It says it is an AI, and it puts people through the moment they ask.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link href="/signup" className="btn btn-primary px-5 py-3">
@@ -128,11 +129,11 @@ export default async function LandingPage() {
         <section id="capabilities" className="border-t border-ink-800 py-24">
           <div className="mx-auto max-w-6xl px-5">
             <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
-              Everything a good front desk does, minus the phone.
+              Everything a good front desk does, including the phone.
             </h2>
             <p className="mt-4 max-w-2xl text-mist-400">
               Your assistant has tools — your calendar, your price list, your approval rules — and it uses them on
-              every message.
+              every message and every call. A caller gets the same booked slot a web visitor does.
             </p>
 
             <div className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -165,18 +166,19 @@ export default async function LandingPage() {
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 lg:grid-cols-2">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Calls stay human. They just stop being a surprise.
+                It picks up. It also knows when to stop talking.
               </h2>
               <p className="mt-4 text-mist-300">
-                An AI voice that mishears an address or promises a refund costs more than it saves. So Lobby
-                doesn&apos;t answer or place calls. It does the part people hate: gathering the facts first.
+                An AI voice that mishears an address or promises a refund costs more than it saves. So the call is
+                built around the same limits as the chat: it answers from what you wrote down, and it hands over
+                rather than improvising.
               </p>
               <ul className="mt-6 space-y-3">
                 {[
-                  "Every queued call arrives with a written brief and the decision it needs to reach.",
-                  "Urgency is triaged — emergencies jump the queue, price questions never become a call at all.",
-                  "Whatever the assistant already promised is in the brief, so nobody contradicts anyone.",
-                  "After the call, log the outcome in one line and the thread stays in sync.",
+                  "Every call opens by telling the caller they have reached an AI. Editable wording, not optional.",
+                  "Asking for a person transfers the call — mid-sentence, with a brief, not a promise to ring back.",
+                  "Refunds, disputes and anything over your approval limit go to a human instead of being decided.",
+                  "The whole call lands in your inbox as a transcript, with every tool it used listed beside it.",
                 ].map((line) => (
                   <li key={line} className="flex gap-3 text-sm text-mist-300">
                     <CheckIcon width={18} height={18} className="mt-0.5 shrink-0 text-jade-400" />
@@ -193,27 +195,27 @@ export default async function LandingPage() {
             <div className="card overflow-hidden">
               <div className="flex items-center justify-between border-b border-ink-700 px-5 py-3">
                 <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <PhoneIcon width={16} height={16} className="text-amber-glow" />
-                  Call queue
+                  <PhoneIcon width={16} height={16} className="text-jade-400" />
+                  Live call · 01:12
                 </span>
-                <Badge tone="rose">urgent</Badge>
+                <Badge tone="rose">transferring</Badge>
               </div>
               <div className="space-y-4 p-5 text-sm">
                 <div>
                   <p className="font-semibold">Dana Whitfield · (555) 271-8890</p>
-                  <p className="text-xs text-mist-400">Water heater leaking · queued 2 minutes ago</p>
+                  <p className="text-xs text-mist-400">Answered by Ava · caller asked for a person</p>
                 </div>
                 <div className="rounded-lg border border-ink-700 bg-ink-950 p-4 leading-relaxed text-mist-300">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-mist-400">Brief</p>
-                  Leak at the base of the tank, now spraying; cold supply is shut off. Booked tomorrow 12–2pm for
-                  assessment. Likely full replacement ($1,400–$2,600 installed) —{" "}
-                  <span className="text-mist-100">she has not been quoted a price yet</span>. Ask whether water is
-                  reaching finished flooring; if so, move her to today&apos;s emergency slot ($120 after-hours fee
-                  applies).
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-mist-400">
+                    Brief, handed over with the call
+                  </p>
+                  Leak at the base of the tank, now spraying; cold supply is shut off. Ava booked tomorrow 12–2pm
+                  for assessment and quoted the $89 diagnostic. Likely full replacement —{" "}
+                  <span className="text-mist-100">she has not been quoted a replacement price</span>. She asked to
+                  speak to someone about doing it today.
                 </div>
                 <div className="flex gap-2">
-                  <span className="btn btn-primary flex-1 justify-center">Take the call</span>
-                  <span className="btn btn-ghost">Reassign</span>
+                  <span className="btn btn-primary flex-1 justify-center">Ringing your team…</span>
                 </div>
               </div>
             </div>
@@ -230,7 +232,7 @@ export default async function LandingPage() {
               </p>
             </div>
             <div className="mt-12">
-              <Pricing />
+              <Pricing contactEmail={LEGAL.contactEmail} />
             </div>
 
             <div id="math" className="mt-20 border-t border-ink-800 pt-12">

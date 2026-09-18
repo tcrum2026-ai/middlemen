@@ -14,6 +14,9 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Legal pages, Enterprise plan | Also what the "Contact sales" button mails. Unset, that plan shows "Start free" rather than offering a conversation nobody can have. |
 | `NEXT_PUBLIC_LEGAL_JURISDICTION` | Terms | e.g. `England and Wales`. |
 | `RESEND_API_KEY` + `AUTH_FROM_EMAIL` | Password reset email | Platform mail, separate from the per-workspace Resend keys entered in the dashboard. Without both, `/forgot` tells the visitor that reset email isn't set up rather than pretending to send. |
+| `VOICE_BRIDGE_SECRET` | Answering phone calls | Shared secret between the app and the voice bridge. The bridge will not start without it, and `/api/voice/turn` returns 503 until it is set. |
+| `VOICE_BRIDGE_URL` / `VOICE_BRIDGE_PORT` | Answering phone calls | The `wss://` URL Twilio connects to, and the port the bridge listens on. The URL must be publicly reachable and TLS-terminated. |
+| `VOICE_APP_URL` | Answering phone calls | Where the bridge reaches the app. `http://127.0.0.1:3000` when both run on the same host. |
 | `INBOUND_EMAIL_SECRET` | Inbound email webhook | **Required to turn inbound email on.** The webhook fails closed: unset, it returns 503 and accepts nothing, because otherwise anyone could trigger a paid model call on any workspace. Checked against `x-inbound-secret`. |
 | `INBOUND_EMAIL_DOMAIN` | Inbound email webhook | The domain you route mail from, e.g. `inbound.your-domain`. The Install page shows the forwarding address only when this is set. |
 
@@ -38,6 +41,16 @@ docker run -p 3000:3000 -v lobby-data:/data \
 npm ci && npm run build && npm run start
 ```
 
+**Answering calls** needs a second process alongside the app, because Next's App
+Router cannot hold a long-lived WebSocket:
+
+```bash
+npm run voice        # the ConversationRelay bridge, default port 8080
+```
+
+Both processes need `VOICE_BRIDGE_SECRET`. Put TLS in front of the bridge — Twilio
+will only connect to `wss://`.
+
 A platform with a persistent disk (Fly, Railway, Render, a VPS) suits this better than a
 serverless host, because the database is a file. `GET /api/health` reports database
 reachability and whether the assistant has credentials — point your platform's health check
@@ -55,6 +68,7 @@ All of this is done in the dashboard, per workspace:
 | Inbound email | Your mail provider | Forward/route to `POST /api/webhooks/email`, addressed to `<workspace-slug>@…` |
 | SMS | Integrations → Twilio | Account SID, auth token, your number |
 | Inbound SMS | Twilio console | Set the number's webhook to `POST /api/webhooks/twilio` — requests are signature-verified |
+| Phone calls | Twilio console | Set the number's **Voice** webhook to `POST /api/voice/incoming`, then switch on "Answer incoming calls with AI" in Settings. Signature-verified against that workspace's own auth token; with voice off, calls ring your handoff number instead |
 | Team alerts | Integrations → Slack | An incoming webhook URL |
 | Payment links | Integrations → Stripe | Secret key |
 
@@ -82,6 +96,7 @@ chat message costs money at the model:
 | Playground, in-dashboard AI reply | 40/min per workspace |
 | Export | 10/hour per workspace |
 | Inbound email | 20/hour per sending address |
+| Answered calls | 5/hour per caller, 60/hour per workspace, 60 turns per call |
 
 Exhausted quotas return `429` with `Retry-After`, and both chat clients say how long to wait
 rather than claiming the connection failed.

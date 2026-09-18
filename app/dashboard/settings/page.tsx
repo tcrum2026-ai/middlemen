@@ -75,7 +75,7 @@ export default async function SettingsPage() {
         <Card>
           <h2 className="font-semibold">Guardrails</h2>
           <p className="mt-1 text-sm text-mist-400">
-            Whatever you set here, calls are never answered by the assistant and refunds always come to you.
+            Whatever you set here, refunds and disputes always come to you.
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
