@@ -5,6 +5,7 @@ import { addKbAction, applyTemplateAction, deleteKbAction } from "../actions";
 import { TEMPLATES } from "@/lib/templates";
 import { activeBusiness } from "@/lib/session";
 import { isPlaceholder, listKb } from "@/lib/repo";
+import { ConfirmButton } from "@/components/confirm-button";
 
 export default async function KnowledgePage() {
   const business = await activeBusiness();
@@ -45,7 +46,7 @@ export default async function KnowledgePage() {
                   </span>
                   <form action={deleteKbAction}>
                     <input type="hidden" name="article_id" value={article.id} />
-                    <button className="text-xs text-mist-400 transition hover:text-rose-alert">Remove</button>
+                    <ConfirmButton className="text-xs text-mist-400 transition hover:text-rose-alert">Remove</ConfirmButton>
                   </form>
                 </div>
                 <p className="whitespace-pre-wrap px-5 py-4 text-sm leading-relaxed text-mist-300">{article.body}</p>

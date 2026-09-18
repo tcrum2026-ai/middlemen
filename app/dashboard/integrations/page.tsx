@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { Badge, Card, PageHeader, relativeTime } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { CopyBlock } from "@/components/copy-block";
 import { CheckIcon, PlugIcon, SparkIcon } from "@/components/icons";
 import { assistantConfigured } from "@/lib/assistant";
@@ -159,12 +160,14 @@ export default async function IntegrationsPage() {
                         {connected ? "Update" : "Connect"}
                       </button>
                       {connected ? (
-                        <button
+                        <ConfirmButton
                           formAction={disconnectIntegrationAction}
+                          confirmLabel="Delete the key?"
+                          pendingLabel="Disconnecting…"
                           className="btn btn-ghost px-3 py-1.5 text-xs"
                         >
                           Disconnect
-                        </button>
+                        </ConfirmButton>
                       ) : null}
                       {provider.docs ? (
                         <span className="text-xs text-mist-400">Key lives at {provider.docs}</span>

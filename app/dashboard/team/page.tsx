@@ -3,6 +3,7 @@ import { Badge, Card, PageHeader } from "@/components/ui";
 import { addTeammateAction, removeTeammateAction } from "../actions";
 import { activeBusiness } from "@/lib/session";
 import { listCallRequests, listTeammates } from "@/lib/repo";
+import { ConfirmButton } from "@/components/confirm-button";
 
 export default async function TeamPage() {
   const business = await activeBusiness();
@@ -44,7 +45,7 @@ export default async function TeamPage() {
                   {teammate.takes_calls ? <Badge tone="jade">takes calls</Badge> : null}
                   <form action={removeTeammateAction}>
                     <input type="hidden" name="teammate_id" value={teammate.id} />
-                    <button className="text-xs text-mist-400 transition hover:text-rose-alert">Remove</button>
+                    <ConfirmButton className="text-xs text-mist-400 transition hover:text-rose-alert">Remove</ConfirmButton>
                   </form>
                 </li>
               ))
