@@ -30,19 +30,24 @@ const Body = z.object({
  * markdown heading starts a new article; everything else joins the current one.
  */
 function toArticles(raw: string): { title: string; body: string }[] {
-  const blocks = raw
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter(Boolean);
+  const isHeading = (line: string) => /^#{1,3}\s+/.test(line) || (line.endsWith(":") && line.length < 80);
 
-  return blocks.map((block) => {
-    const [first, ...rest] = block.split("\n");
-    const isHeading = /^#{1,3}\s+/.test(first) || (first.endsWith(":") && first.length < 80);
-    if (isHeading && rest.length > 0) {
-      return { title: first.replace(/^#{1,3}\s+/, "").replace(/:$/, ""), body: rest.join("\n").trim() };
+  const articles: { title: string; lines: string[] }[] = [];
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (isHeading(trimmed)) {
+      articles.push({ title: trimmed.replace(/^#{1,3}\s+/, "").replace(/:$/, ""), lines: [] });
+    } else if (articles.length > 0) {
+      articles[articles.length - 1].lines.push(line);
+    } else if (trimmed) {
+      // Notes that start straight in, with no heading above them.
+      articles.push({ title: trimmed.slice(0, 60), lines: [line] });
     }
-    return { title: first.slice(0, 60), body: block };
-  });
+  }
+
+  return articles
+    .map((article) => ({ title: article.title, body: article.lines.join("\n").trim() }))
+    .filter((article) => article.body);
 }
 
 export async function POST(request: Request) {

@@ -1200,7 +1200,7 @@ export function setupSteps(businessId: string): SetupStep[] {
     .prepare("SELECT COUNT(*) AS count FROM events WHERE business_id = ? AND kind = 'readiness_check'")
     .get(businessId) as { count: number };
 
-  return [
+  const steps: SetupStep[] = [
     {
       id: "knowledge",
       title: "Teach it what you know",
@@ -1250,6 +1250,10 @@ export function setupSteps(businessId: string): SetupStep[] {
       done: listTeammates(businessId).length > 0,
     },
   ];
+
+  // With no articles at all there is nothing to replace, and a step that ticks
+  // itself for an empty knowledge base reads like progress that never happened.
+  return articles.length === 0 ? steps.filter((step) => step.id !== "placeholders") : steps;
 }
 
 /* ----------------------------------------------------------------- usage */
@@ -1273,15 +1277,25 @@ export function usage(businessId: string, included = 2500): Usage {
 
   const conversations = listConversations(businessId).filter((c) => c.created_at >= since);
   const messages = conversations.reduce((sum, c) => sum + listMessages(c.id).length, 0);
-  const events = listEvents(businessId, 2000).filter((event) => event.created_at >= since);
+  const calls = listCallRequests(businessId).filter((c) => c.created_at >= since);
+
+  // A conversation counted as escalated if it left something for a person: an
+  // approval to make, or a call to place. Everything else the assistant closed
+  // on its own, so the two rows add up to the conversations opened.
+  const touchedByHuman = new Set(
+    [...listApprovals(businessId), ...calls]
+      .map((item) => item.conversation_id)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const escalated = conversations.filter((c) => touchedByHuman.has(c.id)).length;
 
   return {
     conversationsThisMonth: conversations.length,
     messagesThisMonth: messages,
-    aiHandled: events.filter((e) => e.handled_by === "ai").length,
-    escalated: events.filter((e) => e.kind === "chat_escalated" || e.kind === "call_queued").length,
-    callsQueued: listCallRequests(businessId).filter((c) => c.created_at >= since).length,
-    followUpsSent: listFollowUps(businessId).filter((f) => f.status === "sent").length,
+    aiHandled: conversations.length - escalated,
+    escalated,
+    callsQueued: calls.length,
+    followUpsSent: listFollowUps(businessId).filter((f) => f.status === "sent" && f.created_at >= since).length,
     included,
   };
 }

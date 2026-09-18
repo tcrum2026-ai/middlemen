@@ -62,6 +62,16 @@ const DEFAULT_HOURS: Hours = {
 
 const STEPS = ["Business", "Hours & services", "Your assistant", "Knowledge"];
 
+/** Trades that ship a starter pack, so step 1's answer can preload step 4. */
+const INDUSTRY_PACK: Record<string, string> = {
+  "Home services (plumbing & HVAC)": "home-services",
+  "Dental or medical practice": "dental",
+  "Salon, spa or wellness": "salon-spa",
+  "Law firm": "legal",
+  "Real estate": "real-estate",
+  "Auto repair": "auto-repair",
+};
+
 export function ConnectWizard() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -81,6 +91,30 @@ export function ConnectWizard() {
   const [autonomy, setAutonomy] = useState<"cautious" | "balanced" | "autonomous">("balanced");
   const [callNumber, setCallNumber] = useState("");
   const [knowledge, setKnowledge] = useState("");
+  const [pack, setPack] = useState<string | null>(null);
+
+  function applyPack(slug: string) {
+    const template = TEMPLATES.find((t) => t.slug === slug);
+    if (!template) return;
+    setPack(template.slug);
+    setKnowledge(templateToText(template));
+    setAssistantName(template.assistantName);
+    setTone(template.tone);
+    setAutonomy(template.autonomy);
+  }
+
+  /**
+   * Going live with an empty knowledge base gives an assistant that can answer
+   * nothing, so the pack matching the trade from step 1 is loaded on arrival —
+   * only while the box is still untouched, so it never overwrites typing.
+   */
+  function advance() {
+    setStep((s) => {
+      const next = s + 1;
+      if (next === 3 && !knowledge.trim() && INDUSTRY_PACK[industry]) applyPack(INDUSTRY_PACK[industry]);
+      return next;
+    });
+  }
 
   const canAdvance = step === 0 ? name.trim().length > 1 : true;
 
@@ -299,13 +333,13 @@ export function ConnectWizard() {
                   <button
                     key={template.slug}
                     type="button"
-                    onClick={() => {
-                      setKnowledge(templateToText(template));
-                      setAssistantName(template.assistantName);
-                      setTone(template.tone);
-                      setAutonomy(template.autonomy);
-                    }}
-                    className="rounded-full border border-ink-700 px-3 py-1.5 text-xs text-mist-300 transition hover:border-jade-500/50 hover:text-mist-100"
+                    aria-pressed={pack === template.slug}
+                    onClick={() => applyPack(template.slug)}
+                    className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                      pack === template.slug
+                        ? "border-jade-500/60 bg-jade-500/10 text-jade-300"
+                        : "border-ink-700 text-mist-300 hover:border-jade-500/50 hover:text-mist-100"
+                    }`}
                   >
                     {template.name}
                   </button>
@@ -320,7 +354,14 @@ export function ConnectWizard() {
             <div>
               <div className="flex items-center justify-between">
                 <label className="label" htmlFor="knowledge">Prices, policies and FAQs</label>
-                <button type="button" onClick={() => setKnowledge(STARTER_KNOWLEDGE)} className="text-xs text-jade-400 hover:underline">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPack(null);
+                    setKnowledge(STARTER_KNOWLEDGE);
+                  }}
+                  className="text-xs text-jade-400 hover:underline"
+                >
                   Blank outline
                 </button>
               </div>
@@ -328,7 +369,10 @@ export function ConnectWizard() {
                 id="knowledge"
                 className="field min-h-[16rem] font-mono text-xs leading-relaxed"
                 value={knowledge}
-                onChange={(e) => setKnowledge(e.target.value)}
+                onChange={(e) => {
+                  setPack(null);
+                  setKnowledge(e.target.value);
+                }}
                 placeholder={"Services and pricing:\nDiagnostic visit is $89...\n\nBooking policy:\nTwo-hour arrival windows..."}
               />
               <p className="mt-2 text-xs text-mist-400">
@@ -353,7 +397,7 @@ export function ConnectWizard() {
           {step < STEPS.length - 1 ? (
             <button
               type="button"
-              onClick={() => setStep((s) => s + 1)}
+              onClick={advance}
               disabled={!canAdvance}
               className="btn btn-primary disabled:opacity-40"
             >
