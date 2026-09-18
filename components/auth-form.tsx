@@ -89,6 +89,8 @@ export function AuthForm({
           <>
             No account yet?{" "}
             <Link href="/signup" className="text-jade-400 hover:underline">Create one</Link>
+            {" · "}
+            <Link href="/forgot" className="text-jade-400 hover:underline">Forgot your password?</Link>
           </>
         )}
       </p>

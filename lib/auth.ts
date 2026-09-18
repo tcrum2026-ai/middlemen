@@ -138,3 +138,69 @@ export async function currentUser(): Promise<User | null> {
 export function purgeExpiredSessions(): void {
   getDb().prepare("DELETE FROM sessions WHERE expires_at < ?").run(now());
 }
+
+/* --------------------------------------------------------- password resets */
+
+const RESET_MINUTES = 60;
+
+/**
+ * Mints a single-use reset token, or returns null when no account matches.
+ *
+ * The caller must not tell the visitor which happened: "if that address has an
+ * account, a link is on its way" is the only safe reply, or the form becomes a
+ * way to test whether someone banks here.
+ */
+export function createPasswordReset(rawEmail: string): { token: string; user: User } | null {
+  const email = normalizeEmail(rawEmail);
+  const db = getDb();
+  const user = db
+    .prepare("SELECT id, email, name, created_at FROM users WHERE email = ?")
+    .get(email) as User | undefined;
+  if (!user) return null;
+
+  // One live token per account: requesting again invalidates the last link.
+  db.prepare("DELETE FROM password_resets WHERE user_id = ?").run(user.id);
+
+  const token = randomBytes(32).toString("base64url");
+  db.prepare(
+    "INSERT INTO password_resets (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+  ).run(tokenHash(token), user.id, now(), new Date(Date.now() + RESET_MINUTES * 60_000).toISOString());
+
+  return { token, user };
+}
+
+export type ResetOutcome = { ok: true; userId: string } | { ok: false; error: string };
+
+/**
+ * Spends a reset token and sets the new password. Every existing session for
+ * that account is dropped: if the reset was prompted by someone else having
+ * got in, leaving their cookie working would defeat the point.
+ */
+export async function completePasswordReset(token: string, password: string): Promise<ResetOutcome> {
+  if (password.length < 10) return { ok: false, error: "Ten characters or more, please." };
+
+  const db = getDb();
+  const row = db
+    .prepare("SELECT user_id, expires_at, used_at FROM password_resets WHERE token_hash = ?")
+    .get(tokenHash(token)) as { user_id: string; expires_at: string; used_at: string | null } | undefined;
+
+  if (!row || row.used_at) return { ok: false, error: "That link has already been used. Request a new one." };
+  if (new Date(row.expires_at).getTime() < Date.now()) {
+    db.prepare("DELETE FROM password_resets WHERE token_hash = ?").run(tokenHash(token));
+    return { ok: false, error: "That link has expired. Request a new one." };
+  }
+
+  const hash = await hashPassword(password);
+  const stamp = now();
+  db.transaction(() => {
+    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, row.user_id);
+    db.prepare("UPDATE password_resets SET used_at = ? WHERE token_hash = ?").run(stamp, tokenHash(token));
+    db.prepare("DELETE FROM sessions WHERE user_id = ?").run(row.user_id);
+  })();
+
+  return { ok: true, userId: row.user_id };
+}
+
+export function purgeExpiredResets(): void {
+  getDb().prepare("DELETE FROM password_resets WHERE expires_at < ?").run(now());
+}

@@ -8,6 +8,9 @@ refund costs more than it saves, so the assistant never places or answers a call
 does instead is the part people hate — gathering the facts first, so the call your team
 makes takes two minutes instead of ten.
 
+Publishing it? Work down [GO-LIVE.md](GO-LIVE.md); [DEPLOY.md](DEPLOY.md) has the detail
+behind each step.
+
 ## What the assistant actually does
 
 Every capability below is wired to a tool the model calls during a conversation, writing to

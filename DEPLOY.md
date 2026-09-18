@@ -13,6 +13,7 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `NEXT_PUBLIC_LEGAL_ENTITY` | Privacy policy and terms | Your legal name. Until it, the contact address and the jurisdiction are all set, both pages show a visible "not ready to publish" banner. |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Legal pages, Enterprise plan | Also what the "Contact sales" button mails. Unset, that plan shows "Start free" rather than offering a conversation nobody can have. |
 | `NEXT_PUBLIC_LEGAL_JURISDICTION` | Terms | e.g. `England and Wales`. |
+| `RESEND_API_KEY` + `AUTH_FROM_EMAIL` | Password reset email | Platform mail, separate from the per-workspace Resend keys entered in the dashboard. Without both, `/forgot` tells the visitor that reset email isn't set up rather than pretending to send. |
 | `INBOUND_EMAIL_SECRET` | Inbound email webhook | **Required to turn inbound email on.** The webhook fails closed: unset, it returns 503 and accepts nothing, because otherwise anyone could trigger a paid model call on any workspace. Checked against `x-inbound-secret`. |
 | `INBOUND_EMAIL_DOMAIN` | Inbound email webhook | The domain you route mail from, e.g. `inbound.your-domain`. The Install page shows the forwarding address only when this is set. |
 
@@ -97,7 +98,8 @@ drop it from `next.config.ts` if you serve this on a domain you also need over p
 
 ## 6. Known gaps
 
-- No email verification or password reset yet — both need a mail provider wired to the auth flow.
+- No email verification on sign-up. Password reset works (`RESEND_API_KEY` + `AUTH_FROM_EMAIL`);
+  verifying the address at sign-up does not exist yet.
 - Outlook, WhatsApp, QuickBooks, HubSpot, Shopify and Zapier are listed but not implemented.
 - SQLite means one writer: fine for a single instance, not for horizontal scaling. Moving to
   Postgres is a `lib/db.ts` change, not an application-wide one.
