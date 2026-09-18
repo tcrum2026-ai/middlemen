@@ -104,7 +104,7 @@ export default async function IntegrationsPage() {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">Nothing to configure</h2>
         <div className="grid gap-3 lg:grid-cols-2">
           {ZERO_CONFIG.map((item) => (
-            <Card key={item.id}>
+            <Card key={item.id} className="min-w-0">
               <div className="flex items-center gap-2">
                 <CheckIcon width={16} height={16} className="text-jade-400" />
                 <h3 className="font-semibold">{item.label}</h3>

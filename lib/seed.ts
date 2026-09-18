@@ -29,6 +29,19 @@ function upcoming(daysAhead: number, hour: number, minute = 0, skipWeekend = tru
   return date.toISOString();
 }
 
+/**
+ * Hands out timestamps for one sample thread. Every seeded message sharing a
+ * single instant made the transcripts read as fabricated — they should at least
+ * be paced like a conversation.
+ */
+function threadClock(startedMinutesAgo: number): (gapMinutes: number) => string {
+  let remaining = startedMinutesAgo;
+  return (gapMinutes) => {
+    remaining = Math.max(0, remaining - gapMinutes);
+    return new Date(Date.now() - remaining * 60_000).toISOString();
+  };
+}
+
 function daysAgo(d: number, hour = 10): string {
   const date = new Date();
   date.setDate(date.getDate() - d);
@@ -105,13 +118,16 @@ function seedDemoBusiness(): Business {
     channel: "web",
     subject: "Water heater leaking",
   });
+  const webClock = threadClock(188);
   addMessage({
     conversation_id: webChat.id,
+    created_at: webClock(0),
     role: "customer",
     body: "My water heater is leaking from the bottom. Do I need a new one? How fast can someone come out?",
   });
   addMessage({
     conversation_id: webChat.id,
+    created_at: webClock(1),
     role: "assistant",
     body:
       "Sorry you're dealing with that. A leak from the bottom of the tank usually means the tank itself has failed, " +
@@ -125,11 +141,13 @@ function seedDemoBusiness(): Business {
   });
   addMessage({
     conversation_id: webChat.id,
+    created_at: webClock(7),
     role: "customer",
     body: "12-2 works. It's spraying a bit now though, should I be worried?",
   });
   addMessage({
     conversation_id: webChat.id,
+    created_at: webClock(2),
     role: "assistant",
     body:
       "Booked you for tomorrow 12-2pm — confirmation is on its way to dana.whitfield@example.com. " +
@@ -153,8 +171,10 @@ function seedDemoBusiness(): Business {
     channel: "email",
     subject: "Quote for 6 rental units — HVAC tune-ups",
   });
+  const emailClock = threadClock(95);
   addMessage({
     conversation_id: emailThread.id,
+    created_at: emailClock(0),
     role: "customer",
     body:
       "We manage six rental units and want annual HVAC tune-ups on all of them. Can you put together pricing? " +
@@ -162,6 +182,7 @@ function seedDemoBusiness(): Business {
   });
   addMessage({
     conversation_id: emailThread.id,
+    created_at: emailClock(4),
     role: "assistant",
     body:
       "Happy to. Six tune-ups at our standard $129 comes to $774. Brightline Care at $199/year per unit would " +
@@ -184,13 +205,16 @@ function seedDemoBusiness(): Business {
     channel: "sms",
     subject: "Reschedule Thursday visit",
   });
+  const smsClock = threadClock(41);
   addMessage({
     conversation_id: smsThread.id,
+    created_at: smsClock(0),
     role: "customer",
     body: "Need to move my Thursday appointment, something came up at work",
   });
   addMessage({
     conversation_id: smsThread.id,
+    created_at: smsClock(2),
     role: "assistant",
     body:
       "No problem Priya — you're outside the 4-hour window so there's no fee. I have Friday 8-10am or " +
@@ -209,8 +233,10 @@ function seedDemoBusiness(): Business {
     channel: "email",
     subject: "Unhappy with drain service — refund request",
   });
+  const refundClock = threadClock(22);
   addMessage({
     conversation_id: refundThread.id,
+    created_at: refundClock(0),
     role: "customer",
     body:
       "The drain your tech cleared last month backed up again yesterday. I paid $320 and I want a full refund, " +

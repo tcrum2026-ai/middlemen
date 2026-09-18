@@ -379,6 +379,8 @@ export function addMessage(input: {
   role: Message["role"];
   body: string;
   actions?: Message["actions"];
+  /** Only the seed passes this, to give sample threads a believable pace. */
+  created_at?: string;
 }): Message {
   const message: Message = {
     id: id("msg"),
@@ -386,7 +388,7 @@ export function addMessage(input: {
     role: input.role,
     body: input.body,
     actions: input.actions ?? [],
-    created_at: now(),
+    created_at: input.created_at ?? now(),
   };
   const db = getDb();
   db.prepare(
