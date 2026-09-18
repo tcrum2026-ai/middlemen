@@ -1,9 +1,8 @@
 import { headers } from "next/headers";
 import { Badge, Card, PageHeader, relativeTime } from "@/components/ui";
 import { CheckIcon, PlugIcon } from "@/components/icons";
-import { disconnectIntegrationAction, saveIntegrationAction, toggleIntegrationAction } from "../actions";
+import { disconnectIntegrationAction, saveIntegrationAction } from "../actions";
 import { activeBusiness } from "@/lib/session";
-import { listIntegrations } from "@/lib/repo";
 import { PROVIDERS, isConnected, maskedCredentials } from "@/lib/integrations";
 import { listDeliveries } from "@/lib/delivery";
 
@@ -25,21 +24,12 @@ const ZERO_CONFIG = [
   },
 ];
 
-const CATALOG_EXTRA: { provider: string; label: string; blurb: string }[] = [
-  { provider: "outlook", label: "Outlook", blurb: "Microsoft 365 mailboxes" },
-  { provider: "whatsapp", label: "WhatsApp", blurb: "WhatsApp Business messaging" },
-  { provider: "quickbooks", label: "QuickBooks", blurb: "Estimates and invoices in your books" },
-  { provider: "hubspot", label: "HubSpot", blurb: "Push scored leads into your CRM" },
-  { provider: "shopify", label: "Shopify", blurb: "Order and shipping status answers" },
-  { provider: "zapier", label: "Zapier", blurb: "Five thousand other apps" },
-];
 
 export default async function IntegrationsPage() {
   const business = await activeBusiness();
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
-  const legacy = new Map(listIntegrations(business.id).map((i) => [i.provider, i.status]));
   const deliveries = listDeliveries(business.id, 8);
 
   return (
@@ -181,34 +171,18 @@ export default async function IntegrationsPage() {
       ) : null}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">On the roadmap</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {CATALOG_EXTRA.map((item) => (
-            <Card key={item.provider} className="flex min-w-0 flex-wrap items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-sm font-semibold text-mist-300">
-                {item.label.slice(0, 2)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{item.label}</p>
-                <p className="truncate text-xs text-mist-400">{item.blurb}</p>
-              </div>
-              <form action={toggleIntegrationAction}>
-                <input type="hidden" name="provider" value={item.provider} />
-                <input
-                  type="hidden"
-                  name="next"
-                  value={legacy.get(item.provider) === "connected" ? "disconnected" : "connected"}
-                />
-                <button className="btn btn-ghost px-3 py-1.5 text-xs">
-                  {legacy.get(item.provider) === "connected" ? "Marked" : "Mark wanted"}
-                </button>
-              </form>
-            </Card>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-mist-400">
-          These aren&apos;t wired up yet — marking one records that you want it. Everything above is live.
-        </p>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">Not built yet</h2>
+        <Card>
+          <p className="text-sm leading-relaxed text-mist-300">
+            Outlook, WhatsApp, QuickBooks, HubSpot, Shopify and Zapier aren&apos;t implemented. They&apos;re listed
+            here so you know where the edge is, not as a promise with a date on it. Everything above this line is
+            wired to a real provider — if you can paste a key into it, it works.
+          </p>
+          <p className="mt-3 text-sm text-mist-400">
+            Need one of them sooner? The delivery layer in <code className="font-mono text-xs">lib/delivery.ts</code>{" "}
+            is where a new provider slots in.
+          </p>
+        </Card>
       </section>
     </div>
   );

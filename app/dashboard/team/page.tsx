@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { addTeammateAction, removeTeammateAction } from "../actions";
 import { activeBusiness } from "@/lib/session";
@@ -76,7 +77,7 @@ export default async function TeamPage() {
               <input type="checkbox" name="takes_calls" defaultChecked className="h-4 w-4 accent-jade-500" />
               On call duty
             </label>
-            <button className="btn btn-primary w-full justify-center">Add teammate</button>
+            <SubmitButton className="btn btn-primary w-full justify-center" pendingLabel="Adding…">Add teammate</SubmitButton>
           </form>
         </Card>
       </div>

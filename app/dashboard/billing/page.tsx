@@ -1,14 +1,8 @@
 import Link from "next/link";
-import { Badge, Card, PageHeader, usd } from "@/components/ui";
+import { Badge, Card, PageHeader } from "@/components/ui";
 import { activeBusiness } from "@/lib/session";
 import { usage } from "@/lib/repo";
 import { PLANS } from "@/lib/marketing";
-
-function monthLabel(offset: number): string {
-  const date = new Date();
-  date.setMonth(date.getMonth() - offset);
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
 
 export default async function BillingPage() {
   const business = await activeBusiness();
@@ -86,21 +80,11 @@ export default async function BillingPage() {
             </dl>
           </Card>
 
-          <Card className="!p-0">
-            <div className="border-b border-ink-700 px-5 py-3.5">
-              <h2 className="font-semibold">Invoices</h2>
-            </div>
-            <ul className="divide-y divide-ink-800">
-              {[0, 1, 2].map((offset) => (
-                <li key={offset} className="flex flex-wrap items-center gap-3 px-5 py-3.5 text-sm">
-                  <span className="min-w-0 flex-1">{monthLabel(offset)}</span>
-                  <Badge tone={offset === 0 ? "slate" : "jade"}>{offset === 0 ? "current" : "paid"}</Badge>
-                  <span className="w-20 text-right tabular-nums">{usd(plan.monthly! * 100)}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="px-5 py-3 text-xs text-mist-400">
-              This workspace is a demo — no payment method is attached and nothing has been charged.
+          <Card>
+            <h2 className="font-semibold">Invoices</h2>
+            <p className="mt-2 text-sm leading-relaxed text-mist-400">
+              No billing provider is connected, so there are no invoices to show. Connect Stripe under Integrations
+              and this becomes a real list.
             </p>
           </Card>
         </div>
@@ -120,20 +104,10 @@ export default async function BillingPage() {
           </Card>
 
           <Card>
-            <h2 className="text-sm font-semibold">Cancel</h2>
+            <h2 className="text-sm font-semibold">Cancelling</h2>
             <p className="mt-2 text-sm text-mist-400">
-              One click, effective at the end of the period you&apos;ve paid for. We don&apos;t ask why, and there is
-              no retention flow.
-            </p>
-            <button
-              disabled
-              title="No billing provider is connected in this demo workspace"
-              className="btn btn-ghost mt-4 w-full cursor-not-allowed justify-center opacity-40"
-            >
-              Cancel subscription
-            </button>
-            <p className="mt-2 text-xs text-mist-400">
-              Disabled here: this workspace has no billing provider connected, so there is nothing to cancel.
+              When billing is live, cancelling is one click and takes effect at the end of the period you&apos;ve paid
+              for. No retention flow, no phone call.
             </p>
           </Card>
         </aside>

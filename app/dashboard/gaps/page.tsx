@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { Badge, Card, EmptyState, PageHeader, relativeTime } from "@/components/ui";
 import { answerGapAction, setGapStatusAction } from "../actions";
 import { activeBusiness } from "@/lib/session";
@@ -61,9 +62,9 @@ export default async function GapsPage() {
               </form>
 
               <div className="flex flex-wrap gap-2 p-5">
-                <button form={`answer-${gap.id}`} className="btn btn-primary">
+                <SubmitButton form={`answer-${gap.id}`} pendingLabel="Saving…">
                   Add to knowledge base
-                </button>
+                </SubmitButton>
                 <form action={setGapStatusAction}>
                   <input type="hidden" name="gap_id" value={gap.id} />
                   <input type="hidden" name="status" value="dismissed" />

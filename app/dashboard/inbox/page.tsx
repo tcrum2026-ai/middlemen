@@ -1,11 +1,37 @@
 import Link from "next/link";
 import { Badge, Card, EmptyState, PageHeader, relativeTime } from "@/components/ui";
 import { activeBusiness } from "@/lib/session";
+import { Suspense } from "react";
+import { InboxFilters } from "./filters";
 import { getContact, listConversations, listMessages } from "@/lib/repo";
 
-export default async function InboxPage() {
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; channel?: string; state?: string }>;
+}) {
+  const { q, channel, state = "open" } = await searchParams;
   const business = await activeBusiness();
-  const conversations = listConversations(business.id);
+  const all = listConversations(business.id);
+
+  const needle = q?.trim().toLowerCase();
+  const conversations = all.filter((conversation) => {
+    if (state !== "all" && conversation.status !== state) return false;
+    if (channel && channel !== "all" && conversation.channel !== channel) return false;
+    if (!needle) return true;
+
+    const contact = conversation.contact_id ? getContact(conversation.contact_id) : null;
+    const haystack = [
+      conversation.subject,
+      contact?.name,
+      contact?.email,
+      ...listMessages(conversation.id).map((message) => message.body),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(needle);
+  });
 
   return (
     <div>
@@ -14,10 +40,18 @@ export default async function InboxPage() {
         subtitle="Every channel in one place. Your assistant has already replied to anything it was confident about."
       />
 
+      <Suspense fallback={<div className="mb-4 h-9" />}>
+        <InboxFilters total={all.length} shown={conversations.length} />
+      </Suspense>
+
       {conversations.length === 0 ? (
         <EmptyState
-          title="No conversations yet"
-          body="Install the widget or forward your support inbox, and threads will land here already answered."
+          title={all.length === 0 ? "No conversations yet" : "Nothing matches those filters"}
+          body={
+            all.length === 0
+              ? "Install the widget or forward your support inbox, and threads will land here already answered."
+              : "Try a different channel, or widen the status filter to everything."
+          }
         />
       ) : (
         <Card className="!p-0">

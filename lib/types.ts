@@ -19,6 +19,8 @@ export interface Business {
   services: string[];
   autonomy: Autonomy;
   auto_send_threshold: number;
+  /** Trades thoroughness against cost and latency on every reply. */
+  effort: "low" | "medium" | "high";
   call_handoff_number: string | null;
   widget_key: string;
   created_at: string;

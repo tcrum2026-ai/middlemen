@@ -254,6 +254,7 @@ export async function updateSettingsAction(data: FormData) {
     autonomy: (str(data, "autonomy") || business.autonomy) as typeof business.autonomy,
     call_handoff_number: str(data, "call_handoff_number"),
     auto_send_threshold: Number(str(data, "auto_send_threshold") || business.auto_send_threshold),
+    effort: (str(data, "effort") || business.effort) as typeof business.effort,
     services: str(data, "services")
       .split(",")
       .map((s) => s.trim())

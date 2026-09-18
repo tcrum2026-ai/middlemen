@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS businesses (
   services TEXT NOT NULL DEFAULT '[]',
   autonomy TEXT NOT NULL DEFAULT 'balanced',
   auto_send_threshold REAL NOT NULL DEFAULT 0.75,
+  effort TEXT NOT NULL DEFAULT 'medium',
   call_handoff_number TEXT,
   widget_key TEXT UNIQUE NOT NULL,
   created_at TEXT NOT NULL
@@ -252,6 +253,11 @@ CREATE INDEX IF NOT EXISTS idx_deliveries_business ON deliveries(business_id);
  */
 const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
   { table: "businesses", column: "owner_id", ddl: "ALTER TABLE businesses ADD COLUMN owner_id TEXT" },
+  {
+    table: "businesses",
+    column: "effort",
+    ddl: "ALTER TABLE businesses ADD COLUMN effort TEXT NOT NULL DEFAULT 'medium'",
+  },
 ];
 
 function migrate(db: Database.Database): void {

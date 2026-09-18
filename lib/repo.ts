@@ -80,6 +80,7 @@ export function getBusinessByWidgetKey(key: string): Business | null {
 
 export interface CreateBusinessInput {
   owner_id?: string | null;
+  effort?: Business["effort"];
   name: string;
   industry: string;
   website?: string;
@@ -132,6 +133,7 @@ export function createBusiness(input: CreateBusinessInput): Business {
     services: input.services ?? [],
     autonomy: input.autonomy ?? "balanced",
     auto_send_threshold: input.autonomy === "autonomous" ? 0.6 : input.autonomy === "cautious" ? 0.9 : 0.75,
+    effort: input.effort ?? "medium",
     call_handoff_number: input.call_handoff_number ?? null,
     // The widget key is the only credential /api/chat accepts, so it must not
     // come from a predictable PRNG.
@@ -141,10 +143,10 @@ export function createBusiness(input: CreateBusinessInput): Business {
 
   db.prepare(
     `INSERT INTO businesses (id, owner_id, slug, name, industry, website, email, phone, timezone, hours,
-       assistant_name, tone, greeting, services, autonomy, auto_send_threshold,
+       assistant_name, tone, greeting, services, autonomy, auto_send_threshold, effort,
        call_handoff_number, widget_key, created_at)
      VALUES (@id, @owner_id, @slug, @name, @industry, @website, @email, @phone, @timezone, @hours,
-       @assistant_name, @tone, @greeting, @services, @autonomy, @auto_send_threshold,
+       @assistant_name, @tone, @greeting, @services, @autonomy, @auto_send_threshold, @effort,
        @call_handoff_number, @widget_key, @created_at)`,
   ).run({
     ...business,
@@ -157,6 +159,7 @@ export function createBusiness(input: CreateBusinessInput): Business {
 
 export function updateBusiness(businessId: string, patch: Partial<CreateBusinessInput> & {
   auto_send_threshold?: number;
+  effort?: Business["effort"];
 }): void {
   const current = getBusiness(businessId);
   if (!current) return;
@@ -166,7 +169,8 @@ export function updateBusiness(businessId: string, patch: Partial<CreateBusiness
       `UPDATE businesses SET name=@name, industry=@industry, website=@website, email=@email,
          phone=@phone, timezone=@timezone, hours=@hours, assistant_name=@assistant_name,
          tone=@tone, greeting=@greeting, services=@services, autonomy=@autonomy,
-         auto_send_threshold=@auto_send_threshold, call_handoff_number=@call_handoff_number
+         auto_send_threshold=@auto_send_threshold, effort=@effort,
+         call_handoff_number=@call_handoff_number
        WHERE id=@id`,
     )
     .run({

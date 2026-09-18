@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { Badge, Card, EmptyState, PageHeader, relativeTime } from "@/components/ui";
 import Link from "next/link";
 import { addKbAction, applyTemplateAction, deleteKbAction } from "../actions";
@@ -86,7 +87,7 @@ export default async function KnowledgePage() {
               <label className="label" htmlFor="body">Content</label>
               <textarea id="body" name="body" required rows={8} className="field resize-y" placeholder="Reschedule free up to 4 hours before…" />
             </div>
-            <button className="btn btn-primary w-full justify-center">Add to knowledge base</button>
+            <SubmitButton className="btn btn-primary w-full justify-center" pendingLabel="Adding…">Add to knowledge base</SubmitButton>
           </form>
         </Card>
         </div>

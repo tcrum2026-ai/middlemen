@@ -8,6 +8,22 @@ interface Bubble {
   role: "customer" | "assistant";
   body: string;
   actions?: AssistantAction[];
+  /** True while tokens are still arriving, so the caret can blink. */
+  streaming?: boolean;
+}
+
+function TypingDots() {
+  return (
+    <span className="flex gap-1 py-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-mist-400"
+          style={{ animationDelay: `${i * 120}ms` }}
+        />
+      ))}
+    </span>
+  );
 }
 
 export function ChatPanel({
@@ -42,20 +58,66 @@ export function ChatPanel({
     setMessages((prev) => [...prev, { role: "customer", body }]);
     setBusy(true);
 
+    /** Append to the in-flight assistant bubble, or start one if this is the first event. */
+    const onBubble = (update: (bubble: Bubble) => Bubble) => {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && last.streaming) {
+          return [...prev.slice(0, -1), update(last)];
+        }
+        return [...prev, update({ role: "assistant", body: "", actions: [], streaming: true })];
+      });
+    };
+
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ widgetKey, conversationId, message: body }),
       });
-      if (!response.ok) throw new Error(`Chat failed: ${response.status}`);
-      const data = (await response.json()) as {
-        conversationId: string;
-        reply: string;
-        actions: AssistantAction[];
-      };
-      setConversationId(data.conversationId);
-      setMessages((prev) => [...prev, { role: "assistant", body: data.reply, actions: data.actions }]);
+      if (!response.ok || !response.body) throw new Error(`Chat failed: ${response.status}`);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      // Server-sent events arrive as "event: <name>\ndata: <json>\n\n" frames,
+      // which can split across chunk boundaries — hence the buffer.
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let boundary = buffer.indexOf("\n\n");
+        while (boundary !== -1) {
+          const frame = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          boundary = buffer.indexOf("\n\n");
+
+          const name = /^event: (.+)$/m.exec(frame)?.[1];
+          const payload = /^data: (.+)$/m.exec(frame)?.[1];
+          if (!name || !payload) continue;
+          const data = JSON.parse(payload);
+
+          if (name === "open") {
+            setConversationId(data.conversationId);
+          } else if (name === "tool") {
+            // Each step stays on screen once the reply lands, so you can see
+            // what the assistant actually did rather than a flash of status text.
+            onBubble((bubble) => ({ ...bubble, actions: [...(bubble.actions ?? []), data as AssistantAction] }));
+          } else if (name === "text") {
+            onBubble((bubble) => ({ ...bubble, body: bubble.body + data.chunk }));
+          } else if (name === "done") {
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last?.role !== "assistant") return prev;
+              return [...prev.slice(0, -1), { ...last, actions: data.actions, streaming: false }];
+            });
+          } else if (name === "error") {
+            throw new Error(data.message);
+          }
+        }
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -66,6 +128,8 @@ export function ChatPanel({
       ]);
     } finally {
       setBusy(false);
+      // A stream that died mid-turn would otherwise leave a blinking, empty bubble.
+      setMessages((prev) => prev.filter((m) => m.body.trim() || m.actions?.length).map((m) => ({ ...m, streaming: false })));
     }
   }
 
@@ -95,15 +159,6 @@ export function ChatPanel({
         {messages.map((message, index) => (
           <div key={index} className={message.role === "customer" ? "flex justify-end" : "flex justify-start"}>
             <div className="max-w-[85%] space-y-2">
-              <div
-                className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                  message.role === "customer"
-                    ? "bg-jade-500 text-ink-950"
-                    : "border border-ink-700 bg-ink-850 text-mist-100"
-                }`}
-              >
-                {message.body}
-              </div>
               {message.actions?.length ? (
                 <ul className="space-y-1">
                   {message.actions.map((action, i) => (
@@ -117,23 +172,35 @@ export function ChatPanel({
                   ))}
                 </ul>
               ) : null}
+              <div
+                className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                  message.role === "customer"
+                    ? "bg-jade-500 text-ink-950"
+                    : "border border-ink-700 bg-ink-850 text-mist-100"
+                }`}
+              >
+                {message.body || !message.streaming ? (
+                  <>
+                    {message.body}
+                    {message.streaming ? (
+                      <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse bg-current align-middle" />
+                    ) : null}
+                  </>
+                ) : (
+                  <TypingDots />
+                )}
+              </div>
             </div>
           </div>
         ))}
 
-        {busy ? (
+        {busy && !messages[messages.length - 1]?.streaming ? (
           <div className="flex justify-start">
             <div
               aria-label="Assistant is typing"
-              className="flex gap-1 rounded-2xl border border-ink-700 bg-ink-850 px-3.5 py-3"
+              className="rounded-2xl border border-ink-700 bg-ink-850 px-3.5 py-3"
             >
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-mist-400"
-                  style={{ animationDelay: `${i * 120}ms` }}
-                />
-              ))}
+              <TypingDots />
             </div>
           </div>
         ) : null}

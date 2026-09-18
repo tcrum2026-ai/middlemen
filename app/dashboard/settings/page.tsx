@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { Card, PageHeader } from "@/components/ui";
 import { updateSettingsAction } from "../actions";
 import { ConnectionTest } from "@/components/connection-test";
@@ -100,6 +101,19 @@ export default async function SettingsPage() {
               <p className="mt-1.5 text-xs text-mist-400">Below this, the reply waits in Approvals.</p>
             </div>
             <div className="sm:col-span-2">
+              <label className="label" htmlFor="effort">How hard it thinks</label>
+              <select id="effort" name="effort" defaultValue={business.effort} className="field">
+                <option value="low">Low — fastest and cheapest, fine for FAQ-style questions</option>
+                <option value="medium">Medium — the default balance</option>
+                <option value="high">High — slower and dearer, better on messy or high-stakes threads</option>
+              </select>
+              <p className="mt-1.5 text-xs text-mist-400">
+                Applies to every reply. Raise it if you see shallow answers on complicated threads; lower it if
+                replies feel slow and your questions are simple.
+              </p>
+            </div>
+
+            <div className="sm:col-span-2">
               <label className="label" htmlFor="call_handoff_number">Number your team answers</label>
               <input
                 id="call_handoff_number"
@@ -125,7 +139,7 @@ export default async function SettingsPage() {
         </Card>
 
         <div className="flex items-center gap-3">
-          <button className="btn btn-primary">Save changes</button>
+          <SubmitButton pendingLabel="Saving…">Save changes</SubmitButton>
           <p className="text-xs text-mist-400">Applies to the next message your assistant handles.</p>
         </div>
       </form>

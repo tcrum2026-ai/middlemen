@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import type { BetaMessageStream } from "@anthropic-ai/sdk/lib/BetaMessageStream";
 import { betaTool } from "@anthropic-ai/sdk/helpers/beta/json-schema";
 import {
   availableSlots,
@@ -522,7 +523,7 @@ export async function runAssistantTurn(args: {
     const runner = client.beta.messages.toolRunner({
       model: MODEL,
       max_tokens: 16000,
-      output_config: { effort: "medium" },
+      output_config: { effort: business.effort },
       system: [
         { type: "text", text: systemPrompt(business), cache_control: { type: "ephemeral" } },
       ],
@@ -602,6 +603,140 @@ export async function runAssistantTurn(args: {
   }
 }
 
+/**
+ * Streams one assistant turn. Text arrives as it is generated; tool calls still
+ * run to completion first, so `onText` may stay quiet while the assistant reads
+ * the knowledge base or checks the calendar — `onTool` reports that instead of
+ * leaving the customer looking at a dead cursor.
+ */
+export async function streamAssistantTurn(args: {
+  business: Business;
+  conversation: Conversation;
+  history: Message[];
+  onText: (chunk: string) => void;
+  onTool: (action: AssistantAction) => void;
+}): Promise<AssistantTurn> {
+  const { business, conversation, history, onText, onTool } = args;
+  const actions: AssistantAction[] = [];
+  let escalated = false;
+  const record = (action: AssistantAction) => {
+    actions.push(action);
+    onTool(action);
+  };
+  const markEscalated = () => {
+    escalated = true;
+  };
+
+  if (!assistantConfigured()) {
+    const turn = await simulateTurn({
+      business,
+      conversation,
+      history,
+      record: (action) => actions.push(action),
+      markEscalated,
+      actions,
+      dryRun: false,
+    });
+    for (const action of turn.actions) onTool(action);
+    // Typed out rather than dumped, so the scripted path feels the same shape.
+    for (const word of turn.reply.split(/(\s+)/)) {
+      onText(word);
+      await new Promise((resolve) => setTimeout(resolve, 12));
+    }
+    return turn;
+  }
+
+  const client = new Anthropic();
+  const tools = buildTools(business, conversation, record, markEscalated, false);
+  const messages = toApiMessages(history);
+
+  if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
+    onText(business.greeting);
+    return { reply: business.greeting, actions, escalated, live: true };
+  }
+
+  messages.push({
+    role: "system",
+    content:
+      `Current time: ${new Date().toISOString()} (${business.timezone}). ` +
+      `Channel: ${conversation.channel}. Thread subject: ${conversation.subject}.`,
+  } as Anthropic.Beta.BetaMessageParam);
+
+  try {
+    const runner = client.beta.messages.toolRunner({
+      model: MODEL,
+      max_tokens: 16000,
+      output_config: { effort: business.effort },
+      system: [{ type: "text", text: systemPrompt(business), cache_control: { type: "ephemeral" } }],
+      tools,
+      messages,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      stream: true,
+    } as Parameters<typeof client.beta.messages.toolRunner>[0]);
+
+    let reply = "";
+    // The params cast above erases the `stream: true` discriminant, so the
+    // runner's iteration type widens to message-or-stream; it is a stream here.
+    for await (const item of runner) {
+      const messageStream = item as BetaMessageStream;
+      for await (const event of messageStream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          reply += event.delta.text;
+          onText(event.delta.text);
+        }
+      }
+      const message = await messageStream.finalMessage();
+      if (message.stop_reason === "refusal") {
+        createApproval({
+          business_id: business.id,
+          conversation_id: conversation.id,
+          kind: "reply",
+          title: "Assistant declined to answer",
+          summary: "The model declined this request. A teammate should read the thread and reply.",
+          draft: "",
+          risk: "high",
+          confidence: 0,
+        });
+        const handoff =
+          "I'd rather have a teammate take this one. I've passed the thread to them and they'll follow up shortly.";
+        onText(handoff);
+        return { reply: handoff, actions, escalated: true, live: true };
+      }
+    }
+
+    logEvent({
+      business_id: business.id,
+      kind: escalated ? "chat_escalated" : "chat_resolved",
+      summary: `${conversation.channel} · ${conversation.subject}`,
+      handled_by: "ai",
+      minutes_saved: escalated ? 4 : 9,
+    });
+
+    return { reply: reply.trim(), actions, escalated, live: true };
+  } catch (error) {
+    if (error instanceof Anthropic.APIError) {
+      console.error(`Assistant stream error (${error.status}):`, error.message);
+    } else {
+      console.error("Assistant stream error:", error);
+    }
+    createApproval({
+      business_id: business.id,
+      conversation_id: conversation.id,
+      kind: "reply",
+      title: "Assistant could not reach the model",
+      summary: "The API call failed, so this thread needs a human reply.",
+      draft: "",
+      risk: "medium",
+      confidence: 0,
+    });
+    const fallback =
+      "I'm having trouble on my end right now. I've flagged this for a teammate so you're not left waiting.";
+    onText(fallback);
+    return { reply: fallback, actions, escalated: true, live: false };
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* Offline fallback                                                            */
 /* -------------------------------------------------------------------------- */
@@ -624,8 +759,25 @@ const CALL_WORDS = [
 ];
 const URGENT_WORDS = ["emergency", "urgent", "flooding", "leaking", "no heat", "burst", "spraying", "sewage"];
 const BOOK_WORDS = ["book", "appointment", "schedule", "come out", "visit", "slot"];
-const PRICE_WORDS = ["price", "cost", "quote", "how much", "pricing", "rate", "fee"];
+const PRICE_WORDS = ["price", "cost", "quote", "how much", "pricing", "rate", "fee", "charge", "estimate", "ballpark", "$"];
 const REFUND_WORDS = ["refund", "money back", "warranty", "complaint", "lawyer", "dispute"];
+
+/**
+ * Pulls the sentences of an article that actually answer the question, so a long
+ * policy doesn't arrive as a wall of text. Sentences are quoted verbatim — nothing
+ * is rewritten — and the whole body is returned when nothing clearly matches.
+ */
+function relevantSentences(body: string, question: string, words: string[]): string {
+  if (body.length <= 260) return body;
+  const sentences = body.match(/[^.!?]+[.!?]*/g)?.map((s) => s.trim()).filter(Boolean) ?? [];
+  const asked = words.filter((w) => question.includes(w));
+  const picked = sentences.filter((sentence) => {
+    const lower = sentence.toLowerCase();
+    return asked.some((w) => lower.includes(w)) || /\$\d/.test(sentence);
+  });
+  if (picked.length === 0 || picked.length === sentences.length) return body;
+  return picked.slice(0, 3).join(" ");
+}
 
 function hits(text: string, words: string[]): boolean {
   return words.some((w) => text.includes(w));
@@ -698,6 +850,12 @@ async function simulateTurn(args: {
     reply =
       "I can't take calls myself, but I've put you at the front of our callback queue with the details so far — " +
       "a teammate will ring you shortly.";
+  } else if (hits(text, PRICE_WORDS) && articles.length > 0) {
+    reply = `Here's what I have on that:\n\n${relevantSentences(
+      articles[0].body,
+      text,
+      PRICE_WORDS,
+    )}\n\nWant me to check availability for a visit?`;
   } else if (hits(text, BOOK_WORDS)) {
     const slots = availableSlots(business.id, 7).slice(0, 3);
     record({ tool: "check_availability", label: "Checked calendar", detail: `${slots.length} slots offered` });
@@ -706,8 +864,6 @@ async function simulateTurn(args: {
           .map(formatSlot)
           .join(", or ")}. Which works best? Once you pick one I'll confirm it by email.`
       : "I don't see open slots this week — I've asked a teammate to call you with the next opening.";
-  } else if (hits(text, PRICE_WORDS) && articles.length > 0) {
-    reply = `Here's what I have on that:\n\n${articles[0].body}\n\nWant me to check availability for a visit?`;
   } else if (articles.length > 0) {
     reply = `${articles[0].body}\n\nAnything else I can pull up for you?`;
   } else {
