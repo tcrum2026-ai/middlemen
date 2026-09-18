@@ -5,6 +5,8 @@ import { cookies } from "next/headers";
 import {
   addKbArticle,
   belongsToBusiness,
+  getContact,
+  listFollowUps,
   addMessage,
   addTeammate,
   listKb,
@@ -33,6 +35,8 @@ import {
   workspace,
 } from "@/lib/session";
 import { getTemplate } from "@/lib/templates";
+import { sendEmail, sendSms } from "@/lib/delivery";
+import { disconnect, saveCredentials } from "@/lib/integrations";
 import type { Appointment, Approval, AutomationKind, CallRequest, Lead } from "@/lib/types";
 
 function str(data: FormData, key: string): string {
@@ -344,16 +348,67 @@ export async function setFollowUpStatusAction(data: FormData) {
   const business = await writableBusiness();
   if (!business) return;
   if (!belongsToBusiness("follow_up", followUpId, business.id)) return;
-  setFollowUpStatus(followUpId, status);
+
   if (status === "sent") {
+    const followUp = listFollowUps(business.id).find((f) => f.id === followUpId);
+    const contact = followUp?.contact_id ? getContact(followUp.contact_id) : null;
+
+    // Actually send it when a provider is connected; the delivery log records
+    // the outcome either way, so "sent" never means "we hope so".
+    const delivery =
+      followUp?.channel === "email" && contact?.email
+        ? await sendEmail({
+            businessId: business.id,
+            to: contact.email,
+            subject: `A note from ${business.name}`,
+            body: followUp.body,
+          })
+        : followUp?.channel === "sms" && contact?.phone
+          ? await sendSms({ businessId: business.id, to: contact.phone, body: followUp.body })
+          : null;
+
     logEvent({
       business_id: business.id,
       kind: "follow_up_sent",
-      summary: "Follow-up sent",
+      summary:
+        delivery?.status === "sent"
+          ? `Follow-up sent by ${followUp?.channel}`
+          : `Follow-up marked sent (${delivery?.detail ?? "no contact details"})`,
       minutes_saved: 5,
     });
   }
+
+  setFollowUpStatus(followUpId, status);
   revalidatePath("/dashboard/automations");
+}
+
+/* -------------------------------------------------------------- integrations */
+
+export async function saveIntegrationAction(data: FormData) {
+  const provider = str(data, "provider");
+  if (!provider) return;
+
+  const business = await writableBusiness();
+  if (!business) return;
+
+  const values: Record<string, string> = {};
+  for (const [key, value] of data.entries()) {
+    if (key === "provider" || typeof value !== "string") continue;
+    values[key] = value;
+  }
+  saveCredentials(business.id, provider, values);
+  revalidatePath("/dashboard/integrations");
+}
+
+export async function disconnectIntegrationAction(data: FormData) {
+  const provider = str(data, "provider");
+  if (!provider) return;
+
+  const business = await writableBusiness();
+  if (!business) return;
+  disconnect(business.id, provider);
+  setIntegrationStatus(business.id, provider, "disconnected");
+  revalidatePath("/dashboard/integrations");
 }
 
 /* ---------------------------------------------------------------- teammates */

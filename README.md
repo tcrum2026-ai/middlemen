@@ -166,6 +166,27 @@ Next.js 15 (App Router, server components, server actions), TypeScript, Tailwind
 SQLite via better-sqlite3, `@anthropic-ai/sdk`. Data lives in `.data/middlemen.db`
 (override with `MIDDLEMEN_DATA_DIR`).
 
+## Connecting the outside world
+
+Integrations are per-workspace credentials entered in the dashboard, not code changes.
+Paste a key and the thing it powers starts working on the next message. Full instructions in
+[DEPLOY.md](./DEPLOY.md).
+
+| Integration | What starts working | What you paste |
+| --- | --- | --- |
+| Calendar | Booked work appears in Google/Apple/Outlook | Nothing — subscribe to the workspace's `.ics` URL |
+| Website widget | Assistant on your own site | One `<script>` tag |
+| Resend | Booking confirmations, follow-up email, quote delivery | API key + verified from-address |
+| Twilio | Inbound SMS answered automatically, reminders, follow-up texts | SID, auth token, number — then point the number's webhook at `/api/webhooks/twilio` |
+| Inbound email | Mail to `<workspace-slug>@…` answered automatically | Route your provider at `/api/webhooks/email` |
+| Slack | Queued callbacks and approvals posted to a channel | Incoming webhook URL |
+| Stripe | Payment links on quotes | Secret key |
+
+Inbound Twilio requests are **signature-verified** (HMAC-SHA1 over the URL plus sorted body);
+unsigned, mis-signed and tampered requests are rejected. Every send is written to a delivery
+log with the provider's own error text, so a bad key shows up as `401: API key is invalid`
+rather than a message that silently vanished.
+
 ## Accessibility and robustness
 
 - Skip link is the first tab stop; focus rings are visible throughout.

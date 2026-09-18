@@ -162,6 +162,27 @@ CREATE TABLE IF NOT EXISTS integrations (
   UNIQUE (business_id, provider)
 );
 
+CREATE TABLE IF NOT EXISTS integration_credentials (
+  business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  field TEXT NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (business_id, provider, field)
+);
+
+CREATE TABLE IF NOT EXISTS deliveries (
+  id TEXT PRIMARY KEY,
+  business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL,
+  recipient TEXT NOT NULL,
+  subject TEXT,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL,
+  detail TEXT,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS events (
   id TEXT PRIMARY KEY,
   business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
@@ -222,6 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id
 CREATE INDEX IF NOT EXISTS idx_conversations_business ON conversations(business_id);
 CREATE INDEX IF NOT EXISTS idx_events_business ON events(business_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_business ON deliveries(business_id);
 `;
 
 /**

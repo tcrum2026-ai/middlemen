@@ -15,6 +15,7 @@ import {
   updateConversation,
   upsertContact,
 } from "./repo";
+import { notifySlack, sendEmail } from "./delivery";
 import type { AssistantAction, Business, Conversation, Message } from "./types";
 
 /** Customer-facing chat: Opus 5 at medium effort keeps replies quick without dropping judgement. */
@@ -168,7 +169,7 @@ function buildTools(
       required: ["customer_name", "service", "starts_at"],
       additionalProperties: false,
     },
-    run: (input) => {
+    run: async (input) => {
       if (dryRun) {
         record({
           tool: "book_appointment",
@@ -203,6 +204,21 @@ function buildTools(
         label: "Booked appointment",
         detail: `${formatSlot(appointment.starts_at)} · ${input.service}`,
       });
+      if (input.email) {
+        const delivery = await sendEmail({
+          businessId: business.id,
+          to: input.email,
+          subject: `Confirmed: ${input.service} on ${formatSlot(appointment.starts_at)}`,
+          body:
+            `Hi ${input.customer_name.split(" ")[0]},\n\n` +
+            `You're booked with ${business.name} for ${input.service} on ` +
+            `${formatSlot(appointment.starts_at)}${input.location ? ` at ${input.location}` : ""}.\n\n` +
+            `Reply to this email if you need to change it.\n\n${business.name}`,
+        });
+        if (delivery.status === "sent") {
+          record({ tool: "book_appointment", label: "Sent confirmation email", detail: input.email });
+        }
+      }
       return `Booked ${appointment.id} for ${formatSlot(appointment.starts_at)}. Confirm this time back to the customer.`;
     },
   });
@@ -349,7 +365,7 @@ function buildTools(
       required: ["customer_name", "reason", "brief"],
       additionalProperties: false,
     },
-    run: (input) => {
+    run: async (input) => {
       if (dryRun) {
         markEscalated();
         record({
@@ -386,6 +402,13 @@ function buildTools(
         label: "Queued a human callback",
         detail: `${input.reason} · ${input.urgency ?? "normal"}`,
       });
+      await notifySlack({
+        businessId: business.id,
+        text:
+          `:telephone_receiver: *Callback queued* (${input.urgency ?? "normal"})\n` +
+          `*${input.customer_name}*${input.phone ? ` · ${input.phone}` : ""}\n` +
+          `${input.reason}\n\n${input.brief}`,
+      });
       return "Callback queued with a teammate. Tell the customer a person will call them, and when.";
     },
   });
@@ -408,7 +431,7 @@ function buildTools(
       required: ["kind", "title", "summary", "draft"],
       additionalProperties: false,
     },
-    run: (input) => {
+    run: async (input) => {
       if (dryRun) {
         markEscalated();
         record({ tool: "send_to_human_review", label: "Would send for teammate approval", detail: input.title });
@@ -427,6 +450,10 @@ function buildTools(
       updateConversation(conversation.id, { status: "waiting" });
       markEscalated();
       record({ tool: "send_to_human_review", label: "Sent for teammate approval", detail: input.title });
+      await notifySlack({
+        businessId: business.id,
+        text: `:shield: *Needs approval* (${input.risk ?? "medium"} risk)\n*${input.title}*\n${input.summary}`,
+      });
       return "Held for approval. Tell the customer a teammate is reviewing and when to expect an answer — promise nothing else.";
     },
   });
@@ -471,7 +498,7 @@ export async function runAssistantTurn(args: {
   };
 
   if (!assistantConfigured()) {
-    return simulateTurn({ business, conversation, history, record, markEscalated, actions, dryRun });
+    return await simulateTurn({ business, conversation, history, record, markEscalated, actions, dryRun });
   }
 
   const client = new Anthropic();
@@ -608,7 +635,7 @@ function hits(text: string, words: string[]): boolean {
  * Keyword routing over the same tools as the live engine. It keeps every screen
  * functional without API credentials — replies are scripted, not generated.
  */
-function simulateTurn(args: {
+async function simulateTurn(args: {
   business: Business;
   conversation: Conversation;
   history: Message[];
@@ -616,7 +643,7 @@ function simulateTurn(args: {
   markEscalated: () => void;
   actions: AssistantAction[];
   dryRun: boolean;
-}): AssistantTurn {
+}): Promise<AssistantTurn> {
   const { business, conversation, history, record, markEscalated, actions, dryRun } = args;
   const last = [...history].reverse().find((m) => m.role === "customer");
   const text = (last?.body ?? "").toLowerCase();
@@ -651,14 +678,20 @@ function simulateTurn(args: {
       "I'm sorry about that. Refunds and warranty claims go to a teammate rather than to me, so I've passed the " +
       "details over and someone will come back to you today.";
   } else if (hits(text, CALL_WORDS) || hits(text, URGENT_WORDS)) {
-    if (!dryRun) createCallRequest({
+    if (!dryRun) {
+      createCallRequest({
       business_id: business.id,
       conversation_id: conversation.id,
       reason: hits(text, URGENT_WORDS) ? "Possible emergency raised in chat" : "Customer asked to speak to a person",
       urgency: hits(text, URGENT_WORDS) ? "urgent" : "normal",
       preferred_window: "As soon as possible",
-      brief: `Customer wrote: "${last?.body ?? ""}". Channel: ${conversation.channel}. No commitments made yet.`,
-    });
+        brief: `Customer wrote: "${last?.body ?? ""}". Channel: ${conversation.channel}. No commitments made yet.`,
+      });
+      await notifySlack({
+        businessId: business.id,
+        text: `:telephone_receiver: *Callback queued*\n${last?.body ?? ""}`,
+      });
+    }
     record({ tool: "request_human_callback", label: "Queued a human callback", detail: "Human call requested" });
     markEscalated();
     escalated = true;
