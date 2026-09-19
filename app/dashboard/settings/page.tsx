@@ -101,6 +101,18 @@ export default async function SettingsPage() {
               <p className="mt-1.5 text-xs text-mist-400">Below this, the reply waits in Approvals.</p>
             </div>
             <div className="sm:col-span-2">
+              <label className="label" htmlFor="model">Which Claude answers</label>
+              <select id="model" name="model" defaultValue={business.model} className="field">
+                <option value="claude-sonnet-5">Sonnet 5 — recommended</option>
+                <option value="claude-opus-5">Opus 5 — deepest reasoning, ~2.5x the cost</option>
+              </select>
+              <p className="mt-1.5 text-xs leading-relaxed text-mist-400">
+                Sonnet answers from a knowledge base as well as Opus does and costs roughly 40% as much per
+                conversation. Move to Opus if your work needs harder judgement and you have priced for it.
+              </p>
+            </div>
+
+            <div>
               <label className="label" htmlFor="effort">How hard it thinks</label>
               <select id="effort" name="effort" defaultValue={business.effort} className="field">
                 <option value="low">Low — fastest and cheapest, fine for FAQ-style questions</option>

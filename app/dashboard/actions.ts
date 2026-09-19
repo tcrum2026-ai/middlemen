@@ -259,6 +259,7 @@ export async function updateSettingsAction(data: FormData) {
     call_handoff_number: str(data, "call_handoff_number"),
     auto_send_threshold: Number(str(data, "auto_send_threshold") || business.auto_send_threshold),
     effort: (str(data, "effort") || business.effort) as typeof business.effort,
+    model: (str(data, "model") === "claude-opus-5" ? "claude-opus-5" : "claude-sonnet-5") as typeof business.model,
     voice_enabled: str(data, "voice_enabled") === "on" ? 1 : 0,
     // The disclosure can be reworded but not emptied: a caller is always told.
     voice_disclosure:

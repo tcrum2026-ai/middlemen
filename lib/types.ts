@@ -21,6 +21,8 @@ export interface Business {
   auto_send_threshold: number;
   /** Trades thoroughness against cost and latency on every reply. */
   effort: "low" | "medium" | "high";
+  /** Which Claude answers. The largest single lever on cost per conversation. */
+  model: "claude-sonnet-5" | "claude-opus-5";
   call_handoff_number: string | null;
   /** When on, the Twilio number is answered by the assistant instead of ringing. */
   voice_enabled: number;

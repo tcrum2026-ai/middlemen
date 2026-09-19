@@ -83,6 +83,7 @@ export default function TermsPage() {
           items={[
             "The trial runs 14 days and needs no card. If you do not subscribe, the workspace stops answering; your data stays exportable.",
             "Paid plans bill monthly or yearly in advance. A conversation means one customer thread, however many messages it contains.",
+            "Answered call minutes beyond your plan's allowance are billed in arrears at the per-minute rate shown on the pricing page, measured to the second. Your telephony provider bills you separately for the underlying phone number and carrier charges.",
             "Cancelling takes effect at the end of the period you have paid for. There is no cancellation fee and no retention call.",
             "Your export works whether or not the subscription is current.",
           ]}

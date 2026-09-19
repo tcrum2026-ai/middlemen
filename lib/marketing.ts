@@ -103,48 +103,58 @@ export interface Plan {
   blurb: string;
   features: string[];
   featured?: boolean;
+  /** Printed under the price when the plan meters something. */
+  meter?: string;
 }
 
+/**
+ * Written conversations and phone calls have costs that differ by roughly 3x —
+ * a call carries Twilio's per-minute charge on top of the model — so they are
+ * priced separately rather than averaged into one "conversation". The margin
+ * model behind these numbers is in PRICING.md.
+ */
 export const PLANS: Plan[] = [
   {
-    name: "Solo",
+    name: "Starter",
     monthly: 49,
-    blurb: "One person who is tired of answering the same five questions.",
+    blurb: "Every written channel answered, for one person who is tired of repeating themselves.",
     features: [
-      "1 assistant",
-      "Web chat + email",
-      "500 conversations/mo",
-      "Booking & lead capture",
-      "Callback queue with briefs",
-      "Knowledge base & approvals",
+      "Web chat, email and SMS",
+      "300 conversations/mo",
+      "Booking, lead capture and quotes",
+      "Knowledge base and approvals",
+      "2 teammates",
     ],
+    meter: "Phone answering not included",
   },
   {
-    name: "Team",
+    name: "Pro",
     monthly: 149,
-    blurb: "A front desk that keeps up with a busy crew.",
+    blurb: "Adds the phone. One assistant across everything, with the same calendar and price list.",
     features: [
-      "Everything in Solo",
-      "SMS + WhatsApp",
-      "2,500 conversations/mo",
-      "Quotes, invoices & CRM sync",
-      "5 teammates on the call queue",
-      "Calendar & Stripe integrations",
+      "Everything in Starter",
+      "1,000 conversations/mo",
+      "250 minutes of answered calls",
+      "Live transfer with a spoken brief",
+      "Calendar and Stripe integrations",
+      "10 teammates",
     ],
     featured: true,
+    meter: "Extra call minutes $0.25/min",
   },
   {
-    name: "Scale",
-    monthly: null,
-    blurb: "Multiple locations, multiple brands, one set of rules.",
+    name: "Business",
+    monthly: 399,
+    blurb: "For a phone that rings all day, and more than one person answering it.",
     features: [
-      "Everything in Team",
-      "Unlimited conversations",
+      "Everything in Pro",
+      "3,000 conversations/mo",
+      "1,000 minutes of answered calls",
       "Multi-location routing",
-      "Custom tools & webhooks",
       "SSO and audit log",
       "Priority support",
     ],
+    meter: "Extra call minutes $0.20/min",
   },
 ];
 
@@ -303,9 +313,9 @@ export const COMPARISON: ComparisonRow[] = [
   },
   {
     label: "Typical monthly cost",
-    lobby: "$49–$149",
-    voiceAi: "$60–$300",
-    answering: "$300+",
+    lobby: "$49–$399",
+    voiceAi: "$29–$500",
+    answering: "$235–$400",
     chatbot: "$0–$50",
     nothing: "the missed job",
   },

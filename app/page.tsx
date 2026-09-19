@@ -228,7 +228,8 @@ export default async function LandingPage() {
             <div className="text-center">
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Cheaper than missing the job.</h2>
               <p className="mx-auto mt-4 max-w-xl text-mist-400">
-                Every plan answers on every channel. You are paying for volume, not for features held back.
+                Written channels on every plan. Answering the phone costs real money per minute, so it starts at Pro
+                and is metered honestly rather than hidden in the base price.
               </p>
             </div>
             <div className="mt-12">

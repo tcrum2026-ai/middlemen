@@ -20,7 +20,12 @@ import { notifySlack, sendEmail } from "./delivery";
 import type { AssistantAction, Business, Conversation, Message } from "./types";
 
 /** Customer-facing chat: Opus 5 at medium effort keeps replies quick without dropping judgement. */
-const MODEL = "claude-opus-5";
+/**
+ * Default for workspaces that have not chosen. Sonnet 5 answers a front-desk
+ * question as well as Opus for a fraction of the cost, and cost per conversation
+ * is what decides whether a plan is profitable — see PRICING.md.
+ */
+const DEFAULT_MODEL = "claude-sonnet-5";
 
 /** What the voice bridge should do once the turn's audio has been spoken. */
 export interface CallSignal {
@@ -645,7 +650,7 @@ export async function runAssistantTurn(args: {
 
   try {
     const runner = client.beta.messages.toolRunner({
-      model: MODEL,
+      model: business.model || DEFAULT_MODEL,
       max_tokens: 16000,
       output_config: { effort: business.effort },
       system: [
@@ -789,7 +794,7 @@ export async function streamAssistantTurn(args: {
 
   try {
     const runner = client.beta.messages.toolRunner({
-      model: MODEL,
+      model: business.model || DEFAULT_MODEL,
       max_tokens: 16000,
       output_config: { effort: business.effort },
       system: [{ type: "text", text: systemPrompt(business), cache_control: { type: "ephemeral" } }],

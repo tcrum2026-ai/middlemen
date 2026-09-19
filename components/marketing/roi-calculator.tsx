@@ -146,7 +146,7 @@ export function RoiCalculator({ planPrice = 149 }: { planPrice?: number }) {
             <dd className="tabular-nums">{Math.round(result.hoursSaved)}h/mo</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-mist-400">Lobby (Team plan)</dt>
+            <dt className="text-mist-400">Lobby (Pro plan)</dt>
             <dd className="tabular-nums">−{money(planPrice)}/mo</dd>
           </div>
           <div className="flex justify-between gap-4 border-t border-ink-800 pt-3 font-semibold">

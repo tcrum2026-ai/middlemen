@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS businesses (
   autonomy TEXT NOT NULL DEFAULT 'balanced',
   auto_send_threshold REAL NOT NULL DEFAULT 0.75,
   effort TEXT NOT NULL DEFAULT 'medium',
+  model TEXT NOT NULL DEFAULT 'claude-sonnet-5',
   call_handoff_number TEXT,
   voice_enabled INTEGER NOT NULL DEFAULT 0,
   voice_disclosure TEXT NOT NULL DEFAULT 'Just so you know, you are speaking with an AI assistant.',
@@ -264,6 +265,11 @@ CREATE INDEX IF NOT EXISTS idx_deliveries_business ON deliveries(business_id);
  * EXISTS", so each one is checked against the live table before it is applied.
  */
 const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
+  {
+    table: "businesses",
+    column: "model",
+    ddl: "ALTER TABLE businesses ADD COLUMN model TEXT NOT NULL DEFAULT 'claude-sonnet-5'",
+  },
   { table: "businesses", column: "voice_enabled", ddl: "ALTER TABLE businesses ADD COLUMN voice_enabled INTEGER NOT NULL DEFAULT 0" },
   {
     table: "businesses",

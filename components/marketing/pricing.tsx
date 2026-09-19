@@ -71,6 +71,9 @@ export function Pricing({ contactEmail = "" }: { contactEmail?: string }) {
                 </>
               )}
 
+              {plan.meter ? (
+                <p className="mt-2 text-xs text-mist-400">{plan.meter}</p>
+              ) : null}
               <p className="mt-3 text-sm text-mist-400">{plan.blurb}</p>
 
               <ul className="mt-5 flex-1 space-y-2.5">
@@ -109,6 +112,7 @@ export function Pricing({ contactEmail = "" }: { contactEmail?: string }) {
         <span>Cancel in one click</span>
         <span>Export your data any time</span>
         <span>A conversation is one customer thread, not one message</span>
+        <span>Call minutes are rounded to the second, not the minute</span>
       </div>
     </div>
   );
