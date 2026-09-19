@@ -691,6 +691,10 @@ export function listApprovals(businessId: string): Approval[] {
     .all(businessId) as Approval[];
 }
 
+export function getApproval(approvalId: string): Approval | null {
+  return (getDb().prepare("SELECT * FROM approvals WHERE id = ?").get(approvalId) as Approval) ?? null;
+}
+
 export function createApproval(input: {
   business_id: string;
   conversation_id?: string | null;
@@ -730,15 +734,10 @@ export function resolveApproval(approvalId: string, status: "approved" | "reject
   const approval = db.prepare("SELECT * FROM approvals WHERE id = ?").get(approvalId) as Approval | undefined;
   if (!approval) return null;
   db.prepare("UPDATE approvals SET status = ? WHERE id = ?").run(status, approvalId);
-
-  if (status === "approved" && approval.conversation_id && approval.draft) {
-    addMessage({
-      conversation_id: approval.conversation_id,
-      role: "assistant",
-      body: approval.draft,
-      actions: [{ tool: "approval", label: "Approved by a teammate", detail: approval.title }],
-    });
-  }
+  // Posting the reply is the caller's job. It used to happen here, which meant
+  // the draft went into the thread verbatim and went nowhere else — a teammate
+  // could not change a word of it, and a customer who emailed never received
+  // it at all, because nothing put it back on the channel they wrote from.
   return { ...approval, status };
 }
 

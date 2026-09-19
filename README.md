@@ -104,6 +104,7 @@ npm run sweep                     # every static route, two widths: status, over
                                   # console errors, error boundaries, undefined in the copy
 npm run a11y                      # axe-core over every route at phone width
 npm run widget                    # the embed, on a third-party page, cross-origin
+npm run journey                   # signup → onboarding → a message → an approval → the reply
 npm run call -- <businessId>      # a fake phone call, start to finish
 ```
 
@@ -115,6 +116,14 @@ quietly is worse: webhook signature verification for Twilio and Stripe
 point makes the voice pause in the middle of a price). Node runs the
 TypeScript directly, so there is no build step and no test framework to keep
 up to date.
+
+`scripts/journey.mjs` walks the path every customer takes and checks the
+promise at each step: that the assistant does not invent an answer, that an
+unanswerable question becomes a gap, that a refund request reaches the queue
+rather than the customer, that **nothing** goes out before someone approves
+it, and that when they do approve it, the wording they edited is what
+actually gets sent — once. Every one of those has been broken at some point
+while every page still rendered.
 
 `scripts/widget.mjs` loads the embed on a page it does not control, with host
 CSS that hides every input and reddens every button, and checks that the

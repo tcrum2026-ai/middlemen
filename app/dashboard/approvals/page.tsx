@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge, Card, EmptyState, PageHeader, relativeTime } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 import { resolveApprovalAction } from "../actions";
 import { activeBusiness } from "@/lib/session";
 import { listApprovals } from "@/lib/repo";
@@ -43,28 +44,58 @@ export default async function ApprovalsPage() {
               <div className="space-y-4 p-5">
                 <p className="text-sm leading-relaxed text-mist-300">{approval.summary}</p>
 
-                {approval.draft ? (
-                  <div className="rounded-lg border border-ink-700 bg-ink-950 p-4">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-mist-400">
-                      Draft reply — sends only if you approve
-                    </p>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-mist-300">{approval.draft}</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-mist-400">No draft — the assistant wants a person to write this one.</p>
-                )}
+                {/* Editable, because "approve" and "approve exactly this wording"
+                    are different things, and retyping a good draft into the
+                    inbox to change one sentence is how a queue gets abandoned. */}
+                <form action={resolveApprovalAction} className="space-y-3">
+                  <input type="hidden" name="approval_id" value={approval.id} />
+
+                  {approval.draft ? (
+                    <div>
+                      <label
+                        htmlFor={`draft-${approval.id}`}
+                        className="mb-2 block text-xs font-semibold uppercase tracking-wider text-mist-400"
+                      >
+                        Draft reply — edit it if you like; it sends when you approve
+                      </label>
+                      <textarea
+                        id={`draft-${approval.id}`}
+                        name="draft"
+                        defaultValue={approval.draft}
+                        rows={Math.min(10, Math.max(3, approval.draft.split("\n").length + 1))}
+                        className="field resize-y font-normal"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label
+                        htmlFor={`draft-${approval.id}`}
+                        className="mb-2 block text-xs font-semibold uppercase tracking-wider text-mist-400"
+                      >
+                        No draft — the assistant wants a person to write this one
+                      </label>
+                      <textarea
+                        id={`draft-${approval.id}`}
+                        name="draft"
+                        rows={3}
+                        placeholder="Write the reply to send…"
+                        className="field resize-y font-normal"
+                      />
+                    </div>
+                  )}
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <form action={resolveApprovalAction}>
-                    <input type="hidden" name="approval_id" value={approval.id} />
-                    <input type="hidden" name="status" value="approved" />
-                    <button className="btn btn-primary">Approve &amp; send</button>
-                  </form>
-                  <form action={resolveApprovalAction}>
-                    <input type="hidden" name="approval_id" value={approval.id} />
-                    <input type="hidden" name="status" value="rejected" />
-                    <button className="btn btn-ghost">Reject</button>
-                  </form>
+                  <SubmitButton
+                    className="btn btn-primary"
+                    pendingLabel="Sending…"
+                    name="status"
+                    value="approved"
+                  >
+                    {approval.conversation_id ? "Approve & send" : "Approve"}
+                  </SubmitButton>
+                  <SubmitButton className="btn btn-ghost" pendingLabel="Rejecting…" name="status" value="rejected">
+                    Reject
+                  </SubmitButton>
                   {approval.conversation_id ? (
                     <Link
                       href={`/dashboard/inbox/${approval.conversation_id}`}
@@ -73,7 +104,8 @@ export default async function ApprovalsPage() {
                       Open thread →
                     </Link>
                   ) : null}
-                </div>
+                  </div>
+                </form>
               </div>
             </Card>
           ))}

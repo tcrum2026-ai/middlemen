@@ -8,6 +8,7 @@ import {
   belongsToBusiness,
   getContact,
   listFollowUps,
+  getApproval,
   addMessage,
   addTeammate,
   listKb,
@@ -41,7 +42,17 @@ import {
 import { getTemplate } from "@/lib/templates";
 import { createPaymentLink, sendEmail, sendSms } from "@/lib/delivery";
 import { disconnect, saveCredentials } from "@/lib/integrations";
-import type { Appointment, Approval, AutomationKind, CallRequest, Lead, Quote } from "@/lib/types";
+import type {
+  Appointment,
+  AssistantAction,
+  Approval,
+  AutomationKind,
+  Business,
+  CallRequest,
+  Conversation,
+  Lead,
+  Quote,
+} from "@/lib/types";
 
 function str(data: FormData, key: string): string {
   const value = data.get(key);
@@ -70,6 +81,50 @@ export async function switchBusinessAction(data: FormData) {
 
 /* ----------------------------------------------------------------- inbox */
 
+/**
+ * Puts a reply in front of the customer, wherever they wrote from.
+ *
+ * Adding a row to the messages table is not replying. A visitor on the
+ * hosted chat page will see it, but someone who emailed or texted will not —
+ * their reply has to go back out on the channel it came in on. Follow-ups
+ * already worked this way; the inbox and the approval queue did not, so a
+ * teammate could answer an email and the customer would never hear from them.
+ *
+ * Returns what happened, so the caller can log the truth rather than "sent".
+ */
+async function deliverReply(
+  business: Business,
+  conversation: Conversation,
+  body: string,
+  actions?: AssistantAction[],
+): Promise<string> {
+  addMessage({ conversation_id: conversation.id, role: "agent", body, actions });
+
+  const contact = conversation.contact_id ? getContact(conversation.contact_id) : null;
+
+  if (conversation.channel === "email" && contact?.email) {
+    const result = await sendEmail({
+      businessId: business.id,
+      to: contact.email,
+      subject: conversation.subject || `A reply from ${business.name}`,
+      body,
+    });
+    return result.status === "sent" ? "emailed" : `not emailed (${result.detail})`;
+  }
+
+  if ((conversation.channel === "sms" || conversation.channel === "whatsapp") && contact?.phone) {
+    const result = await sendSms({ businessId: business.id, to: contact.phone, body });
+    return result.status === "sent" ? "texted" : `not texted (${result.detail})`;
+  }
+
+  if (conversation.channel === "web" || conversation.channel === "voice") {
+    // Nothing to send out: the visitor reads it in the thread they are in.
+    return "posted to the thread";
+  }
+
+  return "posted to the thread — no contact details to send it to";
+}
+
 export async function sendHumanReplyAction(data: FormData) {
   const conversationId = str(data, "conversation_id");
   const body = str(data, "body");
@@ -77,12 +132,15 @@ export async function sendHumanReplyAction(data: FormData) {
 
   const business = await writableBusiness();
   if (!business || !belongsToBusiness("conversation", conversationId, business.id)) return;
-  addMessage({ conversation_id: conversationId, role: "agent", body });
+  const conversation = getConversation(conversationId);
+  if (!conversation) return;
+
+  const outcome = await deliverReply(business, conversation, body);
   updateConversation(conversationId, { handled_by: "human", status: "open" });
   logEvent({
     business_id: business.id,
     kind: "reply_sent",
-    summary: "Teammate replied in the shared inbox",
+    summary: `Teammate replied in the shared inbox — ${outcome}`,
     handled_by: "human",
   });
   revalidatePath(`/dashboard/inbox/${conversationId}`);
@@ -140,11 +198,45 @@ export async function resolveApprovalAction(data: FormData) {
   const business = await writableBusiness();
   if (!business) return;
   if (!belongsToBusiness("approval", approvalId, business.id)) return;
+
+  const approval = getApproval(approvalId);
   resolveApproval(approvalId, status);
+
+  /**
+   * The button says "Approve & send", so it has to send.
+   *
+   * It used to set a status and log a line, which meant the whole promise of
+   * the review queue — "nothing goes out until someone says yes" — had no
+   * second half: after they said yes, still nothing went out, and the
+   * customer waited for a reply that had already been approved.
+   *
+   * A teammate can edit the draft before approving, so what is sent is
+   * whatever is in the box, not what the assistant first wrote.
+   */
+  let outcome = "";
+  const edited = str(data, "draft");
+  const body = edited || approval?.draft || "";
+
+  if (status === "approved" && body && approval?.conversation_id) {
+    const conversation = getConversation(approval.conversation_id);
+    if (conversation && conversation.business_id === business.id) {
+      outcome = ` — ${await deliverReply(business, conversation, body, [
+        {
+          tool: "approval",
+          label: edited && edited !== approval?.draft ? "Edited and approved by a teammate" : "Approved by a teammate",
+          detail: approval?.title ?? "",
+        },
+      ])}`;
+      updateConversation(conversation.id, { status: "open", handled_by: "human" });
+      revalidatePath(`/dashboard/inbox/${conversation.id}`);
+      revalidatePath("/dashboard/inbox");
+    }
+  }
+
   logEvent({
     business_id: business.id,
     kind: "approval_resolved",
-    summary: `Teammate ${status} an assistant draft`,
+    summary: `Teammate ${status} an assistant draft${outcome}`,
     handled_by: "human",
   });
   revalidatePath("/dashboard/approvals");
