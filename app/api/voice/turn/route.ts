@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
 import { runAssistantTurn } from "@/lib/assistant";
 import { QUOTAS, rateLimit } from "@/lib/rate-limit";
+import { formatPhone } from "@/lib/twilio-signature";
 import {
   addMessage,
   createConversation,
@@ -71,12 +72,16 @@ export async function POST(request: Request) {
 
   let conversation = conversationId ? getConversation(conversationId) : null;
   if (!conversation || conversation.business_id !== business.id) {
-    const contact = from ? upsertContact(business.id, { name: from, phone: from }) : null;
+    // The caller has not told us their name yet — capture_lead fills it in if
+    // they do. Until then a readable number beats echoing raw E.164 into a
+    // field labelled "name".
+    const pretty = from ? formatPhone(from) : "";
+    const contact = from ? upsertContact(business.id, { name: `Caller ${pretty}`, phone: from }) : null;
     conversation = createConversation({
       business_id: business.id,
       contact_id: contact?.id ?? null,
       channel: "voice",
-      subject: `Call from ${from || "unknown number"}`,
+      subject: pretty ? `Call from ${pretty}` : "Call from a withheld number",
     });
   }
   const thread = conversation;

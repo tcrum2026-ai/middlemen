@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { headers } from "next/headers";
 import { Card, PageHeader } from "@/components/ui";
 import { CopyBlock } from "@/components/copy-block";
@@ -108,8 +109,27 @@ export default async function InstallPage() {
                 )}
               </li>
               <li>
-                <span className="text-mist-400">SMS:</span> point your Twilio number&apos;s webhook at{" "}
-                <span className="font-mono text-xs">/api/chat</span>
+                <span className="text-mist-400">SMS:</span> in the Twilio console, set your number&apos;s{" "}
+                <em className="not-italic text-mist-200">Messaging</em> webhook to{" "}
+                <span className="break-all font-mono text-xs">{origin}/api/webhooks/twilio</span>
+              </li>
+              <li>
+                <span className="text-mist-400">Phone calls:</span>{" "}
+                {business.voice_enabled ? (
+                  <>
+                    set the same number&apos;s <em className="not-italic text-mist-200">Voice</em> webhook to{" "}
+                    <span className="break-all font-mono text-xs">{origin}/api/voice/incoming</span>. The voice
+                    bridge must be running and reachable over <span className="font-mono text-xs">wss://</span>.
+                  </>
+                ) : (
+                  <>
+                    off for this workspace.{" "}
+                    <Link href="/dashboard/settings" className="text-jade-400 hover:underline">
+                      Turn on answering calls
+                    </Link>{" "}
+                    and the webhook to point at appears here.
+                  </>
+                )}
               </li>
               <li>
                 <span className="text-mist-400">Everything else:</span> Zapier or a webhook.

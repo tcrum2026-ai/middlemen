@@ -1,4 +1,4 @@
-export type Channel = "web" | "email" | "sms" | "whatsapp" | "voice" | "voicemail";
+export type Channel = "web" | "email" | "sms" | "whatsapp" | "voice";
 export type Autonomy = "cautious" | "balanced" | "autonomous";
 
 export interface Business {
