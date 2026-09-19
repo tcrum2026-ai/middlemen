@@ -17,6 +17,7 @@
  */
 
 import { WebSocketServer } from "ws";
+import { splitSentences } from "./sentences.mjs";
 
 const PORT = Number(process.env.VOICE_BRIDGE_PORT ?? 8080);
 const APP_URL = (process.env.VOICE_APP_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
@@ -25,30 +26,6 @@ const SECRET = process.env.VOICE_BRIDGE_SECRET ?? "";
 if (!SECRET) {
   console.error("VOICE_BRIDGE_SECRET is not set. The bridge refuses to start without it.");
   process.exit(1);
-}
-
-/**
- * Sentences, not tokens.
- *
- * ConversationRelay speaks each `text` message as it arrives, so sending raw
- * model tokens makes the voice stutter word by word. Sending the whole reply at
- * once adds the full generation time to the pause before the caller hears
- * anything. Splitting on sentence boundaries gets speech started after the first
- * clause while keeping prosody intact.
- */
-function splitSentences(buffer) {
-  const out = [];
-  let rest = buffer;
-  const boundary = /([.!?]+["')\]]*\s+|\n+)/;
-  for (;;) {
-    const match = boundary.exec(rest);
-    if (!match) break;
-    const end = match.index + match[0].length;
-    const sentence = rest.slice(0, end).trim();
-    if (sentence) out.push(sentence);
-    rest = rest.slice(end);
-  }
-  return { sentences: out, rest };
 }
 
 async function callApp(path, payload) {

@@ -18,14 +18,29 @@ import {
 } from "./repo";
 import { notifySlack, sendEmail } from "./delivery";
 import type { AssistantAction, Business, Conversation, Message } from "./types";
+import { lastWholeSentence } from "./text";
 
-/** Customer-facing chat: Opus 5 at medium effort keeps replies quick without dropping judgement. */
 /**
  * Default for workspaces that have not chosen. Sonnet 5 answers a front-desk
  * question as well as Opus for a fraction of the cost, and cost per conversation
  * is what decides whether a plan is profitable — see PRICING.md.
  */
 const DEFAULT_MODEL = "claude-sonnet-5";
+
+/**
+ * A ceiling on one turn's output.
+ *
+ * Not a cost control — you only pay for what is generated. It bounds the worst
+ * case. A voice turn is not streamed to the caller until the whole reply
+ * exists, so a runaway answer is dead air on a live call; the spoken style is
+ * two or three sentences, and this leaves room for that plus a tool call.
+ * Written replies are capped under 120 words by the prompt, with the same
+ * headroom for tool input.
+ */
+function maxTokensFor(mode: TurnMode): number {
+  return mode === "voice" ? 2000 : 4000;
+}
+
 
 /** What the voice bridge should do once the turn's audio has been spoken. */
 export interface CallSignal {
@@ -651,7 +666,7 @@ export async function runAssistantTurn(args: {
   try {
     const runner = client.beta.messages.toolRunner({
       model: business.model || DEFAULT_MODEL,
-      max_tokens: 16000,
+      max_tokens: maxTokensFor(mode),
       output_config: { effort: business.effort },
       system: [
         { type: "text", text: systemPrompt(business, mode), cache_control: { type: "ephemeral" } },
@@ -683,11 +698,34 @@ export async function runAssistantTurn(args: {
       };
     }
 
-    const reply = final.content
+    let reply = final.content
       .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
       .map((b) => b.text)
       .join("\n")
       .trim();
+
+    // Ran into the ceiling: what came back stops mid-thought. Keep whatever is
+    // whole and hand the rest to a person rather than sending a half sentence.
+    if (final.stop_reason === "max_tokens") {
+      console.warn(`Reply hit max_tokens on ${conversation.channel} thread ${conversation.id}`);
+      const whole = lastWholeSentence(reply);
+      reply = whole
+        ? `${whole} Let me get a colleague to finish this properly — they'll follow up shortly.`
+        : "Let me get a colleague onto this — they'll follow up shortly.";
+      if (!dryRun) {
+        createApproval({
+          business_id: business.id,
+          conversation_id: conversation.id,
+          kind: "reply",
+          title: "Reply was cut off — needs finishing",
+          summary: "The assistant's answer ran past its length limit, so the customer got a partial one.",
+          draft: "",
+          risk: "medium",
+          confidence: 0,
+        });
+      }
+      escalated = true;
+    }
 
     if (!dryRun) {
       logEvent({
@@ -795,7 +833,7 @@ export async function streamAssistantTurn(args: {
   try {
     const runner = client.beta.messages.toolRunner({
       model: business.model || DEFAULT_MODEL,
-      max_tokens: 16000,
+      max_tokens: maxTokensFor("text"),
       output_config: { effort: business.effort },
       system: [{ type: "text", text: systemPrompt(business), cache_control: { type: "ephemeral" } }],
       tools,
@@ -832,6 +870,28 @@ export async function streamAssistantTurn(args: {
           "I'd rather have a teammate take this one. I've passed the thread to them and they'll follow up shortly.";
         onText(handoff);
         return { reply: handoff, actions, escalated: true, live: true };
+      }
+
+      // Cut off at the ceiling. The partial text is already on the customer's
+      // screen and cannot be taken back, so say plainly that it is unfinished
+      // rather than letting it trail off.
+      if (message.stop_reason === "max_tokens") {
+        console.warn(`Streamed reply hit max_tokens on thread ${conversation.id}`);
+        const note = " — let me get a colleague to finish this properly; they'll follow up shortly.";
+        reply += note;
+        onText(note);
+        createApproval({
+          business_id: business.id,
+          conversation_id: conversation.id,
+          kind: "reply",
+          title: "Reply was cut off — needs finishing",
+          summary: "The assistant's answer ran past its length limit, so the customer got a partial one.",
+          draft: "",
+          risk: "medium",
+          confidence: 0,
+        });
+        escalated = true;
+        break;
       }
     }
 

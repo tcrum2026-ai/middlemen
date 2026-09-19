@@ -9,7 +9,9 @@
     "lint": "eslint",
     "voice": "node server/voice-bridge.mjs",
     "sweep": "node scripts/sweep.mjs",
-    "call": "node scripts/call.mjs"
+    "call": "node scripts/call.mjs",
+    "test": "node --test \"tests/*.test.ts\"",
+    "check": "tsc --noEmit && eslint app lib components scripts tests && npm test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",
@@ -36,5 +38,6 @@
   },
   "overrides": {
     "postcss": "^8.5.28"
-  }
+  },
+  "type": "module"
 }

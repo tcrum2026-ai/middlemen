@@ -82,37 +82,9 @@ export async function createCheckoutSession(input: {
   }
 }
 
-/**
- * Verifies a Stripe webhook signature.
- *
- * Stripe signs `timestamp.payload` with HMAC-SHA256. Implemented here for the
- * same reason as above, and because it has to be exact: an unverified billing
- * webhook is a way for anyone to hand themselves a paid plan.
- */
-export async function stripeSignatureValid(
-  rawBody: string,
-  header: string | null,
-  secret: string,
-  toleranceSeconds = 300,
-): Promise<boolean> {
-  if (!header) return false;
-  const parts = Object.fromEntries(
-    header.split(",").map((piece) => piece.split("=", 2) as [string, string]),
-  );
-  const timestamp = parts.t;
-  const signature = parts.v1;
-  if (!timestamp || !signature) return false;
-
-  // Reject replays of an old, validly-signed event.
-  const age = Math.abs(Date.now() / 1000 - Number(timestamp));
-  if (!Number.isFinite(age) || age > toleranceSeconds) return false;
-
-  const { createHmac, timingSafeEqual } = await import("node:crypto");
-  const expected = createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
-  const a = Buffer.from(expected);
-  const b = Buffer.from(signature);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
+// Verification lives in lib/signatures.ts, with the Twilio one and the tests
+// that cover both. Re-exported here so callers keep a single billing import.
+export { stripeSignatureValid } from "./signatures";
 
 export interface PortalResult {
   url?: string;

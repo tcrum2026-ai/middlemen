@@ -98,10 +98,21 @@ language, it picks from written responses.
 ### Checking it without a browser or a phone
 
 ```bash
+npm run check                     # types, lint, unit tests — run this before a commit
+npm test                          # unit tests alone (node --test, no framework)
 npm run sweep                     # every static route, two widths: status, overflow,
                                   # console errors, error boundaries, undefined in the copy
 npm run call -- <businessId>      # a fake phone call, start to finish
 ```
+
+The unit tests cover the code where being wrong is expensive and being wrong
+quietly is worse: webhook signature verification for Twilio and Stripe
+(`lib/signatures.ts`), the rules deciding whether a workspace may answer
+(`lib/plan-rules.ts`), and the string handling that a phone call depends on
+(`lib/text.ts`, `server/sentences.mjs` — a splitter that breaks on the decimal
+point makes the voice pause in the middle of a price). Node runs the
+TypeScript directly, so there is no build step and no test framework to keep
+up to date.
 
 `scripts/call.mjs` speaks Twilio's ConversationRelay protocol, so it exercises the bridge,
 the turn endpoint, the assistant, the transfer signal and the metered duration without a
