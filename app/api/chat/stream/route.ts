@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
 import { QUOTAS, clientIp, rateLimitAll, tooManyRequests } from "@/lib/rate-limit";
+import { entitlement } from "@/lib/entitlement";
 import { streamAssistantTurn } from "@/lib/assistant";
 import {
   addMessage,
+  createApproval,
+  updateConversation,
   createConversation,
   getBusinessByWidgetKey,
   getConversation,
@@ -47,6 +50,11 @@ export async function POST(request: Request) {
 
   // Checked after the key resolves so an unknown key can't be used to probe the
   // limiter, and before any model call so a flood costs nothing.
+  // Out of allowance: capture the message and hand it to a person rather than
+  // dropping it. The terms promise exactly this, and a silent failure would be
+  // worse for the business than an honest "someone will follow up".
+  const entitled = entitlement(business);
+
   const limit = rateLimitAll([
     { key: `chat:ip:${clientIp(request)}`, quota: QUOTAS.chatPerIp },
     { key: `chat:biz:${business.id}`, quota: QUOTAS.chatPerWorkspace },
@@ -75,6 +83,27 @@ export async function POST(request: Request) {
       };
 
       send("open", { conversationId: thread.id });
+
+      if (!entitled.canAnswer) {
+        // Same contract as the non-streaming route: capture, hand over, be honest.
+        const reply = "Thanks — I've passed this to the team and someone will follow up shortly.";
+        for (const word of reply.split(" ")) send("text", { chunk: word + " " });
+        addMessage({ conversation_id: thread.id, role: "assistant", body: reply });
+        updateConversation(thread.id, { status: "waiting", handled_by: "human" });
+        createApproval({
+          business_id: business.id,
+          conversation_id: thread.id,
+          kind: "reply",
+          title: entitled.blockedTitle ?? "Needs a reply",
+          summary: entitled.blockedReason ?? "The assistant is not answering right now.",
+          draft: "",
+          risk: "low",
+          confidence: 0,
+        });
+        send("done", { conversationId: thread.id, escalated: true, actions: [] });
+        controller.close();
+        return;
+      }
 
       try {
         const turn = await streamAssistantTurn({

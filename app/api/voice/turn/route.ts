@@ -4,12 +4,14 @@ import { ensureSeeded } from "@/lib/seed";
 import { runAssistantTurn } from "@/lib/assistant";
 import { QUOTAS, rateLimit } from "@/lib/rate-limit";
 import { formatPhone } from "@/lib/twilio-signature";
+import { canAnswerCalls } from "@/lib/entitlement";
 import {
   addMessage,
   createConversation,
   getBusiness,
   getConversation,
   listMessages,
+  setCallDuration,
   updateConversation,
   upsertContact,
 } from "@/lib/repo";
@@ -18,6 +20,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const Body = z.object({
+  /** Sent once when the call ends, so answered minutes can be metered. */
+  endedSeconds: z.number().int().min(0).max(14_400).optional(),
   businessId: z.string().min(3),
   callSid: z.string().min(3).max(64),
   from: z.string().max(40).default(""),
@@ -55,7 +59,19 @@ export async function POST(request: Request) {
 
   const business = getBusiness(businessId);
   if (!business) return Response.json({ error: "Unknown workspace" }, { status: 404 });
-  if (!business.voice_enabled) return Response.json({ error: "Voice is off for this workspace" }, { status: 409 });
+
+  // The bridge sends this once, as the socket closes. It is a meter reading for
+  // minutes already served, so it is recorded before the entitlement check —
+  // otherwise a subscription that lapsed mid-call would lose the call's usage.
+  if (typeof parsed.data.endedSeconds === "number") {
+    const ended = conversationId ? getConversation(conversationId) : null;
+    if (ended && ended.business_id === business.id) setCallDuration(ended.id, parsed.data.endedSeconds);
+    return Response.json({ conversationId: ended?.id ?? null, reply: "", signal: { kind: "continue" } });
+  }
+
+  if (!canAnswerCalls(business)) {
+    return Response.json({ error: "This workspace cannot answer calls right now" }, { status: 409 });
+  }
 
   // A call is many turns; bound the whole call, not each utterance.
   const limit = rateLimit(`voiceturn:${callSid}`, QUOTAS.voiceTurnsPerCall);

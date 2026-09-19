@@ -63,12 +63,31 @@ None of these are required to go live; the widget alone works on day one.
       enable recording at Twilio that is yours to disclose.
 - [ ] **Calendar** — subscribe to the `.ics` URL from Integrations in Google, Apple or Outlook.
 
+## 4b. Turn on payment
+
+Skip this only if you are running Lobby for yourself. Without it the plans are decorative and
+every workspace stays on a trial that eventually stops answering.
+
+- [ ] Create three recurring Stripe prices — Starter $49, Pro $149, Business $399 — and set
+      `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS`.
+- [ ] Set `STRIPE_SECRET_KEY`, and add a webhook at `POST /api/billing/webhook` for the six
+      subscription events listed in `DEPLOY.md` § 3b. Paste its signing secret into
+      `STRIPE_WEBHOOK_SECRET` — the endpoint returns 503 and accepts nothing until you do.
+- [ ] **Buy a plan yourself, with a real card.** Checkout succeeding proves nothing on its own;
+      what you are testing is whether the confirmation gets back. `/dashboard/billing` should
+      flip from "trial" to "active" within seconds. If it does not, read the webhook's delivery
+      log in Stripe — a 403 there means the signing secret is wrong.
+- [ ] Cancel that test subscription and confirm the workspace flips to `canceled` and the
+      assistant stops answering, capturing messages for a person instead of dropping them.
+
 ## 5. Watch the first week
 
 - [ ] **Approvals** daily. That queue is where the assistant asks rather than guesses, and early
       on it is the best signal about whether your knowledge base is thin.
 - [ ] **Gaps**, for the questions it could not answer. Each one is an article you have not
       written yet.
+- [ ] **Failed payments.** A `past_due` workspace stops answering. Stripe emails the customer,
+      but you should know it happened before they do.
 - [ ] **Your Anthropic spend.** The public chat endpoints are limited to 15 messages a minute per
       visitor and 240 an hour per workspace, but you should still know what a normal week costs
       before you find out the hard way.

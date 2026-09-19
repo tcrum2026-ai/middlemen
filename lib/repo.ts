@@ -136,6 +136,11 @@ export function createBusiness(input: CreateBusinessInput): Business {
     auto_send_threshold: input.autonomy === "autonomous" ? 0.6 : input.autonomy === "cautious" ? 0.9 : 0.75,
     effort: input.effort ?? "medium",
     model: input.model ?? "claude-sonnet-5",
+    plan: "pro",
+    subscription_status: "trialing",
+    trial_ends_at: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
     call_handoff_number: input.call_handoff_number ?? null,
     voice_enabled: 0,
     voice_disclosure: "Just so you know, you are speaking with an AI assistant.",
@@ -150,10 +155,12 @@ export function createBusiness(input: CreateBusinessInput): Business {
   db.prepare(
     `INSERT INTO businesses (id, owner_id, slug, name, industry, website, email, phone, timezone, hours,
        assistant_name, tone, greeting, services, autonomy, auto_send_threshold, effort, model,
+       plan, subscription_status, trial_ends_at, stripe_customer_id, stripe_subscription_id,
        call_handoff_number, voice_enabled, voice_disclosure, voice_name, voice_greeting,
        widget_key, created_at)
      VALUES (@id, @owner_id, @slug, @name, @industry, @website, @email, @phone, @timezone, @hours,
        @assistant_name, @tone, @greeting, @services, @autonomy, @auto_send_threshold, @effort, @model,
+       @plan, @subscription_status, @trial_ends_at, @stripe_customer_id, @stripe_subscription_id,
        @call_handoff_number, @voice_enabled, @voice_disclosure, @voice_name, @voice_greeting,
        @widget_key, @created_at)`,
   ).run({
@@ -388,6 +395,39 @@ export function getConversation(conversationId: string): Conversation | null {
   );
 }
 
+/** The only writer of subscription state; everything else reads it. */
+export function setSubscription(
+  businessId: string,
+  patch: {
+    plan?: Business["plan"];
+    subscription_status?: Business["subscription_status"];
+    stripe_customer_id?: string | null;
+    stripe_subscription_id?: string | null;
+  },
+): void {
+  const current = getBusiness(businessId);
+  if (!current) return;
+  getDb()
+    .prepare(
+      `UPDATE businesses SET plan = ?, subscription_status = ?, stripe_customer_id = ?, stripe_subscription_id = ?
+       WHERE id = ?`,
+    )
+    .run(
+      patch.plan ?? current.plan,
+      patch.subscription_status ?? current.subscription_status,
+      patch.stripe_customer_id ?? current.stripe_customer_id,
+      patch.stripe_subscription_id ?? current.stripe_subscription_id,
+      businessId,
+    );
+}
+
+/** Records how long an answered call ran, for metering voice minutes. */
+export function setCallDuration(conversationId: string, seconds: number): void {
+  getDb()
+    .prepare("UPDATE conversations SET duration_seconds = ? WHERE id = ?")
+    .run(Math.max(0, Math.round(seconds)), conversationId);
+}
+
 export function createConversation(input: {
   business_id: string;
   contact_id?: string | null;
@@ -399,6 +439,7 @@ export function createConversation(input: {
     business_id: input.business_id,
     contact_id: input.contact_id ?? null,
     channel: input.channel,
+    duration_seconds: 0,
     subject: input.subject,
     status: "open",
     handled_by: "ai",

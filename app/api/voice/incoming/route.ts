@@ -2,6 +2,7 @@ import { ensureSeeded } from "@/lib/seed";
 import { credentials } from "@/lib/integrations";
 import { listBusinesses } from "@/lib/repo";
 import { QUOTAS, rateLimitAll } from "@/lib/rate-limit";
+import { canAnswerCalls } from "@/lib/entitlement";
 import { publicUrl, twiml, twilioSignatureValid, xmlEscape } from "@/lib/twilio-signature";
 import type { Business } from "@/lib/types";
 
@@ -58,9 +59,9 @@ export async function POST(request: Request) {
     return new Response("Bad signature", { status: 403 });
   }
 
-  if (!business.voice_enabled) {
-    // Voice is off for this workspace: fall back to the human line if there is
-    // one, rather than letting the assistant answer something it shouldn't.
+  if (!canAnswerCalls(business)) {
+    // Voice is off, out of allowance, or the subscription has lapsed. Ring the
+    // human line rather than answering with something we cannot back.
     return business.call_handoff_number
       ? twiml(`<Dial>${xmlEscape(business.call_handoff_number)}</Dial>`)
       : twiml("<Say>Sorry, nobody is available to take your call right now.</Say><Hangup/>");

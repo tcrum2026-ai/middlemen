@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
 import { QUOTAS, clientIp, rateLimitAll, tooManyRequests } from "@/lib/rate-limit";
+import { entitlement } from "@/lib/entitlement";
 import {
   addMessage,
+  createApproval,
+  updateConversation,
   createConversation,
   getBusinessByWidgetKey,
   getConversation,
@@ -51,6 +54,11 @@ export async function POST(request: Request) {
 
   // Checked after the key resolves so an unknown key can't be used to probe the
   // limiter, and before any model call so a flood costs nothing.
+  // Out of allowance: capture the message and hand it to a person rather than
+  // dropping it. The terms promise exactly this, and a silent failure would be
+  // worse for the business than an honest "someone will follow up".
+  const entitled = entitlement(business);
+
   const limit = rateLimitAll([
     { key: `chat:ip:${clientIp(request)}`, quota: QUOTAS.chatPerIp },
     { key: `chat:biz:${business.id}`, quota: QUOTAS.chatPerWorkspace },
@@ -69,6 +77,27 @@ export async function POST(request: Request) {
   }
 
   addMessage({ conversation_id: conversation.id, role: "customer", body: message });
+
+  if (!entitled.canAnswer) {
+    // Capture it, hand it to a person, tell the customer the truth.
+    const reply = "Thanks — I've passed this to the team and someone will follow up shortly.";
+    addMessage({ conversation_id: conversation.id, role: "assistant", body: reply });
+    updateConversation(conversation.id, { status: "waiting", handled_by: "human" });
+    createApproval({
+      business_id: business.id,
+      conversation_id: conversation.id,
+      kind: "reply",
+      title: entitled.blockedTitle ?? "Needs a reply",
+      summary: entitled.blockedReason ?? "The assistant is not answering right now.",
+      draft: "",
+      risk: "low",
+      confidence: 0,
+    });
+    return NextResponse.json(
+      { conversationId: conversation.id, reply, actions: [], escalated: true },
+      { headers: CORS },
+    );
+  }
 
   const turn = await runAssistantTurn({
     business,

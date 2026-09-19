@@ -1,14 +1,27 @@
 import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
-import { activeBusiness } from "@/lib/session";
+import { workspace } from "@/lib/session";
 import { usage } from "@/lib/repo";
-import { PLANS } from "@/lib/marketing";
+import { entitlement } from "@/lib/entitlement";
+import { billingConfigured } from "@/lib/billing";
+import { usd } from "@/components/ui";
+import { PlanPicker } from "./plan-picker";
 
-export default async function BillingPage() {
-  const business = await activeBusiness();
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ subscribed?: string }>;
+}) {
+  const { business, canWrite } = await workspace();
+  const justSubscribed = (await searchParams).subscribed === "1";
+  const configured = billingConfigured();
   const stats = usage(business.id);
-  const plan = PLANS.find((p) => p.name === "Team")!;
-  const pct = Math.min(100, Math.round((stats.conversationsThisMonth / stats.included) * 100));
+  const state = entitlement(business);
+  const plan = state.plan;
+  const pct = Math.min(100, Math.round((state.used.conversations / state.allowance.conversations) * 100));
+  const voicePct = state.allowance.voiceMinutes
+    ? Math.min(100, Math.round((state.used.voiceMinutes / state.allowance.voiceMinutes) * 100))
+    : 0;
 
   return (
     <div>
@@ -17,40 +30,99 @@ export default async function BillingPage() {
         subtitle="What you're on, what you've used, and what it would cost to leave."
       />
 
+      {justSubscribed ? (
+        <div className="mb-5 rounded-xl border border-jade-500/30 bg-jade-500/[0.06] px-4 py-3 text-sm text-mist-200">
+          <span className="font-medium text-jade-400">Payment received.</span> Stripe confirms subscriptions to us
+          in the background, so the plan below updates within a few seconds of the receipt landing in your inbox.
+        </div>
+      ) : null}
+
       <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-5">
           <Card>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-lg font-semibold">{plan.name} plan</h2>
-                  <Badge tone="jade">active</Badge>
+                  {state.trialing ? (
+                    <Badge tone={state.trialDaysLeft > 3 ? "jade" : "amber"}>
+                      {state.trialDaysLeft > 0 ? `trial · ${state.trialDaysLeft} days left` : "trial ended"}
+                    </Badge>
+                  ) : (
+                    <Badge tone={state.status === "active" ? "jade" : "rose"}>{state.status}</Badge>
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-mist-400">{plan.blurb}</p>
               </div>
-              <p className="text-2xl font-semibold tabular-nums">
-                ${plan.monthly}
-                <span className="text-sm font-normal text-mist-400">/mo</span>
-              </p>
+              <div className="ml-auto shrink-0 text-right">
+                {state.trialing ? (
+                  <>
+                    <p className="text-2xl font-semibold text-jade-400">Free</p>
+                    <p className="text-sm text-mist-400">then ${plan.monthly}/mo</p>
+                  </>
+                ) : (
+                  <p className="text-2xl font-semibold tabular-nums">
+                    ${plan.monthly}
+                    <span className="text-sm font-normal text-mist-400">/mo</span>
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="mt-6">
               <div className="flex items-baseline justify-between text-sm">
                 <span className="text-mist-300">Conversations this month</span>
                 <span className="tabular-nums">
-                  {stats.conversationsThisMonth.toLocaleString()} / {stats.included.toLocaleString()}
+                  {state.used.conversations.toLocaleString()} / {state.allowance.conversations.toLocaleString()}
                 </span>
               </div>
               <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-ink-800">
                 <div
                   className="h-full rounded-full bg-jade-500"
-                  style={{ width: `${Math.max(pct, 1)}%` }}
+                  style={{ width: `${state.used.conversations ? Math.max(pct, 1) : 0}%` }}
                 />
               </div>
               <p className="mt-2 text-xs text-mist-400">
                 A conversation is one customer thread, however many messages it takes. You are billed nothing extra
                 for a long one.
               </p>
+
+              {state.allowance.voiceMinutes > 0 ? (
+                <div className="mt-5">
+                  <div className="flex items-baseline justify-between text-sm">
+                    <span className="text-mist-300">Answered call minutes</span>
+                    <span className="tabular-nums">
+                      {state.used.voiceMinutes.toLocaleString()} / {state.allowance.voiceMinutes.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-ink-800">
+                    <div
+                      className={`h-full rounded-full ${state.overageMinutes ? "bg-amber-glow" : "bg-jade-500"}`}
+                      style={{ width: `${state.used.voiceMinutes ? Math.max(voicePct, 1) : 0}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-mist-400">
+                    {state.trialing
+                      ? "Trial minutes are free. When they run out the assistant stops answering calls and they " +
+                        "ring your handoff number instead."
+                      : state.overageMinutes
+                        ? `${state.overageMinutes} minute${state.overageMinutes === 1 ? "" : "s"} over — ` +
+                          `${usd(state.overageCents)} will be added to this month's invoice.`
+                        : `Extra minutes are $${(plan.overagePerMinute ?? 0).toFixed(2)} each, measured to the second.`}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-5 text-xs text-mist-400">
+                  This plan does not include answering calls. Pro adds the phone.
+                </p>
+              )}
+
+              {state.blockedReason ? (
+                <p className="mt-5 rounded-lg border border-amber-glow/30 bg-amber-glow/[0.06] px-3 py-2 text-sm text-mist-200">
+                  <span className="font-medium text-amber-glow">The assistant has stopped answering.</span>{" "}
+                  {state.blockedReason} Messages are still captured and handed to your team.
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -59,13 +131,37 @@ export default async function BillingPage() {
             </div>
           </Card>
 
+          <Card>
+            <h2 className="font-semibold">{state.trialing ? "Pick a plan" : "Change plan"}</h2>
+            <p className="mt-1 mb-4 text-sm text-mist-400">
+              {state.trialing
+                ? "Your trial keeps working until you do. Subscribing lifts the allowance the same minute the payment clears."
+                : "Switching takes effect immediately; Stripe prorates the difference on your next invoice."}
+            </p>
+            {canWrite ? (
+              <PlanPicker
+                currentPlan={plan.id}
+                paying={state.status === "active" || state.status === "past_due"}
+                configured={configured}
+              />
+            ) : (
+              <p className="rounded-lg border border-ink-700 bg-ink-850 px-3 py-2 text-sm text-mist-400">
+                This is the read-only demo workspace.{" "}
+                <Link href="/signup" className="text-jade-400 hover:underline">
+                  Create your own
+                </Link>{" "}
+                to subscribe.
+              </p>
+            )}
+          </Card>
+
           <Card className="!p-0">
             <div className="border-b border-ink-700 px-5 py-3.5">
               <h2 className="font-semibold">This month, in detail</h2>
             </div>
             <dl className="divide-y divide-ink-800">
               {[
-                ["Conversations opened", stats.conversationsThisMonth],
+                ["Conversations opened", state.used.conversations],
                 ["Messages exchanged", stats.messagesThisMonth],
                 ["Handled without a person", stats.aiHandled],
                 ["Escalated to a person", stats.escalated],
@@ -83,8 +179,9 @@ export default async function BillingPage() {
           <Card>
             <h2 className="font-semibold">Invoices</h2>
             <p className="mt-2 text-sm leading-relaxed text-mist-400">
-              No billing provider is connected, so there are no invoices to show. Connect Stripe under Integrations
-              and this becomes a real list.
+              {configured
+                ? "Receipts and invoices are emailed by Stripe, and every past invoice lives in the billing portal Stripe links from those emails."
+                : "No payment provider is connected on this deployment, so there are no invoices to show."}
             </p>
           </Card>
         </div>
@@ -106,8 +203,8 @@ export default async function BillingPage() {
           <Card>
             <h2 className="text-sm font-semibold">Cancelling</h2>
             <p className="mt-2 text-sm text-mist-400">
-              When billing is live, cancelling is one click and takes effect at the end of the period you&apos;ve paid
-              for. No retention flow, no phone call.
+              Cancel from the Stripe billing portal linked on any receipt. It takes effect at the end of the period
+              you&apos;ve paid for — no retention flow, no phone call. The assistant keeps answering until then.
             </p>
           </Card>
         </aside>

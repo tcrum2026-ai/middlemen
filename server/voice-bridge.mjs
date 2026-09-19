@@ -68,6 +68,7 @@ console.log(`Voice bridge listening on :${PORT}, app at ${APP_URL}`);
 server.on("connection", (socket) => {
   /** Per-call state. One socket is exactly one phone call. */
   const call = {
+    startedAt: Date.now(),
     businessId: "",
     callSid: "",
     from: "",
@@ -213,7 +214,21 @@ server.on("connection", (socket) => {
   });
 
   socket.on("close", () => {
-    if (call.callSid) console.log(`Call ${call.callSid} closed`);
+    if (!call.callSid) return;
+    const seconds = Math.round((Date.now() - call.startedAt) / 1000);
+    console.log(`Call ${call.callSid} closed after ${seconds}s`);
+    // Metered minutes come from the session we actually held, not from the
+    // transcript's timestamps, which say nothing about silence.
+    if (call.conversationId) {
+      void callApp("/api/voice/turn", {
+        businessId: call.businessId,
+        callSid: call.callSid,
+        from: call.from,
+        text: "",
+        conversationId: call.conversationId,
+        endedSeconds: seconds,
+      }).catch((error) => console.error("Could not record call duration:", error.message));
+    }
   });
 
   socket.on("error", (error) => console.error("Socket error:", error.message));

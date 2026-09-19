@@ -97,7 +97,11 @@ export const INTEGRATIONS = [
   { name: "Webhooks", note: "Your own stack" },
 ] as const;
 
+export type PlanId = "starter" | "pro" | "business";
+
 export interface Plan {
+  /** Stable key. Display names change; billing records must not follow them. */
+  id: PlanId;
   name: string;
   monthly: number | null;
   blurb: string;
@@ -105,6 +109,12 @@ export interface Plan {
   featured?: boolean;
   /** Printed under the price when the plan meters something. */
   meter?: string;
+  /** Written conversations included per month. */
+  conversations: number;
+  /** Answered-call minutes included per month. */
+  voiceMinutes: number;
+  /** Charged per minute beyond the allowance; null when voice isn't included. */
+  overagePerMinute: number | null;
 }
 
 /**
@@ -115,8 +125,12 @@ export interface Plan {
  */
 export const PLANS: Plan[] = [
   {
+    id: "starter",
     name: "Starter",
     monthly: 49,
+    conversations: 300,
+    voiceMinutes: 0,
+    overagePerMinute: null,
     blurb: "Every written channel answered, for one person who is tired of repeating themselves.",
     features: [
       "Web chat, email and SMS",
@@ -128,8 +142,12 @@ export const PLANS: Plan[] = [
     meter: "Phone answering not included",
   },
   {
+    id: "pro",
     name: "Pro",
     monthly: 149,
+    conversations: 1000,
+    voiceMinutes: 250,
+    overagePerMinute: 0.25,
     blurb: "Adds the phone. One assistant across everything, with the same calendar and price list.",
     features: [
       "Everything in Starter",
@@ -143,8 +161,12 @@ export const PLANS: Plan[] = [
     meter: "Extra call minutes $0.25/min",
   },
   {
+    id: "business",
     name: "Business",
     monthly: 399,
+    conversations: 3000,
+    voiceMinutes: 1000,
+    overagePerMinute: 0.2,
     blurb: "For a phone that rings all day, and more than one person answering it.",
     features: [
       "Everything in Pro",
@@ -157,6 +179,14 @@ export const PLANS: Plan[] = [
     meter: "Extra call minutes $0.20/min",
   },
 ];
+
+export function planById(id: string): Plan {
+  return PLANS.find((plan) => plan.id === id) ?? PLANS[0];
+}
+
+/** What a workspace gets before it has paid for anything. */
+export const TRIAL_DAYS = 14;
+export const TRIAL_ALLOWANCE = { conversations: 150, voiceMinutes: 30 };
 
 export const FAQS = [
   {

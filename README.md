@@ -95,6 +95,19 @@ tools — so every screen still works end to end. The dashboard header says whic
 active. The fallback is a demo convenience, not a second product: it does not generate
 language, it picks from written responses.
 
+### Checking it without a browser or a phone
+
+```bash
+npm run sweep                     # every static route, two widths: status, overflow,
+                                  # console errors, error boundaries, undefined in the copy
+npm run call -- <businessId>      # a fake phone call, start to finish
+```
+
+`scripts/call.mjs` speaks Twilio's ConversationRelay protocol, so it exercises the bridge,
+the turn endpoint, the assistant, the transfer signal and the metered duration without a
+phone number or a person to talk to. It needs `npm run voice` running alongside the app,
+with `VOICE_BRIDGE_SECRET` set in both.
+
 ## How a business connects
 
 1. **`/connect`** — name, hours, services, assistant persona, and a paste of prices and

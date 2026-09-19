@@ -23,6 +23,13 @@ export interface Business {
   effort: "low" | "medium" | "high";
   /** Which Claude answers. The largest single lever on cost per conversation. */
   model: "claude-sonnet-5" | "claude-opus-5";
+  /** Which plan's allowances apply once the trial is over. */
+  plan: "starter" | "pro" | "business";
+  /** trialing → active once paid; past_due and canceled both stop new replies. */
+  subscription_status: "trialing" | "active" | "past_due" | "canceled";
+  trial_ends_at: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
   call_handoff_number: string | null;
   /** When on, the Twilio number is answered by the assistant instead of ringing. */
   voice_enabled: number;
@@ -60,6 +67,8 @@ export interface Conversation {
   business_id: string;
   contact_id: string | null;
   channel: Channel;
+  /** Length of an answered call, in seconds. Zero on written threads. */
+  duration_seconds: number;
   subject: string;
   status: "open" | "waiting" | "closed";
   handled_by: "ai" | "human";

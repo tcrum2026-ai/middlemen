@@ -7,7 +7,9 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "voice": "node server/voice-bridge.mjs"
+    "voice": "node server/voice-bridge.mjs",
+    "sweep": "node scripts/sweep.mjs",
+    "call": "node scripts/call.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",

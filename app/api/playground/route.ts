@@ -27,6 +27,7 @@ function scratchConversation(business: Business): Conversation {
     business_id: business.id,
     contact_id: null,
     channel: "web",
+    duration_seconds: 0,
     subject: "Playground test",
     status: "open",
     handled_by: "ai",

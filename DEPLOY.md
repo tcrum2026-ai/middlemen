@@ -19,6 +19,14 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `VOICE_APP_URL` | Answering phone calls | Where the bridge reaches the app. `http://127.0.0.1:3000` when both run on the same host. |
 | `INBOUND_EMAIL_SECRET` | Inbound email webhook | **Required to turn inbound email on.** The webhook fails closed: unset, it returns 503 and accepts nothing, because otherwise anyone could trigger a paid model call on any workspace. Checked against `x-inbound-secret`. |
 | `INBOUND_EMAIL_DOMAIN` | Inbound email webhook | The domain you route mail from, e.g. `inbound.your-domain`. The Install page shows the forwarding address only when this is set. |
+| `STRIPE_SECRET_KEY` | **Charging for Lobby** | Your platform Stripe key. Unset, the plan buttons on `/dashboard/billing` are disabled and say so — nobody can subscribe. |
+| `STRIPE_WEBHOOK_SECRET` | **Charging for Lobby** | **Required.** `POST /api/billing/webhook` fails closed: unset, it returns 503, because an unverified billing webhook lets a stranger hand themselves a paid plan. Signatures older than 5 minutes are rejected too. |
+| `STRIPE_PRICE_STARTER` / `_PRO` / `_BUSINESS` | **Charging for Lobby** | The recurring price ids. A plan with no price id refuses checkout with a readable error rather than a blank page. |
+
+Note the two different Stripe keys. The variables above are *yours* — the platform
+account that charges for Lobby. The Stripe key entered per workspace under **Integrations**
+is the *customer's*, so their assistant can send their customers a payment link. They are
+never the same key.
 
 Nothing else belongs in the environment — per-workspace keys (Resend, Twilio, Slack, Stripe) are
 entered in the dashboard under **Integrations** and stored per workspace.
@@ -70,7 +78,24 @@ All of this is done in the dashboard, per workspace:
 | Inbound SMS | Twilio console | Set the number's webhook to `POST /api/webhooks/twilio` — requests are signature-verified |
 | Phone calls | Twilio console | Set the number's **Voice** webhook to `POST /api/voice/incoming`, then switch on "Answer incoming calls with AI" in Settings. Signature-verified against that workspace's own auth token; with voice off, calls ring your handoff number instead |
 | Team alerts | Integrations → Slack | An incoming webhook URL |
-| Payment links | Integrations → Stripe | Secret key |
+| Payment links | Integrations → Stripe | The workspace's own secret key, for charging *their* customers |
+
+## 3b. Taking payment for Lobby itself
+
+1. In your own Stripe dashboard, create one **recurring** product per plan — Starter $49/mo,
+   Pro $149/mo, Business $399/mo — and copy each price id into `STRIPE_PRICE_*`.
+2. Add an endpoint under Developers → Webhooks pointing at `https://your-domain/api/billing/webhook`,
+   subscribed to `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and
+   `invoice.payment_failed`. Paste its signing secret into `STRIPE_WEBHOOK_SECRET`.
+3. Buy one plan yourself with a real card and confirm `/dashboard/billing` flips from trial to
+   active. If it does not, the webhook is the thing to look at — checkout succeeding tells you
+   nothing about whether the confirmation reached you.
+
+Every new workspace starts on a 14-day trial with a reduced allowance and no card. When a
+trial ends or an allowance runs out the assistant stops replying and hands the thread to a
+person — the message is still captured, never dropped. That behaviour is in `lib/entitlement.ts`
+and it is what `/terms` promises.
 
 ## 4. Before real customers see it
 

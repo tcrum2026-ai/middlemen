@@ -51,6 +51,11 @@ CREATE TABLE IF NOT EXISTS businesses (
   auto_send_threshold REAL NOT NULL DEFAULT 0.75,
   effort TEXT NOT NULL DEFAULT 'medium',
   model TEXT NOT NULL DEFAULT 'claude-sonnet-5',
+  plan TEXT NOT NULL DEFAULT 'pro',
+  subscription_status TEXT NOT NULL DEFAULT 'trialing',
+  trial_ends_at TEXT NOT NULL DEFAULT '',
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
   call_handoff_number TEXT,
   voice_enabled INTEGER NOT NULL DEFAULT 0,
   voice_disclosure TEXT NOT NULL DEFAULT 'Just so you know, you are speaking with an AI assistant.',
@@ -84,6 +89,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   contact_id TEXT REFERENCES contacts(id) ON DELETE SET NULL,
   channel TEXT NOT NULL DEFAULT 'web',
+  duration_seconds INTEGER NOT NULL DEFAULT 0,
   subject TEXT NOT NULL DEFAULT 'New conversation',
   status TEXT NOT NULL DEFAULT 'open',
   handled_by TEXT NOT NULL DEFAULT 'ai',
@@ -265,6 +271,16 @@ CREATE INDEX IF NOT EXISTS idx_deliveries_business ON deliveries(business_id);
  * EXISTS", so each one is checked against the live table before it is applied.
  */
 const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
+  { table: "businesses", column: "plan", ddl: "ALTER TABLE businesses ADD COLUMN plan TEXT NOT NULL DEFAULT 'pro'" },
+  {
+    table: "businesses",
+    column: "subscription_status",
+    ddl: "ALTER TABLE businesses ADD COLUMN subscription_status TEXT NOT NULL DEFAULT 'trialing'",
+  },
+  { table: "businesses", column: "trial_ends_at", ddl: "ALTER TABLE businesses ADD COLUMN trial_ends_at TEXT NOT NULL DEFAULT ''" },
+  { table: "businesses", column: "stripe_customer_id", ddl: "ALTER TABLE businesses ADD COLUMN stripe_customer_id TEXT" },
+  { table: "businesses", column: "stripe_subscription_id", ddl: "ALTER TABLE businesses ADD COLUMN stripe_subscription_id TEXT" },
+  { table: "conversations", column: "duration_seconds", ddl: "ALTER TABLE conversations ADD COLUMN duration_seconds INTEGER NOT NULL DEFAULT 0" },
   {
     table: "businesses",
     column: "model",
