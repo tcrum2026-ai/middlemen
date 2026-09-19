@@ -52,9 +52,11 @@ export default async function OverviewPage({
 
       <PageHeader
         title={`Good to see you, ${business.name}`}
-        subtitle={`${business.assistant_name} is handling messages across ${
+        subtitle={`${business.assistant_name} is handling ${
           stats.byChannel.length || 1
-        } channel${stats.byChannel.length === 1 ? "" : "s"}. Calls and anything risky wait here for a person.`}
+        } channel${stats.byChannel.length === 1 ? "" : "s"}${
+          business.voice_enabled ? ", including your phone line" : ""
+        }. Anything it should not decide waits here for you.`}
         action={
           <Link href="/dashboard/inbox" className="btn btn-primary">
             Open inbox
