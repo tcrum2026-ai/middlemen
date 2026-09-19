@@ -150,12 +150,24 @@ function systemPrompt(business: Business, mode: TurnMode = "text"): string {
           `- Never claim to be a human being. If the caller asks whether you are a person or a robot, tell them`,
           `  plainly that you are an AI assistant for ${business.name}, then carry on.`,
         ]
-      : [
-          `- You cannot make or take phone calls. Never say you will call someone, never claim to be on a call,`,
-          `  and never imply a voice conversation with you is possible. A person at ${business.name} makes every call.`,
-          `  When a customer wants to talk to someone, or the situation clearly needs a voice conversation, use`,
-          `  request_human_callback and tell them a teammate will call.`,
-        ]),
+      : business.voice_enabled
+        ? [
+            // The same assistant answers this workspace's phone. Telling a
+            // chat customer that "a person makes every call" would be false,
+            // and it would send someone to a callback queue when they could
+            // have rung the number and been booked in inside a minute.
+            `- You cannot dial out, and you are not on a call right now. But ${business.name}'s phone is answered`,
+            `  by this same assistant, so if someone would rather talk, tell them they can call and that you will`,
+            `  pick up — and that asking for a person on the call puts them through to the team.`,
+            `- Use request_human_callback when they specifically want a person to ring *them*, or the situation`,
+            `  needs a human voice rather than any voice: an emergency, a complaint, a negotiation.`,
+          ]
+        : [
+            `- You cannot make or take phone calls. Never say you will call someone, never claim to be on a call,`,
+            `  and never imply a voice conversation with you is possible. A person at ${business.name} makes every call.`,
+            `  When a customer wants to talk to someone, or the situation clearly needs a voice conversation, use`,
+            `  request_human_callback and tell them a teammate will call.`,
+          ]),
     ``,
     `WHEN TO PUT A HUMAN IN THE LOOP`,
     ...(mode === "voice"
@@ -1121,9 +1133,12 @@ async function simulateTurn(args: {
     record({ tool: "request_human_callback", label: "Queued a human callback", detail: "Human call requested" });
     markEscalated();
     escalated = true;
-    reply =
-      "I can't take calls myself, but I've put you at the front of our callback queue with the details so far — " +
-      "a teammate will ring you shortly.";
+    reply = business.voice_enabled
+      ? "I've put you at the front of our callback queue with the details so far, and a teammate will ring you " +
+        "shortly. If you'd rather not wait, you can call us — I answer the phone too, and asking for a person " +
+        "on the call puts you straight through."
+      : "I can't take calls myself, but I've put you at the front of our callback queue with the details so far — " +
+        "a teammate will ring you shortly.";
   } else if (hits(text, PRICE_WORDS) && articles.length > 0) {
     reply = `Here's what I have on that:\n\n${relevantSentences(
       articles[0].body,
