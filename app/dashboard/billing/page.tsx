@@ -110,8 +110,9 @@ export default async function BillingPage({
                       ? "Trial minutes are free. When they run out the assistant stops answering calls and they " +
                         "ring your handoff number instead."
                       : state.overageMinutes
-                        ? `${state.overageMinutes} minute${state.overageMinutes === 1 ? "" : "s"} over — ` +
-                          `${usd(state.overageCents)} will be added to this month's invoice.`
+                        ? `${state.overageMinutes} minute${state.overageMinutes === 1 ? "" : "s"} over, worth ` +
+                          `${usd(state.overageCents)}. Lobby measures this; it does not yet bill it automatically, ` +
+                          `so add it to their invoice yourself.`
                         : `Extra minutes are $${(plan.overagePerMinute ?? 0).toFixed(2)} each, measured to the second.`}
                   </p>
                 </div>

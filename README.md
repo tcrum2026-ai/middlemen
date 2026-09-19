@@ -103,6 +103,7 @@ npm test                          # unit tests alone (node --test, no framework)
 npm run sweep                     # every static route, two widths: status, overflow,
                                   # console errors, error boundaries, undefined in the copy
 npm run a11y                      # axe-core over every route at phone width
+npm run widget                    # the embed, on a third-party page, cross-origin
 npm run call -- <businessId>      # a fake phone call, start to finish
 ```
 
@@ -114,6 +115,12 @@ quietly is worse: webhook signature verification for Twilio and Stripe
 point makes the voice pause in the middle of a price). Node runs the
 TypeScript directly, so there is no build step and no test framework to keep
 up to date.
+
+`scripts/widget.mjs` loads the embed on a page it does not control, with host
+CSS that hides every input and reddens every button, and checks that the
+shadow root shrugs it off, that a price question gets a figure, that the tool
+trace shows, and that asking for a person gets one. It is the only part of
+this product that runs on somebody else's website.
 
 `scripts/call.mjs` speaks Twilio's ConversationRelay protocol, so it exercises the bridge,
 the turn endpoint, the assistant, the transfer signal and the metered duration without a

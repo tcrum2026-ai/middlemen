@@ -12,7 +12,8 @@
     "call": "node scripts/call.mjs",
     "test": "node --test \"tests/*.test.ts\"",
     "check": "tsc --noEmit && eslint app lib components scripts tests && npm test",
-    "a11y": "node scripts/a11y.mjs"
+    "a11y": "node scripts/a11y.mjs",
+    "widget": "node scripts/widget.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",

@@ -191,7 +191,7 @@ export function WidgetCustomizer({
               </span>
             </div>
             <p className="pb-2 text-center text-[10px] text-[#8d96ab]">
-              Answers are AI. Calls are handled by our team.
+              Answers are AI. Ask for a person any time.
             </p>
           </div>
 

@@ -140,6 +140,12 @@ drop it from `next.config.ts` if you serve this on a domain you also need over p
 
 - No email verification on sign-up. Password reset works (`RESEND_API_KEY` + `AUTH_FROM_EMAIL`);
   verifying the address at sign-up does not exist yet.
+- **Voice overage is measured but not charged.** Answered-call minutes are metered accurately and
+  the billing page shows what the overage is worth, but nothing reports that usage to Stripe, so
+  no invoice picks it up. Bill it yourself, or drop the per-minute line from the plans until it is
+  wired. Doing it properly means a metered price per plan in Stripe, storing the subscription item
+  id on the workspace alongside `stripe_subscription_id`, and posting a usage record when
+  `setCallDuration` runs.
 - Outlook, WhatsApp, QuickBooks, HubSpot, Shopify and Zapier are listed but not implemented.
 - SQLite means one writer: fine for a single instance, not for horizontal scaling. Moving to
   Postgres is a `lib/db.ts` change, not an application-wide one.

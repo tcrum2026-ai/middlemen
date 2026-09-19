@@ -79,6 +79,10 @@ every workspace stays on a trial that eventually stops answering.
       log in Stripe — a 403 there means the signing secret is wrong.
 - [ ] Cancel that test subscription and confirm the workspace flips to `canceled` and the
       assistant stops answering, capturing messages for a person instead of dropping them.
+- [ ] **Decide what to do about voice overage.** Minutes over a plan's allowance are measured
+      accurately and priced on the billing page, but nothing reports them to Stripe, so no invoice
+      picks them up. Either invoice it by hand each month from that figure, or take the per-minute
+      line off the plans until it is wired. `DEPLOY.md` § 6 says what wiring it involves.
 
 ## 5. Watch the first week
 
