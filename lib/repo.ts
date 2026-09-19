@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { getDb, id, now } from "./db";
+import { TRIAL_DAYS } from "./marketing";
 import type {
   ActivityEvent,
   AutomationKind,
@@ -138,7 +139,7 @@ export function createBusiness(input: CreateBusinessInput): Business {
     model: input.model ?? "claude-sonnet-5",
     plan: "pro",
     subscription_status: "trialing",
-    trial_ends_at: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+    trial_ends_at: new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString(),
     stripe_customer_id: null,
     stripe_subscription_id: null,
     call_handoff_number: input.call_handoff_number ?? null,
@@ -654,12 +655,13 @@ export function createQuote(input: {
     line_items: input.line_items,
     total_cents: total,
     status: "draft",
+    payment_url: null,
     created_at: now(),
   };
   getDb()
     .prepare(
-      `INSERT INTO quotes (id, business_id, lead_id, title, line_items, total_cents, status, created_at)
-       VALUES (@id, @business_id, @lead_id, @title, @line_items, @total_cents, @status, @created_at)`,
+      `INSERT INTO quotes (id, business_id, lead_id, title, line_items, total_cents, status, payment_url, created_at)
+       VALUES (@id, @business_id, @lead_id, @title, @line_items, @total_cents, @status, @payment_url, @created_at)`,
     )
     .run({ ...quote, line_items: JSON.stringify(quote.line_items) });
   return quote;
@@ -667,6 +669,18 @@ export function createQuote(input: {
 
 export function setQuoteStatus(quoteId: string, status: Quote["status"]): void {
   getDb().prepare("UPDATE quotes SET status = ? WHERE id = ?").run(status, quoteId);
+}
+
+export function getQuote(quoteId: string): Quote | null {
+  const row = getDb().prepare("SELECT * FROM quotes WHERE id = ?").get(quoteId) as Row | undefined;
+  return row ? toQuote(row) : null;
+}
+
+/** Stores the Stripe payment link and marks the quote as sent. */
+export function setQuotePaymentUrl(quoteId: string, url: string): void {
+  getDb()
+    .prepare("UPDATE quotes SET payment_url = ?, status = CASE status WHEN 'draft' THEN 'sent' ELSE status END WHERE id = ?")
+    .run(url, quoteId);
 }
 
 /* --------------------------------------------------------------- approvals */

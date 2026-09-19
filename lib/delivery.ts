@@ -182,7 +182,7 @@ export async function createPaymentLink(input: {
         "product_data[name]": input.description.slice(0, 250),
       }),
     });
-    if (!priceResponse.ok) return { error: (await priceResponse.text()).slice(0, 200) };
+    if (!priceResponse.ok) return { error: await stripeMessage(priceResponse) };
     const price = (await priceResponse.json()) as { id: string };
 
     const linkResponse = await post("https://api.stripe.com/v1/payment_links", {
@@ -193,13 +193,31 @@ export async function createPaymentLink(input: {
       },
       body: new URLSearchParams({ "line_items[0][price]": price.id, "line_items[0][quantity]": "1" }),
     });
-    if (!linkResponse.ok) return { error: (await linkResponse.text()).slice(0, 200) };
+    if (!linkResponse.ok) return { error: await stripeMessage(linkResponse) };
 
     const link = (await linkResponse.json()) as { url: string };
     return { url: link.url };
   } catch (error) {
     return { error: message(error) };
   }
+}
+
+/**
+ * Stripe's refusal, as a sentence.
+ *
+ * The raw body is a JSON envelope; pasting that into the dashboard makes the
+ * operator read a stack of braces to find the one line that tells them their
+ * key is wrong. Stripe already masks the key inside the message.
+ */
+async function stripeMessage(response: Response): Promise<string> {
+  const body = await response.text();
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: string } };
+    if (parsed.error?.message) return parsed.error.message.slice(0, 200);
+  } catch {
+    // Not JSON — a gateway error page, most likely. Fall through.
+  }
+  return body.slice(0, 200) || `Stripe returned ${response.status}`;
 }
 
 function message(error: unknown): string {

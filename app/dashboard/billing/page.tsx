@@ -5,7 +5,7 @@ import { usage } from "@/lib/repo";
 import { entitlement } from "@/lib/entitlement";
 import { billingConfigured } from "@/lib/billing";
 import { usd } from "@/components/ui";
-import { PlanPicker } from "./plan-picker";
+import { ManageBilling, PlanPicker } from "./plan-picker";
 
 export default async function BillingPage({
   searchParams,
@@ -18,6 +18,10 @@ export default async function BillingPage({
   const stats = usage(business.id);
   const state = entitlement(business);
   const plan = state.plan;
+  const paying = state.status === "active" || state.status === "past_due";
+  // Stripe already knows this customer and is charging them, so plan changes
+  // and cancellation belong in its portal, not in a second Checkout session.
+  const manageable = configured && paying && Boolean(business.stripe_customer_id);
   const pct = Math.min(100, Math.round((state.used.conversations / state.allowance.conversations) * 100));
   const voicePct = state.allowance.voiceMinutes
     ? Math.min(100, Math.round((state.used.voiceMinutes / state.allowance.voiceMinutes) * 100))
@@ -141,7 +145,8 @@ export default async function BillingPage({
             {canWrite ? (
               <PlanPicker
                 currentPlan={plan.id}
-                paying={state.status === "active" || state.status === "past_due"}
+                paying={paying}
+                manageable={manageable}
                 configured={configured}
               />
             ) : (
@@ -203,9 +208,13 @@ export default async function BillingPage({
           <Card>
             <h2 className="text-sm font-semibold">Cancelling</h2>
             <p className="mt-2 text-sm text-mist-400">
-              Cancel from the Stripe billing portal linked on any receipt. It takes effect at the end of the period
-              you&apos;ve paid for — no retention flow, no phone call. The assistant keeps answering until then.
+              {manageable
+                ? "One click, and it takes effect at the end of the period you've paid for — no retention flow, no phone call. The assistant keeps answering until then. Your card lives at Stripe, so this is also where you change it."
+                : state.trialing
+                  ? "Nothing to cancel — you haven't been charged, and you won't be unless you pick a plan. Let the trial run out and the assistant simply stops answering."
+                  : "There's no live subscription on this workspace, so there's nothing to cancel."}
             </p>
+            {manageable ? <ManageBilling /> : null}
           </Card>
         </aside>
       </div>

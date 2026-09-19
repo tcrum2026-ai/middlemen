@@ -113,3 +113,44 @@ export async function stripeSignatureValid(
   const b = Buffer.from(signature);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+export interface PortalResult {
+  url?: string;
+  error?: string;
+}
+
+/**
+ * Opens Stripe's billing portal for an existing customer.
+ *
+ * The pricing page says "cancel in one click". Without this, that click does
+ * not exist anywhere in the product — the closest thing is a receipt email
+ * with a link in it, which is not one click and not in the product. Stripe
+ * hosts the portal, so cancelling, changing plan and updating a card all work
+ * without us building three more screens or ever touching a card number.
+ */
+export async function createPortalSession(input: {
+  customerId: string;
+  returnUrl: string;
+}): Promise<PortalResult> {
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!key) return { error: "Billing is not configured on this deployment." };
+
+  const form = new URLSearchParams({ customer: input.customerId, return_url: input.returnUrl });
+
+  try {
+    const response = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form,
+      signal: AbortSignal.timeout(15_000),
+    });
+    const body = (await response.json()) as { url?: string; error?: { message?: string } };
+    if (!response.ok) return { error: body.error?.message ?? `Stripe returned ${response.status}` };
+    return body.url ? { url: body.url } : { error: "Stripe did not return a portal URL." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message.slice(0, 200) : "Could not reach Stripe." };
+  }
+}

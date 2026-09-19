@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS quotes (
   line_items TEXT NOT NULL DEFAULT '[]',
   total_cents INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'draft',
+  payment_url TEXT,
   created_at TEXT NOT NULL
 );
 
@@ -281,6 +282,7 @@ const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
   { table: "businesses", column: "stripe_customer_id", ddl: "ALTER TABLE businesses ADD COLUMN stripe_customer_id TEXT" },
   { table: "businesses", column: "stripe_subscription_id", ddl: "ALTER TABLE businesses ADD COLUMN stripe_subscription_id TEXT" },
   { table: "conversations", column: "duration_seconds", ddl: "ALTER TABLE conversations ADD COLUMN duration_seconds INTEGER NOT NULL DEFAULT 0" },
+  { table: "quotes", column: "payment_url", ddl: "ALTER TABLE quotes ADD COLUMN payment_url TEXT" },
   {
     table: "businesses",
     column: "model",

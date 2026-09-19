@@ -82,21 +82,6 @@ export const STEPS = [
   },
 ] as const;
 
-export const INTEGRATIONS = [
-  { name: "Gmail", note: "Read and reply to support mail" },
-  { name: "Outlook", note: "Same, for Microsoft shops" },
-  { name: "Google Calendar", note: "Real availability, real bookings" },
-  { name: "Twilio SMS", note: "Two-way texting" },
-  { name: "WhatsApp", note: "Business messaging" },
-  { name: "Stripe", note: "Invoices and payment links" },
-  { name: "QuickBooks", note: "Estimates and invoices" },
-  { name: "HubSpot", note: "Push leads to your CRM" },
-  { name: "Slack", note: "Escalations where your team lives" },
-  { name: "Shopify", note: "Order status answers" },
-  { name: "Zapier", note: "Everything else" },
-  { name: "Webhooks", note: "Your own stack" },
-] as const;
-
 export type PlanId = "starter" | "pro" | "business";
 
 export interface Plan {

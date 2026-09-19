@@ -132,6 +132,8 @@ export interface Quote {
   line_items: QuoteLineItem[];
   total_cents: number;
   status: "draft" | "sent" | "accepted" | "declined";
+  /** A Stripe payment link, once one has been made for this quote. */
+  payment_url: string | null;
   created_at: string;
 }
 

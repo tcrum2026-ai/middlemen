@@ -23,6 +23,9 @@ import {
   setAppointmentStatus,
   setIntegrationStatus,
   setLeadStage,
+  getQuote,
+  setQuotePaymentUrl,
+  setQuoteStatus,
   updateBusiness,
   updateCallRequest,
   updateConversation,
@@ -36,9 +39,9 @@ import {
   workspace,
 } from "@/lib/session";
 import { getTemplate } from "@/lib/templates";
-import { sendEmail, sendSms } from "@/lib/delivery";
+import { createPaymentLink, sendEmail, sendSms } from "@/lib/delivery";
 import { disconnect, saveCredentials } from "@/lib/integrations";
-import type { Appointment, Approval, AutomationKind, CallRequest, Lead } from "@/lib/types";
+import type { Appointment, Approval, AutomationKind, CallRequest, Lead, Quote } from "@/lib/types";
 
 function str(data: FormData, key: string): string {
   const value = data.get(key);
@@ -189,6 +192,72 @@ export async function setLeadStageAction(data: FormData) {
   revalidatePath("/dashboard/leads");
 }
 
+export async function setQuoteStatusAction(data: FormData) {
+  const quoteId = str(data, "quote_id");
+  const status = str(data, "status") as Quote["status"];
+  if (!quoteId || !["draft", "sent", "accepted", "declined"].includes(status)) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("quote", quoteId, business.id)) return;
+  setQuoteStatus(quoteId, status);
+  revalidatePath("/dashboard/leads");
+}
+
+/**
+ * Turns a quote into a Stripe payment link.
+ *
+ * The link is made once and kept: a second click would mint a second link for
+ * the same job, and a customer holding two of them can pay twice.
+ */
+export async function createQuotePaymentLinkAction(
+  _prev: { error?: string } | null,
+  data: FormData,
+): Promise<{ error?: string }> {
+  const quoteId = str(data, "quote_id");
+  if (!quoteId) return { error: "No quote given." };
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("quote", quoteId, business.id)) {
+    return { error: "You can't change that quote." };
+  }
+
+  // Minting a link is a call to Stripe; bound it like any other outbound work.
+  if (!rateLimit(`paylink:${business.id}`, QUOTAS.signUpPerIp).ok) {
+    return { error: "Too many links created just now. Try again shortly." };
+  }
+
+  const quote = getQuote(quoteId);
+  if (!quote) return { error: "That quote no longer exists." };
+  if (quote.payment_url) return {};
+  if (quote.total_cents <= 0) return { error: "A quote has to total more than zero to be paid." };
+
+  const link = await createPaymentLink({
+    businessId: business.id,
+    description: quote.title,
+    amountCents: quote.total_cents,
+  });
+  if ("error" in link) {
+    console.error(`Payment link failed for ${quoteId}:`, link.error);
+    // Stripe's own wording is the useful part here — unlike the platform key,
+    // this is the customer's own Stripe account and their own mistake to fix.
+    return { error: `Stripe refused: ${link.error}` };
+  }
+
+  setQuotePaymentUrl(quoteId, link.url);
+  logEvent({
+    business_id: business.id,
+    kind: "quote_drafted",
+    summary: `Payment link created for ${quote.title} (${usdPlain(quote.total_cents)})`,
+  });
+  revalidatePath("/dashboard/leads");
+  return {};
+}
+
+/** Dollars for a log line, without pulling a UI helper into a server action. */
+function usdPlain(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
 export async function setAppointmentStatusAction(data: FormData) {
   const appointmentId = str(data, "appointment_id");
   const status = str(data, "status") as Appointment["status"];
@@ -224,16 +293,6 @@ export async function deleteKbAction(data: FormData) {
 }
 
 /* ---------------------------------------------------------- integrations */
-
-export async function toggleIntegrationAction(data: FormData) {
-  const provider = str(data, "provider");
-  const next = str(data, "next") as "connected" | "disconnected";
-  if (!provider || !next) return;
-  const business = await writableBusiness();
-  if (!business) return;
-  setIntegrationStatus(business.id, provider, next);
-  revalidatePath("/dashboard/integrations");
-}
 
 /* -------------------------------------------------------------- settings */
 

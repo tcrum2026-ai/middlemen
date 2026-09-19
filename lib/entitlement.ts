@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb } from "./db";
-import { PLANS, TRIAL_ALLOWANCE, planById, type Plan } from "./marketing";
+import { TRIAL_ALLOWANCE, planById, type Plan } from "./marketing";
 import type { Business } from "./types";
 
 /**
@@ -118,5 +118,3 @@ export function canAnswerCalls(business: Business): boolean {
   // Starter has no voice allowance at all; a trial gets a small one.
   return state.allowance.voiceMinutes > 0;
 }
-
-export const ALL_PLANS = PLANS;

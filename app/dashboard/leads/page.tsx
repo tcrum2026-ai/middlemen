@@ -1,7 +1,12 @@
+import Link from "next/link";
 import { Badge, Card, EmptyState, PageHeader, relativeTime, usd } from "@/components/ui";
-import { setLeadStageAction } from "../actions";
+import { CopyLink } from "@/components/copy-link";
+import { SubmitButton } from "@/components/submit-button";
+import { setLeadStageAction, setQuoteStatusAction } from "../actions";
+import { PaymentLinkButton } from "./payment-link-button";
 import { activeBusiness } from "@/lib/session";
 import { getContact, listLeads, listQuotes } from "@/lib/repo";
+import { isConnected } from "@/lib/integrations";
 import type { Lead } from "@/lib/types";
 
 const STAGES: Lead["stage"][] = ["new", "qualified", "quoted", "won", "lost"];
@@ -10,6 +15,9 @@ export default async function LeadsPage() {
   const business = await activeBusiness();
   const leads = listLeads(business.id);
   const quotes = listQuotes(business.id);
+  // Without a Stripe key there is nothing to mint a link with, so the button
+  // is replaced by the thing you'd actually have to go and do.
+  const stripeConnected = isConnected(business.id, "stripe");
 
   return (
     <div>
@@ -80,17 +88,59 @@ export default async function LeadsPage() {
           <Card className="!p-0">
             <ul className="divide-y divide-ink-800">
               {quotes.map((quote) => (
-                <li key={quote.id} className="flex flex-wrap items-center gap-3 px-5 py-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{quote.title}</p>
-                    <p className="text-xs text-mist-400">
-                      {quote.line_items
-                        .map((li) => `${li.quantity} × ${li.description}`)
-                        .join(", ")}
-                    </p>
+                <li key={quote.id} className="px-5 py-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{quote.title}</p>
+                      <p className="text-xs text-mist-400">
+                        {quote.line_items.map((li) => `${li.quantity} × ${li.description}`).join(", ")}
+                      </p>
+                    </div>
+                    <span className="font-semibold tabular-nums">{usd(quote.total_cents)}</span>
+                    <Badge
+                      tone={
+                        quote.status === "accepted"
+                          ? "jade"
+                          : quote.status === "declined"
+                            ? "rose"
+                            : quote.status === "sent"
+                              ? "amber"
+                              : "slate"
+                      }
+                    >
+                      {quote.status}
+                    </Badge>
                   </div>
-                  <span className="font-semibold">{usd(quote.total_cents)}</span>
-                  <Badge tone={quote.status === "accepted" ? "jade" : "slate"}>{quote.status}</Badge>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    {quote.payment_url ? (
+                      <CopyLink url={quote.payment_url} />
+                    ) : stripeConnected ? (
+                      <PaymentLinkButton quoteId={quote.id} />
+                    ) : (
+                      <p className="text-xs text-mist-400">
+                        <Link href="/dashboard/integrations" className="text-jade-400 hover:underline">
+                          Connect Stripe
+                        </Link>{" "}
+                        to turn this into a link the customer can pay.
+                      </p>
+                    )}
+
+                    {quote.status !== "accepted" && quote.status !== "declined" ? (
+                      <div className="flex gap-2">
+                        <form action={setQuoteStatusAction}>
+                          <input type="hidden" name="quote_id" value={quote.id} />
+                          <input type="hidden" name="status" value="accepted" />
+                          <SubmitButton className="btn btn-ghost !px-3 !py-1.5 text-xs">Mark accepted</SubmitButton>
+                        </form>
+                        <form action={setQuoteStatusAction}>
+                          <input type="hidden" name="quote_id" value={quote.id} />
+                          <input type="hidden" name="status" value="declined" />
+                          <SubmitButton className="btn btn-ghost !px-3 !py-1.5 text-xs">Declined</SubmitButton>
+                        </form>
+                      </div>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>

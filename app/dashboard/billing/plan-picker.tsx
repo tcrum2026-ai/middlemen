@@ -5,46 +5,61 @@ import { CheckIcon } from "@/components/icons";
 import { Badge } from "@/components/ui";
 import { PLANS, type PlanId } from "@/lib/marketing";
 
+/** Shared: ask the server for a Stripe URL and go there. */
+async function open(
+  path: string,
+  body: Record<string, string>,
+): Promise<string | null> {
+  try {
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
+    if (json.url) {
+      window.location.href = json.url;
+      return null;
+    }
+    return json.error ?? "Something went wrong. Try again in a moment.";
+  } catch {
+    return "Could not reach the server. Check your connection and try again.";
+  }
+}
+
 /**
  * The only place in the product that starts a payment.
  *
- * It posts to /api/billing/checkout and follows the URL Stripe returns rather
- * than embedding a payment form: card details never touch this origin, which
- * is the whole reason to use hosted Checkout.
+ * Two different destinations, and the difference matters: a workspace with no
+ * live subscription goes to Checkout, but one that is already being charged
+ * goes to the billing portal instead. Checkout in subscription mode creates a
+ * *new* subscription every time it runs — sending a paying customer through it
+ * to "switch plans" would bill them for both.
  */
 export function PlanPicker({
   currentPlan,
   paying,
+  manageable,
   configured,
 }: {
   currentPlan: PlanId;
-  /** True once a subscription is actually being charged, not just selected. */
+  /** A subscription is being charged, not just selected. */
   paying: boolean;
+  /** Stripe knows this customer, so plan changes belong in the portal. */
+  manageable: boolean;
   configured: boolean;
 }) {
   const [pending, setPending] = useState<PlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function subscribe(plan: PlanId) {
+  async function choose(plan: PlanId) {
     setError(null);
     setPending(plan);
-    try {
-      const response = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-      const body = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
-      if (body.url) {
-        window.location.href = body.url;
-        return;
-      }
-      setError(body.error ?? "Could not start checkout. Try again in a moment.");
-    } catch {
-      setError("Could not reach the server. Check your connection and try again.");
-    } finally {
-      setPending(null);
-    }
+    const message = manageable
+      ? await open("/api/billing/portal", {})
+      : await open("/api/billing/checkout", { plan });
+    if (message) setError(message);
+    setPending(null);
   }
 
   return (
@@ -85,7 +100,7 @@ export function PlanPicker({
               <button
                 type="button"
                 disabled={!configured || current || pending !== null}
-                onClick={() => subscribe(plan.id)}
+                onClick={() => choose(plan.id)}
                 className={`btn mt-5 w-full justify-center ${
                   plan.featured && !current ? "btn-primary" : "btn-ghost"
                 }`}
@@ -93,8 +108,8 @@ export function PlanPicker({
                 {current
                   ? "You're on this plan"
                   : pending === plan.id
-                    ? "Opening checkout…"
-                    : paying
+                    ? "Opening…"
+                    : manageable
                       ? `Switch to ${plan.name}`
                       : `Subscribe — $${plan.monthly}/mo`}
               </button>
@@ -103,8 +118,51 @@ export function PlanPicker({
         })}
       </div>
 
+      {manageable ? (
+        <p className="mt-4 text-xs text-mist-400">
+          Switching opens Stripe, where the change takes effect immediately and the difference is prorated onto
+          your next invoice. We never see your card.
+        </p>
+      ) : null}
+
       {error ? (
-        <p role="alert" className="mt-4 rounded-lg border border-rose-400/30 bg-rose-400/[0.06] px-3 py-2 text-sm text-mist-200">
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-rose-400/30 bg-rose-400/[0.06] px-3 py-2 text-sm text-mist-200"
+        >
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * "Cancel in one click" is on the pricing page, so the click has to exist in
+ * the product rather than in an email Stripe sent weeks ago.
+ */
+export function ManageBilling({ label = "Manage or cancel" }: { label?: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setError(null);
+          setBusy(true);
+          const message = await open("/api/billing/portal", {});
+          if (message) setError(message);
+          setBusy(false);
+        }}
+        className="btn btn-ghost mt-4 w-full justify-center"
+      >
+        {busy ? "Opening…" : label}
+      </button>
+      {error ? (
+        <p role="alert" className="mt-3 text-sm text-mist-300">
           {error}
         </p>
       ) : null}
