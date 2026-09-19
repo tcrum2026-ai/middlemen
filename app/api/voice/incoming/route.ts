@@ -80,7 +80,24 @@ export async function POST(request: Request) {
   // Disclosure is spoken before anything else and is not configurable away —
   // several jurisdictions require telling a caller they reached an AI, and it
   // is the right thing to do regardless.
-  const greeting = [business.voice_disclosure, business.voice_greeting || `Thanks for calling ${business.name}. How can I help?`]
+  //
+  // The sentence after it is the important one. The most common complaint
+  // about AI receptionists is not that they are AI; it is that the caller
+  // could not work out how to reach a person. Knowing you may ask is not the
+  // same as knowing the words, so the words are said out loud, at the start,
+  // before anyone is frustrated enough to need them.
+  //
+  // Only when a transfer is actually possible. Offering to put someone
+  // through to a number that does not exist is worse than not offering.
+  const escapeHatch = business.call_handoff_number
+    ? "Say \"real person\" at any point and I'll put you through."
+    : "";
+
+  const greeting = [
+    business.voice_disclosure,
+    escapeHatch,
+    business.voice_greeting || `Thanks for calling ${business.name}. How can I help?`,
+  ]
     .filter(Boolean)
     .join(" ");
 

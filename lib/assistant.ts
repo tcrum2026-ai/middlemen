@@ -104,6 +104,14 @@ function voiceStyle(): string[] {
     `ENDING OR HANDING OFF THE CALL`,
     `- transfer_to_human: the caller asks for a person, is upset, raises an emergency or safety issue, or wants`,
     `  something you are not allowed to decide. Tell them you are putting them through, then call the tool.`,
+    `- Treat these as asking for a person even without the word: "is this a robot", "is anyone there",`,
+    `  "let me talk to someone", "I already said that", swearing, or asking for a named member of staff.`,
+    `  Do not ask them to rephrase it into the magic words. Put them through.`,
+    `- If you have failed to help with the same thing twice, stop trying a third time and transfer. Going round`,
+    `  a third loop is the single thing people hate most about talking to an assistant like you.`,
+    `- If speech recognition has mangled the same answer twice, transfer rather than asking a third time. Some`,
+    `  callers have an accent or a speech difference your transcription handles badly, and that is your`,
+    `  problem to absorb, not theirs to work around.`,
     `- end_call: only once the caller's business is genuinely finished and they have said goodbye or confirmed`,
     `  there is nothing else. Say goodbye first, then call the tool.`,
     `- If a transfer is not possible, say so plainly and take a message instead.`,
@@ -951,6 +959,29 @@ const CALL_WORDS = [
   "representative",
   "manager",
   "owner",
+  // People rarely use the words a matcher expects. These are the ones that
+  // actually turn up when somebody has given up on the assistant — the
+  // documented top complaint about assistants like this one is not that they
+  // are AI, it is that the way out could not be found.
+  "is this a robot",
+  "are you a robot",
+  "are you a bot",
+  "is this a bot",
+  "is anyone there",
+  "anyone there",
+  "a human",
+  "human being",
+  "customer service",
+  "let me speak",
+  "put me through",
+  "get me someone",
+  "i already said",
+  "i already told you",
+  "not what i asked",
+  "you're not helping",
+  "youre not helping",
+  "this is useless",
+  "this is ridiculous",
 ];
 const URGENT_WORDS = ["emergency", "urgent", "flooding", "leaking", "no heat", "burst", "spraying", "sewage"];
 const BOOK_WORDS = ["book", "appointment", "schedule", "come out", "visit", "slot"];

@@ -59,19 +59,31 @@ export function RoiCalculator({ planPrice = 149 }: { planPrice?: number }) {
   const [missedPct, setMissedPct] = useState(25);
   const [closePct, setClosePct] = useState(30);
   const [jobValue, setJobValue] = useState(450);
+  /**
+   * The assumption every calculator in this category leaves out.
+   *
+   * Vendor demos show 90%+ of enquiries handled without a person; measured
+   * production deployments land at 55–70%. Assuming the assistant recovers
+   * every missed enquiry would inflate the number on the right by roughly a
+   * third, and a customer who signed up on that arithmetic churns when their
+   * own reports disagree with it. The default sits at the middle of what is
+   * actually observed, and it is a dial rather than a constant.
+   */
+  const [handledPct, setHandledPct] = useState(65);
 
   const result = useMemo(() => {
     const weeksPerMonth = 4.33;
     const missedPerMonth = enquiries * weeksPerMonth * (missedPct / 100);
-    const wonPerMonth = missedPerMonth * (closePct / 100);
+    const handledPerMonth = missedPerMonth * (handledPct / 100);
+    const wonPerMonth = handledPerMonth * (closePct / 100);
     const recovered = wonPerMonth * jobValue;
     const minutesPerReply = 4;
     const hoursSaved = (enquiries * weeksPerMonth * minutesPerReply) / 60;
     const net = recovered - planPrice;
     const breakEvenJobs = jobValue > 0 ? planPrice / jobValue : 0;
 
-    return { missedPerMonth, wonPerMonth, recovered, hoursSaved, net, breakEvenJobs };
-  }, [enquiries, missedPct, closePct, jobValue, planPrice]);
+    return { missedPerMonth, handledPerMonth, wonPerMonth, recovered, hoursSaved, net, breakEvenJobs };
+  }, [enquiries, missedPct, handledPct, closePct, jobValue, planPrice]);
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
@@ -99,6 +111,17 @@ export function RoiCalculator({ planPrice = 149 }: { planPrice?: number }) {
           hint="After hours, mid-job, on another line, or lost in the pile."
         />
         <Slider
+          id="roi-handled"
+          label="Share of those the assistant handles on its own"
+          value={handledPct}
+          min={30}
+          max={90}
+          step={5}
+          onChange={setHandledPct}
+          format={(v) => `${v}%`}
+          hint="Demos in this category show 90%+. Measured deployments land at 55–70%, so that is where this starts."
+        />
+        <Slider
           id="roi-close"
           label="Your close rate on enquiries you do answer"
           value={closePct}
@@ -122,7 +145,9 @@ export function RoiCalculator({ planPrice = 149 }: { planPrice?: number }) {
 
         <p className="rounded-lg border border-ink-700 bg-ink-950 p-3.5 text-xs leading-relaxed text-mist-400">
           Nothing here counts the enquiries you already handle well. The figure on the right is only the ones that
-          currently go unanswered, answered too late, or lost in a pile — at the close rate you already achieve.
+          currently go unanswered, answered too late, or lost in a pile — at the close rate you already achieve,
+          and only the share the assistant gets to on its own. The rest still reach you, as a captured message
+          with a person attached; they are just not counted as won here.
         </p>
       </div>
 
@@ -132,11 +157,23 @@ export function RoiCalculator({ planPrice = 149 }: { planPrice?: number }) {
         <p className="mt-3 text-4xl font-semibold tabular-nums text-jade-400">{money(result.recovered)}</p>
         <p className="mt-1 text-sm text-mist-300">
           recovered from the{" "}
-          <span className="text-mist-100">{Math.round(result.missedPerMonth)} enquiries</span> you currently don&apos;t
-          get to, at your own close rate.
+          <span className="text-mist-100">{Math.round(result.handledPerMonth)}</span> of{" "}
+          <span className="text-mist-100">{Math.round(result.missedPerMonth)} missed enquiries</span> the assistant
+          answers on its own, at your own close rate.
         </p>
 
         <dl className="mt-6 space-y-3 border-t border-ink-800 pt-5 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-mist-400">Answered by the assistant</dt>
+            <dd className="tabular-nums">{Math.round(result.handledPerMonth)}/mo</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            {/* Said out loud, because it is the number a vendor would hide. */}
+            <dt className="text-mist-400">Still handed to you, with the context</dt>
+            <dd className="tabular-nums">
+              {Math.round(result.missedPerMonth - result.handledPerMonth)}/mo
+            </dd>
+          </div>
           <div className="flex justify-between gap-4">
             <dt className="text-mist-400">Jobs won that you&apos;d otherwise miss</dt>
             <dd className="tabular-nums">{Math.round(result.wonPerMonth)}/mo</dd>
@@ -165,9 +202,9 @@ export function RoiCalculator({ planPrice = 149 }: { planPrice?: number }) {
               ? "less than one recovered job"
               : `${Math.ceil(result.breakEvenJobs)} recovered jobs`}
           </span>{" "}
-          a month. This is your arithmetic, not our claim — we assume only that an instant, accurate reply converts
-          at the same rate as the ones you already answer, and that every enquiry you currently miss is one you
-          would have wanted.
+          a month. This is your arithmetic, not our claim. Every assumption in it is a dial you can move, including
+          the one most calculators like this hide: that the assistant handles every enquiry it is given. It does
+          not, and pricing your decision on the idea that it will is how people end up disappointed.
         </p>
       </div>
     </div>
