@@ -14,6 +14,7 @@
 
 import { chromium } from "playwright";
 import Database from "better-sqlite3";
+import { createHash, randomBytes } from "node:crypto";
 
 const DB = new URL("../.data/lobby.db", import.meta.url).pathname;
 const failures = [];
@@ -69,6 +70,33 @@ await page.goto("http://localhost:3000/dashboard/install", { waitUntil: "network
 await page.waitForTimeout(400);
 const snippet = await page.locator("pre").first().innerText();
 check(snippet.includes(biz.widget_key), "the install snippet carries their own widget key");
+
+/**
+ * Click the link, the way a real person would.
+ *
+ * Where platform mail is configured, an unconfirmed trial deliberately does
+ * not answer customers, so every check below would otherwise be testing the
+ * gate rather than the assistant. The stored token is a SHA-256, so minting
+ * one the same way the app does exercises exactly the path a mailed link
+ * takes.
+ */
+const pending = db
+  .prepare("SELECT token_hash FROM email_verifications WHERE user_id = ?")
+  .get(biz.owner_id);
+if (pending) {
+  const token = randomBytes(32).toString("base64url");
+  db.prepare("UPDATE email_verifications SET token_hash = ? WHERE user_id = ?")
+    .run(createHash("sha256").update(token).digest("hex"), biz.owner_id);
+  await page.goto(`http://localhost:3000/verify?token=${encodeURIComponent(token)}`, {
+    waitUntil: "networkidle",
+  });
+  const confirmed = db
+    .prepare("SELECT email_verified_at FROM users WHERE id = ?")
+    .get(biz.owner_id).email_verified_at;
+  check(Boolean(confirmed), "the emailed link confirms the address");
+} else {
+  console.log("· platform mail is not configured, so nothing asks for confirmation");
+}
 
 const chat = async (message) => {
   const r = await fetch("http://localhost:3000/api/chat", {

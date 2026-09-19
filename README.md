@@ -31,6 +31,16 @@ pipeline, a contacts CRM with a full per-customer timeline, an editable knowledg
 follow-up automations, an integrations directory, analytics, and a four-step onboarding
 flow that ends in one line of code.
 
+### Knowing when it needs you
+
+An escalation is only useful if someone finds out. `lib/notify.ts` posts to Slack when the
+workspace has connected it and emails the owner when the platform can send mail — throttled
+to one message per workspace per half hour, counting what arrived behind it, and only to an
+address that has been confirmed. Every path that leaves something in the queue goes through
+it, including the ones that used to leave silently: a refund request in the scripted engine,
+an unanswerable question, and a workspace whose subscription or allowance has stopped it
+answering.
+
 ### The three loops that make it get better
 
 - **Playground** (`/dashboard/playground`) — ask it anything with every tool in **dry-run**:

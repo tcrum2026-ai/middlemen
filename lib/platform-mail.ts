@@ -9,6 +9,18 @@ import "server-only";
  * spend a customer's sending reputation on our transactional mail.
  */
 
+/**
+ * Where platform mail is posted.
+ *
+ * Resend by default. Overridable because some deployments send through a
+ * Resend-compatible relay inside their own network — and because a mail path
+ * that can only be exercised against the real provider is a mail path nobody
+ * checks until a customer does not get their password reset.
+ */
+function endpoint(): string {
+  return (process.env.RESEND_API_BASE?.trim().replace(/\/$/, "") || "https://api.resend.com") + "/emails";
+}
+
 export function platformMailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY?.trim() && process.env.AUTH_FROM_EMAIL?.trim());
 }
@@ -30,7 +42,7 @@ export async function sendPlatformEmail(input: {
   }
 
   try {
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch(endpoint(), {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from, to: input.to, subject: input.subject, text: input.body }),

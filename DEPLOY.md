@@ -28,6 +28,14 @@ account that charges for Lobby. The Stripe key entered per workspace under **Int
 is the *customer's*, so their assistant can send their customers a payment link. They are
 never the same key.
 
+**Knowing something needs you.** When the assistant escalates — a refund, a question it
+cannot answer, a caller who wanted a person, a stopped subscription — it posts to Slack if
+that workspace has connected it, *and* emails the workspace owner. The email is throttled to
+one per workspace per half hour and mentions how many other things arrived behind it, so a
+busy Saturday is one message rather than forty. It goes only to an owner whose address has
+been confirmed. With no Slack and no platform mail, nothing tells anyone and the queue has to
+be checked by hand.
+
 Nothing else belongs in the environment — per-workspace keys (Resend, Twilio, Slack, Stripe) are
 entered in the dashboard under **Integrations** and stored per workspace.
 

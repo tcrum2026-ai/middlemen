@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ensureSeeded } from "@/lib/seed";
 import { QUOTAS, clientIp, rateLimitAll, tooManyRequests } from "@/lib/rate-limit";
 import { entitlement } from "@/lib/entitlement";
+import { notifyOperator } from "@/lib/notify";
 import { streamAssistantTurn } from "@/lib/assistant";
 import {
   addMessage,
@@ -99,6 +100,14 @@ export async function POST(request: Request) {
           draft: "",
           risk: "low",
           confidence: 0,
+        });
+        // The assistant has stopped answering for a reason the operator can
+        // fix. Leaving that to be discovered by opening the dashboard is how
+        // a lapsed card turns into a week of silently captured messages.
+        await notifyOperator(business, {
+          title: entitled.blockedTitle ?? "A message is waiting for you",
+          summary: `${entitled.blockedReason ?? ""}\n\nThey wrote: "${message.slice(0, 200)}"`,
+          path: "/dashboard/approvals",
         });
         send("done", { conversationId: thread.id, escalated: true, actions: [] });
         controller.close();

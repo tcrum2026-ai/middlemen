@@ -16,7 +16,8 @@ import {
   updateConversation,
   upsertContact,
 } from "./repo";
-import { notifySlack, sendEmail } from "./delivery";
+import { sendEmail } from "./delivery";
+import { notifyOperator } from "./notify";
 import type { AssistantAction, Business, Conversation, Message } from "./types";
 import { lastWholeSentence } from "./text";
 
@@ -492,12 +493,10 @@ function buildTools(
         label: "Queued a human callback",
         detail: `${input.reason} · ${input.urgency ?? "normal"}`,
       });
-      await notifySlack({
-        businessId: business.id,
-        text:
-          `:telephone_receiver: *Callback queued* (${input.urgency ?? "normal"})\n` +
-          `*${input.customer_name}*${input.phone ? ` · ${input.phone}` : ""}\n` +
-          `${input.reason}\n\n${input.brief}`,
+      await notifyOperator(business, {
+        title: `Callback queued: ${input.customer_name}${input.urgency === "urgent" ? " (urgent)" : ""}`,
+        summary: `${input.reason}${input.phone ? ` · ${input.phone}` : ""}\n\n${input.brief}`,
+        path: "/dashboard/calls",
       });
       return "Callback queued with a teammate. Tell the customer a person will call them, and when.";
     },
@@ -540,9 +539,10 @@ function buildTools(
       updateConversation(conversation.id, { status: "waiting" });
       markEscalated();
       record({ tool: "send_to_human_review", label: "Sent for teammate approval", detail: input.title });
-      await notifySlack({
-        businessId: business.id,
-        text: `:shield: *Needs approval* (${input.risk ?? "medium"} risk)\n*${input.title}*\n${input.summary}`,
+      await notifyOperator(business, {
+        title: `Needs approval: ${input.title}`,
+        summary: `${input.summary} (${input.risk ?? "medium"} risk)`,
+        path: "/dashboard/approvals",
       });
       return "Held for approval. Tell the customer a teammate is reviewing and when to expect an answer — promise nothing else.";
     },
@@ -1090,6 +1090,13 @@ async function simulateTurn(args: {
       confidence: 0.4,
     });
     record({ tool: "send_to_human_review", label: "Sent for teammate approval", detail: "Refund / warranty request" });
+    if (!dryRun) {
+      await notifyOperator(business, {
+        title: "Refund or warranty request",
+        summary: `They wrote: "${last?.body ?? ""}"`,
+        path: "/dashboard/approvals",
+      });
+    }
     markEscalated();
     escalated = true;
     reply =
@@ -1105,9 +1112,10 @@ async function simulateTurn(args: {
       preferred_window: "As soon as possible",
         brief: `Customer wrote: "${last?.body ?? ""}". Channel: ${conversation.channel}. No commitments made yet.`,
       });
-      await notifySlack({
-        businessId: business.id,
-        text: `:telephone_receiver: *Callback queued*\n${last?.body ?? ""}`,
+      await notifyOperator(business, {
+        title: hits(text, URGENT_WORDS) ? "Possible emergency raised in chat" : "Someone asked for a person",
+        summary: `They wrote: "${last?.body ?? ""}"`,
+        path: "/dashboard/calls",
       });
     }
     record({ tool: "request_human_callback", label: "Queued a human callback", detail: "Human call requested" });
@@ -1145,6 +1153,13 @@ async function simulateTurn(args: {
       confidence: 0.3,
     });
     record({ tool: "send_to_human_review", label: "Sent for teammate approval", detail: "No knowledge base match" });
+    if (!dryRun) {
+      await notifyOperator(business, {
+        title: "A question outside the knowledge base",
+        summary: `They asked: "${last?.body ?? ""}"\n\nThe assistant said it would check with a person rather than guess.`,
+        path: "/dashboard/approvals",
+      });
+    }
     markEscalated();
     escalated = true;
     reply =
