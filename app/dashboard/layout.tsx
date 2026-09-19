@@ -6,6 +6,9 @@ import { switchBusinessAction } from "./actions";
 import { BusinessSwitcher } from "./business-switcher";
 import { Logo } from "@/components/ui";
 import { workspace } from "@/lib/session";
+import { needsVerification } from "@/lib/auth";
+import { entitlement } from "@/lib/entitlement";
+import { VerifyBanner } from "./verify-banner";
 import { signOutAction } from "@/app/auth-actions";
 import { listApprovals, listCallRequests, listConversations, listKbGaps } from "@/lib/repo";
 import { assistantConfigured } from "@/lib/assistant";
@@ -80,6 +83,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </div>
         </div>
       </header>
+
+      {user && needsVerification(user) ? (
+        <VerifyBanner email={user.email} blocking={entitlement(business).blockedTitle?.includes("email") ?? false} />
+      ) : null}
 
       {!canWrite ? (
         <div className="border-b border-amber-glow/25 bg-amber-glow/[0.06]">

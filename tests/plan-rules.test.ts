@@ -63,6 +63,33 @@ describe("blockFor — who gets served", () => {
   });
 });
 
+describe("blockFor — an unconfirmed email on a trial", () => {
+  it("stops a trial whose owner has not confirmed their address", () => {
+    const block = blockFor(input({ status: "trialing", trialEndsAt: NOW + 7 * DAY, ownerUnverified: true }))!;
+    assert.match(block.reason, /Confirm your email/);
+  });
+
+  it("never stops a paying customer over it", () => {
+    // They have been charged. Holding their service hostage over an unclicked
+    // link is a different trade entirely.
+    assert.equal(blockFor(input({ status: "active", ownerUnverified: true })), null);
+  });
+
+  it("is irrelevant once they have confirmed", () => {
+    assert.equal(blockFor(input({ status: "trialing", trialEndsAt: NOW + 7 * DAY, ownerUnverified: false })), null);
+  });
+
+  it("does nothing when the flag is absent, which is how an unconfigured deployment reads", () => {
+    // No platform mail means no link to click, so nothing may demand one.
+    assert.equal(blockFor(input({ status: "trialing", trialEndsAt: NOW + 7 * DAY })), null);
+  });
+
+  it("reports an expired trial rather than the unconfirmed address", () => {
+    const block = blockFor(input({ status: "trialing", trialEndsAt: NOW - DAY, ownerUnverified: true }))!;
+    assert.match(block.reason, /trial has ended/);
+  });
+});
+
 describe("blockFor — the allowance boundary", () => {
   it("serves the last conversation inside the allowance", () => {
     assert.equal(blockFor(input({ conversationsUsed: 999 })), null);

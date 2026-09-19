@@ -13,7 +13,7 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `NEXT_PUBLIC_LEGAL_ENTITY` | Privacy policy and terms | Your legal name. Until it, the contact address and the jurisdiction are all set, both pages show a visible "not ready to publish" banner. |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Legal pages, Enterprise plan | Also what the "Contact sales" button mails. Unset, that plan shows "Start free" rather than offering a conversation nobody can have. |
 | `NEXT_PUBLIC_LEGAL_JURISDICTION` | Terms | e.g. `England and Wales`. |
-| `RESEND_API_KEY` + `AUTH_FROM_EMAIL` | Password reset email | Platform mail, separate from the per-workspace Resend keys entered in the dashboard. Without both, `/forgot` tells the visitor that reset email isn't set up rather than pretending to send. |
+| `RESEND_API_KEY` + `AUTH_FROM_EMAIL` | Password reset **and email verification** | Platform mail, separate from the per-workspace Resend keys entered in the dashboard. Without both, `/forgot` tells the visitor that reset email isn't set up rather than pretending to send, and email verification is switched off entirely — a trial that cannot be confirmed is not held back for failing to confirm. |
 | `VOICE_BRIDGE_SECRET` | Answering phone calls | Shared secret between the app and the voice bridge. The bridge will not start without it, and `/api/voice/turn` returns 503 until it is set. |
 | `VOICE_BRIDGE_URL` / `VOICE_BRIDGE_PORT` | Answering phone calls | The `wss://` URL Twilio connects to, and the port the bridge listens on. The URL must be publicly reachable and TLS-terminated. |
 | `VOICE_APP_URL` | Answering phone calls | Where the bridge reaches the app. `http://127.0.0.1:3000` when both run on the same host. |
@@ -138,8 +138,11 @@ drop it from `next.config.ts` if you serve this on a domain you also need over p
 
 ## 6. Known gaps
 
-- No email verification on sign-up. Password reset works (`RESEND_API_KEY` + `AUTH_FROM_EMAIL`);
-  verifying the address at sign-up does not exist yet.
+- Email verification only exists where platform mail does. With `RESEND_API_KEY` and
+  `AUTH_FROM_EMAIL` set, sign-up mails a link, an unconfirmed **trial** does not answer
+  customers (their messages are captured and queued, never dropped), and the dashboard carries a
+  banner with a resend button. Without those two variables there is no link to send, so nothing
+  asks for one and anyone can sign up with any address. If you are taking real sign-ups, set them.
 - **Voice overage is measured but not charged.** Answered-call minutes are metered accurately and
   the billing page shows what the overage is worth, but nothing reports that usage to Stripe, so
   no invoice picks it up. Bill it yourself, or drop the per-minute line from the plans until it is

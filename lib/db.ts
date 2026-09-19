@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
+  email_verified_at TEXT,
   created_at TEXT NOT NULL
 );
 
@@ -23,6 +24,14 @@ CREATE TABLE IF NOT EXISTS sessions (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TEXT NOT NULL,
   expires_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS password_resets (
@@ -283,6 +292,7 @@ const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
   { table: "businesses", column: "stripe_subscription_id", ddl: "ALTER TABLE businesses ADD COLUMN stripe_subscription_id TEXT" },
   { table: "conversations", column: "duration_seconds", ddl: "ALTER TABLE conversations ADD COLUMN duration_seconds INTEGER NOT NULL DEFAULT 0" },
   { table: "quotes", column: "payment_url", ddl: "ALTER TABLE quotes ADD COLUMN payment_url TEXT" },
+  { table: "users", column: "email_verified_at", ddl: "ALTER TABLE users ADD COLUMN email_verified_at TEXT" },
   {
     table: "businesses",
     column: "model",

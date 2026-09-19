@@ -32,6 +32,12 @@ export interface RuleInput {
   now: number;
   conversationsUsed: number;
   allowance: Allowance;
+  /**
+   * True when the owner has not confirmed their email address *and* this
+   * deployment can actually send them a link. Never true where platform mail
+   * is unconfigured, because then there is nothing they could do about it.
+   */
+  ownerUnverified?: boolean;
 }
 
 /**
@@ -64,6 +70,20 @@ export function blockFor(input: RuleInput): Block | null {
     return {
       title: "Needs a reply — trial ended",
       reason: "The free trial has ended. Choose a plan to start answering again.",
+    };
+  }
+
+  /**
+   * A trial spends real money — model calls and, if voice is on, carrier
+   * minutes — on an address nobody has proved they can receive. That is the
+   * whole shape of trial farming. Paid plans are not gated on it: they have
+   * already been charged, and holding a paying customer's service hostage
+   * over an unclicked link is not the same trade at all.
+   */
+  if (input.status === "trialing" && input.ownerUnverified) {
+    return {
+      title: "Needs a reply — email not confirmed",
+      reason: "Confirm your email address and the assistant starts answering.",
     };
   }
 

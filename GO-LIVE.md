@@ -49,8 +49,11 @@ None of these are required to go live; the widget alone works on day one.
 
 - [ ] **Website** — paste the one-line snippet from Install onto your site.
 - [ ] **Email sending** — Integrations → Resend, with a from-address on a verified domain.
-- [ ] **Password reset email** — `RESEND_API_KEY` + `AUTH_FROM_EMAIL`. Until both are set, a
-      locked-out user cannot get back in on their own.
+- [ ] **Password reset and email verification** — `RESEND_API_KEY` + `AUTH_FROM_EMAIL`. Until
+      both are set, a locked-out user cannot get back in on their own, *and* email verification is
+      off — meaning anyone can sign up with any address and burn a trial's worth of model and
+      carrier spend on one you cannot reach. Set these before you advertise the trial. Confirm it
+      by signing up as yourself and checking the link arrives.
 - [ ] **Inbound email** — `INBOUND_EMAIL_SECRET` *and* `INBOUND_EMAIL_DOMAIN`, then route mail to
       `POST /api/webhooks/email`. The webhook rejects everything until the secret is set.
 - [ ] **SMS** — Integrations → Twilio, then point the number's webhook at

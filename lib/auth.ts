@@ -3,6 +3,7 @@ import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } fr
 import { promisify } from "node:util";
 import { cookies } from "next/headers";
 import { getDb, id, now } from "./db";
+import { platformMailConfigured } from "./platform-mail";
 
 const scrypt = promisify(scryptCallback) as (
   password: string,
@@ -18,6 +19,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  /** Null until they click the link we mailed them. */
+  email_verified_at: string | null;
   created_at: string;
 }
 
@@ -66,10 +69,16 @@ export async function createUser(input: {
     return { error: "An account with that email already exists." };
   }
 
-  const user: User = { id: id("usr"), email, name: input.name.trim(), created_at: now() };
+  const user: User = {
+    id: id("usr"),
+    email,
+    name: input.name.trim(),
+    email_verified_at: null,
+    created_at: now(),
+  };
   db.prepare(
-    `INSERT INTO users (id, email, name, password_hash, created_at)
-     VALUES (@id, @email, @name, @password_hash, @created_at)`,
+    `INSERT INTO users (id, email, name, password_hash, email_verified_at, created_at)
+     VALUES (@id, @email, @name, @password_hash, @email_verified_at, @created_at)`,
   ).run({ ...user, password_hash: await hashPassword(input.password) });
 
   return { user };
@@ -85,7 +94,13 @@ export async function authenticate(email: string, password: string): Promise<Use
     return null;
   }
   if (!(await verifyPassword(password, row.password_hash))) return null;
-  return { id: row.id, email: row.email, name: row.name, created_at: row.created_at };
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    email_verified_at: row.email_verified_at,
+    created_at: row.created_at,
+  };
 }
 
 export async function startSession(userId: string): Promise<void> {
@@ -132,7 +147,7 @@ export async function currentUser(): Promise<User | null> {
     return null;
   }
 
-  return (db.prepare("SELECT id, email, name, created_at FROM users WHERE id = ?").get(session.user_id) as User) ?? null;
+  return (db.prepare("SELECT id, email, name, email_verified_at, created_at FROM users WHERE id = ?").get(session.user_id) as User) ?? null;
 }
 
 export function purgeExpiredSessions(): void {
@@ -154,7 +169,7 @@ export function createPasswordReset(rawEmail: string): { token: string; user: Us
   const email = normalizeEmail(rawEmail);
   const db = getDb();
   const user = db
-    .prepare("SELECT id, email, name, created_at FROM users WHERE email = ?")
+    .prepare("SELECT id, email, name, email_verified_at, created_at FROM users WHERE email = ?")
     .get(email) as User | undefined;
   if (!user) return null;
 
@@ -203,4 +218,88 @@ export async function completePasswordReset(token: string, password: string): Pr
 
 export function purgeExpiredResets(): void {
   getDb().prepare("DELETE FROM password_resets WHERE expires_at < ?").run(now());
+}
+
+
+/* ------------------------------------------------------------ verification */
+
+const VERIFY_HOURS = 48;
+
+/**
+ * Proves the address on an account can actually receive mail.
+ *
+ * Only meaningful where the platform can send: without RESEND_API_KEY and
+ * AUTH_FROM_EMAIL there is no way to deliver a link, so nothing anywhere
+ * should demand one. Same rule as password reset — the product says what it
+ * cannot do rather than pretending.
+ */
+export function verificationAvailable(): boolean {
+  return platformMailConfigured();
+}
+
+/** True when this account still needs to prove its address, and could. */
+export function needsVerification(user: User | null): boolean {
+  return Boolean(user && !user.email_verified_at && verificationAvailable());
+}
+
+/**
+ * Mints a fresh link, invalidating any previous one.
+ *
+ * Returns the raw token, which exists only in the email — the database keeps
+ * a SHA-256 of it, so a copy of the table is not a set of working links.
+ */
+export function createEmailVerification(userId: string): string {
+  const db = getDb();
+  db.prepare("DELETE FROM email_verifications WHERE user_id = ?").run(userId);
+
+  const token = randomBytes(32).toString("base64url");
+  db.prepare(
+    "INSERT INTO email_verifications (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+  ).run(tokenHash(token), userId, now(), new Date(Date.now() + VERIFY_HOURS * 3_600_000).toISOString());
+  return token;
+}
+
+export type VerifyOutcome = { ok: true; user: User } | { ok: false; error: string };
+
+/** Spends a verification token and marks the address confirmed. */
+export function completeEmailVerification(token: string): VerifyOutcome {
+  const db = getDb();
+  const row = db
+    .prepare("SELECT user_id, expires_at, used_at FROM email_verifications WHERE token_hash = ?")
+    .get(tokenHash(token)) as { user_id: string; expires_at: string; used_at: string | null } | undefined;
+
+  if (!row) return { ok: false, error: "That link isn't valid. Ask for a new one from your dashboard." };
+  if (row.used_at) {
+    // Already spent is not a failure worth alarming anyone about: mail clients
+    // pre-fetch links, so the common cause is the person clicking twice.
+    const user = getUserById(row.user_id);
+    return user?.email_verified_at
+      ? { ok: true, user }
+      : { ok: false, error: "That link has already been used. Ask for a new one." };
+  }
+  if (new Date(row.expires_at).getTime() < Date.now()) {
+    db.prepare("DELETE FROM email_verifications WHERE token_hash = ?").run(tokenHash(token));
+    return { ok: false, error: "That link has expired. Ask for a new one from your dashboard." };
+  }
+
+  const stamp = now();
+  db.transaction(() => {
+    db.prepare("UPDATE users SET email_verified_at = ? WHERE id = ?").run(stamp, row.user_id);
+    db.prepare("UPDATE email_verifications SET used_at = ? WHERE token_hash = ?").run(stamp, tokenHash(token));
+  })();
+
+  const user = getUserById(row.user_id);
+  return user ? { ok: true, user } : { ok: false, error: "That account no longer exists." };
+}
+
+export function getUserById(userId: string): User | null {
+  return (
+    (getDb()
+      .prepare("SELECT id, email, name, email_verified_at, created_at FROM users WHERE id = ?")
+      .get(userId) as User) ?? null
+  );
+}
+
+export function purgeExpiredVerifications(): void {
+  getDb().prepare("DELETE FROM email_verifications WHERE expires_at < ?").run(now());
 }

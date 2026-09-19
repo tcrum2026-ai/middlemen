@@ -1,5 +1,6 @@
 import "server-only";
 import { getDb } from "./db";
+import { getUserById, needsVerification } from "./auth";
 import { TRIAL_ALLOWANCE, planById, type Plan } from "./marketing";
 import { blockFor, overage, trialDaysLeft, type Allowance } from "./plan-rules";
 import type { Business } from "./types";
@@ -79,6 +80,9 @@ export function entitlement(business: Business): Entitlement {
     now,
     conversationsUsed: conversations,
     allowance,
+    // Only looked up while trialing: this runs on every inbound message, and
+    // a paid workspace has no reason to pay for the query.
+    ownerUnverified: trialing && needsVerification(business.owner_id ? getUserById(business.owner_id) : null),
   });
 
   const over = overage(voiceMinutes, allowance, plan.overagePerMinute, trialing);

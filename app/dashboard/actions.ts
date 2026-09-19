@@ -39,6 +39,8 @@ import {
   requireWritableBusiness,
   workspace,
 } from "@/lib/session";
+import { verificationAvailable } from "@/lib/auth";
+import { sendVerificationEmail } from "@/lib/verify-mail";
 import { getTemplate } from "@/lib/templates";
 import { createPaymentLink, sendEmail, sendSms } from "@/lib/delivery";
 import { disconnect, saveCredentials } from "@/lib/integrations";
@@ -385,6 +387,33 @@ export async function deleteKbAction(data: FormData) {
 }
 
 /* ---------------------------------------------------------- integrations */
+
+/* ---------------------------------------------------------- verification */
+
+/**
+ * Sends a fresh confirmation link to the signed-in user's own address.
+ *
+ * Rate-limited per account rather than per address, because the address is
+ * not the attacker-controlled part here — the session is. Always reports the
+ * same thing, so this cannot be used to work out whether mail is landing.
+ */
+export async function resendVerificationAction(): Promise<{ sent: boolean; message: string }> {
+  const { user } = await workspace();
+  if (!user) return { sent: false, message: "Sign in first." };
+  if (user.email_verified_at) return { sent: true, message: "That address is already confirmed." };
+  if (!verificationAvailable()) {
+    return { sent: false, message: "This deployment cannot send email, so there is nothing to confirm." };
+  }
+
+  if (!rateLimit(`verify:${user.id}`, QUOTAS.signUpPerIp).ok) {
+    return { sent: false, message: "A link was sent recently. Check your spam folder before asking again." };
+  }
+
+  const result = await sendVerificationEmail(user);
+  return result.sent
+    ? { sent: true, message: `Sent to ${user.email}. The link works for two days.` }
+    : { sent: false, message: "Could not send it just now. Try again in a few minutes." };
+}
 
 /* -------------------------------------------------------------- settings */
 

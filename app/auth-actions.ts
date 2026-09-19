@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { authenticate, createUser, endSession, startSession } from "@/lib/auth";
+import { sendVerificationEmail } from "@/lib/verify-mail";
 import { ensureSeeded } from "@/lib/seed";
 import { BUSINESS_COOKIE } from "@/lib/session";
 import { QUOTAS, rateLimitAll } from "@/lib/rate-limit";
@@ -76,6 +77,10 @@ export async function signUpAction(_prev: { error?: string } | null, data: FormD
     password: field(data, "password"),
   });
   if ("error" in result) return result;
+
+  // Best effort: a mail provider being down must not stop someone signing up.
+  // The dashboard shows an unverified banner with a resend either way.
+  void sendVerificationEmail(result.user).catch(() => {});
 
   await startSession(result.user.id);
   redirect("/connect");
