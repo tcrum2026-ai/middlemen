@@ -27,6 +27,15 @@ export function priceIdFor(plan: PlanId): string {
   ).trim();
 }
 
+/** Every configured price id, for turning one back into a plan. */
+export function configuredPrices(): Record<PlanId, string> {
+  return {
+    starter: priceIdFor("starter"),
+    pro: priceIdFor("pro"),
+    business: priceIdFor("business"),
+  };
+}
+
 export interface CheckoutResult {
   url?: string;
   error?: string;

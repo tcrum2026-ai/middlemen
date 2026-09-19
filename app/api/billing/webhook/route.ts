@@ -1,5 +1,7 @@
 import { ensureSeeded } from "@/lib/seed";
-import { stripeSignatureValid } from "@/lib/billing";
+import { configuredPrices, stripeSignatureValid } from "@/lib/billing";
+import { planForPrice } from "@/lib/plan-rules";
+import { PLANS } from "@/lib/marketing";
 import { getBusiness, setSubscription } from "@/lib/repo";
 import type { PlanId } from "@/lib/marketing";
 import type { Business } from "@/lib/types";
@@ -54,7 +56,28 @@ export async function POST(request: Request) {
     return Response.json({ received: true });
   }
 
-  const plan = (metadata.plan as PlanId) || business.plan;
+  /**
+   * What they are actually being billed for.
+   *
+   * The price wins over metadata.plan. We write that metadata once, when
+   * Checkout creates the subscription, and Stripe never rewrites it — so
+   * after a plan switch in the billing portal the metadata still names the
+   * plan they originally bought while the price names the one they now pay
+   * for. Believing the metadata would let someone subscribe to Business,
+   * downgrade to Starter in the portal, and keep Business's allowances at
+   * Starter's price; the same bug the other way round caps a customer who
+   * upgraded at the limits they paid to leave behind.
+   *
+   * Metadata is still the fallback for the first checkout.session.completed,
+   * where no price is on the object, and an unrecognised plan id is dropped
+   * rather than cast into one.
+   */
+  const fromPrice = planForPrice(object, configuredPrices());
+  const fromMetadata = PLANS.some((p) => p.id === metadata.plan) ? (metadata.plan as PlanId) : null;
+  const plan = fromPrice ?? fromMetadata ?? business.plan;
+  if (fromPrice && fromMetadata && fromPrice !== fromMetadata) {
+    console.info(`Workspace ${business.id} is on ${fromPrice}; its subscription metadata still says ${fromMetadata}.`);
+  }
   const customer = typeof object.customer === "string" ? object.customer : business.stripe_customer_id;
   const subscription =
     typeof object.subscription === "string"

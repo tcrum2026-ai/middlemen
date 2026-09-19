@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { blockFor, overage, trialDaysLeft, type RuleInput } from "../lib/plan-rules.ts";
+import { blockFor, overage, planForPrice, trialDaysLeft, type RuleInput } from "../lib/plan-rules.ts";
 
 /**
  * These rules decide whether a paying customer's phone gets answered. Getting
@@ -140,5 +140,54 @@ describe("overage", () => {
 
   it("rounds to whole cents rather than carrying a fraction onto an invoice", () => {
     assert.deepEqual(overage(253, ALLOWANCE, 0.333, false), { minutes: 3, cents: 100 });
+  });
+});
+
+describe("planForPrice — what they are actually billed for", () => {
+  const PRICES = { starter: "price_S", pro: "price_P", business: "price_B" } as const;
+
+  it("reads a subscription's current price", () => {
+    const subscription = { items: { data: [{ price: { id: "price_P" } }] } };
+    assert.equal(planForPrice(subscription, PRICES), "pro");
+  });
+
+  it("believes the price over stale metadata after a portal downgrade", () => {
+    // The exact case this exists for: bought Business, switched to Starter in
+    // Stripe's portal. Stripe swaps the price and leaves the metadata alone.
+    const subscription = {
+      metadata: { plan: "business" },
+      items: { data: [{ price: { id: "price_S" } }] },
+    };
+    assert.equal(planForPrice(subscription, PRICES), "starter");
+  });
+
+  it("reads an invoice line on the older Stripe shape", () => {
+    assert.equal(planForPrice({ lines: { data: [{ price: { id: "price_B" } }] } }, PRICES), "business");
+  });
+
+  it("reads an invoice line on the newer Stripe shape", () => {
+    const invoice = { lines: { data: [{ pricing: { price_details: { price: "price_B" } } }] } };
+    assert.equal(planForPrice(invoice, PRICES), "business");
+  });
+
+  it("returns null for a price we do not recognise, rather than guessing", () => {
+    assert.equal(planForPrice({ items: { data: [{ price: { id: "price_someone_elses" } }] } }, PRICES), null);
+  });
+
+  it("returns null when nothing on the object carries a price", () => {
+    assert.equal(planForPrice({ id: "cs_1", metadata: { plan: "pro" } }, PRICES), null);
+    assert.equal(planForPrice({ items: { data: [] } }, PRICES), null);
+    assert.equal(planForPrice(null, PRICES), null);
+    assert.equal(planForPrice("nonsense", PRICES), null);
+  });
+
+  it("never matches a price id that is not configured", () => {
+    // An empty env var must not make every unpriced object look like Starter.
+    assert.equal(planForPrice({ items: { data: [{ price: { id: "" } }] } }, { starter: "", pro: "price_P" }), null);
+  });
+
+  it("survives a malformed payload without throwing", () => {
+    assert.equal(planForPrice({ items: { data: [null, 3, { price: null }] } }, PRICES), null);
+    assert.equal(planForPrice({ items: "not an object" }, PRICES), null);
   });
 });

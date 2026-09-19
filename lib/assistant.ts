@@ -984,6 +984,23 @@ const CALL_WORDS = [
   "this is ridiculous",
 ];
 const URGENT_WORDS = ["emergency", "urgent", "flooding", "leaking", "no heat", "burst", "spraying", "sewage"];
+
+/**
+ * "Do you do emergency callouts on a Sunday?" is a question about the service.
+ * "It's flooding" is an emergency. The keyword is identical and the right
+ * response is opposite — one wants an answer from the price list, the other
+ * wants a person, now. These are the shapes a question takes.
+ */
+const ASKING_ABOUT = [
+  "do you", "do u", "can you", "could you", "are you", "is there", "have you",
+  "what is", "whats", "what's", "how much", "how do", "how does", "when do",
+  "when are", "do i", "would you", "will you", "any chance",
+];
+
+/** True when the message reads as a question about a service, not a report of one. */
+function askingAbout(text: string): boolean {
+  return ASKING_ABOUT.some((phrase) => text.includes(phrase));
+}
 const BOOK_WORDS = ["book", "appointment", "schedule", "come out", "visit", "slot"];
 const PRICE_WORDS = ["price", "cost", "quote", "how much", "pricing", "rate", "fee", "charge", "estimate", "ballpark", "$"];
 const REFUND_WORDS = ["refund", "money back", "warranty", "complaint", "lawyer", "dispute"];
@@ -1052,6 +1069,13 @@ async function simulateTurn(args: {
       label: "Checked knowledge base",
       detail: articles.map((a) => a.title).join(" · "),
     });
+  } else if (!dryRun && (last?.body ?? "").trim().length >= 4 && !hits(text, GOODBYE_WORDS)) {
+    // Recorded here, before the routing below, rather than only in the branch
+    // that falls all the way through. A question the knowledge base cannot
+    // answer is a gap whatever the assistant then chooses to do about it —
+    // and the ones that get queued for a callback or escalated are the
+    // expensive ones, so they are exactly the gaps worth knowing about.
+    recordKbGap(business.id, last?.body ?? "");
   }
 
   if (hits(text, REFUND_WORDS)) {
@@ -1071,7 +1095,7 @@ async function simulateTurn(args: {
     reply =
       "I'm sorry about that. Refunds and warranty claims go to a teammate rather than to me, so I've passed the " +
       "details over and someone will come back to you today.";
-  } else if (hits(text, CALL_WORDS) || hits(text, URGENT_WORDS)) {
+  } else if (hits(text, CALL_WORDS) || (hits(text, URGENT_WORDS) && !askingAbout(text))) {
     if (!dryRun) {
       createCallRequest({
       business_id: business.id,
@@ -1109,7 +1133,7 @@ async function simulateTurn(args: {
   } else if (articles.length > 0) {
     reply = `${articles[0].body}\n\nAnything else I can pull up for you?`;
   } else {
-    if (!dryRun) recordKbGap(business.id, last?.body ?? "");
+    // The gap was already recorded above, when the search came back empty.
     if (!dryRun) createApproval({
       business_id: business.id,
       conversation_id: conversation.id,
