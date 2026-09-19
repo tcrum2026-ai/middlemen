@@ -18,6 +18,7 @@ import {
 } from "./repo";
 import { sendEmail } from "./delivery";
 import { notifyOperator } from "./notify";
+import { busyFromFeed } from "./calendar-feed";
 import type { AssistantAction, Business, Conversation, Message } from "./types";
 import { lastWholeSentence } from "./text";
 
@@ -241,9 +242,9 @@ function buildTools(
       required: [],
       additionalProperties: false,
     },
-    run: (input) => {
+    run: async (input) => {
       const days = Math.min(Math.max(input.days_ahead ?? 7, 1), 14);
-      const slots = availableSlots(business.id, days).slice(0, 12);
+      const slots = availableSlots(business.id, days, 30, await busyFromFeed(business.id)).slice(0, 12);
       record({
         tool: "check_availability",
         label: "Checked calendar",
@@ -1146,7 +1147,7 @@ async function simulateTurn(args: {
       PRICE_WORDS,
     )}\n\nWant me to check availability for a visit?`;
   } else if (hits(text, BOOK_WORDS)) {
-    const slots = availableSlots(business.id, 7).slice(0, 3);
+    const slots = availableSlots(business.id, 7, 30, await busyFromFeed(business.id)).slice(0, 3);
     record({ tool: "check_availability", label: "Checked calendar", detail: `${slots.length} slots offered` });
     reply = slots.length
       ? `Happy to get you on the schedule. I have ${slots

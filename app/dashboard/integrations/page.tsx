@@ -6,6 +6,7 @@ import { CheckIcon, PlugIcon, SparkIcon } from "@/components/icons";
 import { assistantConfigured } from "@/lib/assistant";
 import { disconnectIntegrationAction, saveIntegrationAction } from "../actions";
 import { activeBusiness } from "@/lib/session";
+import { feedStatus } from "@/lib/calendar-feed";
 import { PROVIDERS, isConnected, maskedCredentials } from "@/lib/integrations";
 import { listDeliveries } from "@/lib/delivery";
 
@@ -32,6 +33,7 @@ export default async function IntegrationsPage() {
   const business = await activeBusiness();
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
+  const calendar = await feedStatus(business.id);
   const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
   const deliveries = listDeliveries(business.id, 8);
   const brainLive = assistantConfigured();
@@ -129,6 +131,7 @@ export default async function IntegrationsPage() {
         <div className="space-y-4">
           {PROVIDERS.map((provider) => {
             const connected = isConnected(business.id, provider.id);
+            const health = provider.id === "calendar-feed" ? calendar : null;
             const saved = maskedCredentials(business.id, provider.id);
             return (
               <Card key={provider.id} className="!p-0">
@@ -140,6 +143,30 @@ export default async function IntegrationsPage() {
                   </div>
                   {connected ? <Badge tone="jade">connected</Badge> : <Badge tone="slate">not connected</Badge>}
                 </div>
+
+                {/* A calendar feed that has quietly stopped resolving means
+                    the assistant is double-booking again, and nothing else
+                    on this page would say so. */}
+                {health?.connected ? (
+                  <p
+                    className={`border-b border-ink-700 px-5 py-2.5 text-xs ${
+                      health.error ? "bg-amber-glow/[0.06] text-mist-200" : "text-mist-400"
+                    }`}
+                  >
+                    {health.error ? (
+                      <>
+                        <span className="font-medium text-amber-glow">Could not read your calendar</span> —{" "}
+                        {health.error}. Until it works, the assistant only knows about bookings it made itself, so
+                        it can offer a time you are not free.
+                      </>
+                    ) : (
+                      <>
+                        Read {health.events} commitment{health.events === 1 ? "" : "s"} from your calendar in the
+                        next 30 days. Those times are not offered to customers.
+                      </>
+                    )}
+                  </p>
+                ) : null}
 
                 <div className="grid gap-5 p-5 lg:grid-cols-[1.4fr_1fr]">
                   <form action={saveIntegrationAction} className="space-y-3">

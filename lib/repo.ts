@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { getDb, id, now } from "./db";
 import { TRIAL_DAYS } from "./marketing";
+import { overlapsBusy, type BusyInterval } from "./ical";
 import type {
   ActivityEvent,
   AutomationKind,
@@ -552,7 +553,20 @@ export function setAppointmentStatus(appointmentId: string, status: Appointment[
 }
 
 /** Free slots for the next `days` days, respecting the business's weekly hours. */
-export function availableSlots(businessId: string, days = 7, slotMinutes = 30): string[] {
+/**
+ * Bookable times over the next `days`.
+ *
+ * `externalBusy` is the owner's own calendar, fetched by the caller — this
+ * module does no network. Without it the only commitments visible are the
+ * ones Lobby made itself, which is how the assistant used to book customers
+ * on top of a dentist appointment nobody had told it about.
+ */
+export function availableSlots(
+  businessId: string,
+  days = 7,
+  slotMinutes = 30,
+  externalBusy: BusyInterval[] = [],
+): string[] {
   const business = getBusiness(businessId);
   if (!business) return [];
   const booked = new Set(
@@ -582,7 +596,9 @@ export function availableSlots(businessId: string, days = 7, slotMinutes = 30): 
     for (let t = new Date(start); t < end; t = new Date(t.getTime() + slotMinutes * 60_000)) {
       if (t.getTime() < Date.now()) continue;
       const iso = t.toISOString();
-      if (!booked.has(iso.slice(0, 16))) slots.push(iso);
+      if (booked.has(iso.slice(0, 16))) continue;
+      if (overlapsBusy(t.getTime(), t.getTime() + slotMinutes * 60_000, externalBusy)) continue;
+      slots.push(iso);
     }
   }
   return slots;

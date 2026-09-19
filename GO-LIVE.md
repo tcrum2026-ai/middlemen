@@ -64,7 +64,12 @@ None of these are required to go live; the widget alone works on day one.
       and listen for the AI disclosure at the start. Check your recording and consent obligations
       where you are and where your callers are — Lobby stores transcripts, not audio, but if you
       enable recording at Twilio that is yours to disclose.
-- [ ] **Calendar** — subscribe to the `.ics` URL from Integrations in Google, Apple or Outlook.
+- [ ] **Calendar, both ways.** Subscribe to the `.ics` URL from Integrations so Lobby's bookings
+      show up in your calendar, *and* paste your calendar's secret iCal address into Integrations →
+      Your calendar so Lobby can see what you are already committed to. Without the second one it
+      only knows about bookings it made itself, and will happily offer a customer the hour you are
+      at the dentist. Check the line under that integration says it read your commitments — if it
+      says it could not, the feed is not working and you are back to double-bookings.
 
 ## 4b. Turn on payment
 

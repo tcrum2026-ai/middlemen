@@ -79,7 +79,8 @@ All of this is done in the dashboard, per workspace:
 | What | Where | What you paste |
 | --- | --- | --- |
 | Website widget | Install | One `<script>` tag on your site |
-| Calendar | Integrations | Subscribe to the `.ics` URL in Google/Apple/Outlook |
+| Calendar (out) | Integrations | Subscribe to the `.ics` URL in Google/Apple/Outlook so Lobby's bookings appear there |
+| Calendar (in) | Integrations → Your calendar | Paste your calendar's **secret iCal address**, so Lobby never offers a time you are already busy |
 | Email sending | Integrations → Resend | API key + a from-address on a verified domain |
 | Inbound email | Your mail provider | Forward/route to `POST /api/webhooks/email`, addressed to `<workspace-slug>@…` |
 | SMS | Integrations → Twilio | Account SID, auth token, your number |

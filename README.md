@@ -31,6 +31,21 @@ pipeline, a contacts CRM with a full per-customer timeline, an editable knowledg
 follow-up automations, an integrations directory, analytics, and a four-step onboarding
 flow that ends in one line of code.
 
+### The calendar goes both ways
+
+Lobby publishes an `.ics` feed so its bookings appear in the owner's calendar, and reads a
+subscribed feed so it knows what they are already committed to. Without the second half the
+assistant only ever saw its own appointments, which means it would offer a customer the hour
+its owner was at the dentist — the most damaging thing this software can do to someone's day.
+
+`lib/ical.ts` parses just enough iCalendar to answer "is this slot spoken for?": events,
+durations, all-day dates, daily/weekly/monthly recurrence with INTERVAL, COUNT, UNTIL and
+BYDAY, and EXDATE. Cancelled events and anything marked free are not busy. Recurrence shapes
+it does not understand are skipped rather than guessed at, because a missed busy block risks
+one double-booking but an invented one silently deletes bookable hours from someone's week,
+and only one of those gets noticed. Timezone handling is the known limit: without VTIMEZONE,
+floating times are read as UTC.
+
 ### Knowing when it needs you
 
 An escalation is only useful if someone finds out. `lib/notify.ts` posts to Slack when the

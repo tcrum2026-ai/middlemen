@@ -61,6 +61,23 @@ export const PROVIDERS: Provider[] = [
     docs: "api.slack.com/messaging/webhooks",
   },
   {
+    id: "calendar-feed",
+    label: "Your calendar (read)",
+    group: "Scheduling",
+    blurb:
+      "Reads the calendar you already keep, so the assistant never offers a time you are not free.",
+    enables: ["No double-booking over your own commitments"],
+    fields: [
+      {
+        name: "ics_url",
+        label: "Secret iCal address",
+        secret: true,
+        placeholder: "https://calendar.google.com/calendar/ical/.../basic.ics",
+      },
+    ],
+    docs: "Google Calendar → Settings → your calendar → Secret address in iCal format",
+  },
+  {
     id: "stripe",
     label: "Stripe",
     group: "Money",

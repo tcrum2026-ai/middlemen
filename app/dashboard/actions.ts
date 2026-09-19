@@ -44,6 +44,7 @@ import { sendVerificationEmail } from "@/lib/verify-mail";
 import { getTemplate } from "@/lib/templates";
 import { createPaymentLink, sendEmail, sendSms } from "@/lib/delivery";
 import { disconnect, saveCredentials } from "@/lib/integrations";
+import { forgetFeed } from "@/lib/calendar-feed";
 import type {
   Appointment,
   AssistantAction,
@@ -590,6 +591,10 @@ export async function saveIntegrationAction(data: FormData) {
     values[key] = value;
   }
   saveCredentials(business.id, provider, values);
+  // Otherwise a corrected URL keeps serving the old calendar for five
+  // minutes, which on this integration means five more minutes of the
+  // double-bookings someone just tried to stop.
+  if (provider === "calendar-feed") forgetFeed(business.id);
   revalidatePath("/dashboard/integrations");
 }
 
@@ -600,6 +605,7 @@ export async function disconnectIntegrationAction(data: FormData) {
   const business = await writableBusiness();
   if (!business) return;
   disconnect(business.id, provider);
+  if (provider === "calendar-feed") forgetFeed(business.id);
   setIntegrationStatus(business.id, provider, "disconnected");
   revalidatePath("/dashboard/integrations");
 }
