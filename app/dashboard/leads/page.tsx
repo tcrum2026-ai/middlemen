@@ -119,7 +119,7 @@ export default async function LeadsPage() {
                       <PaymentLinkButton quoteId={quote.id} />
                     ) : (
                       <p className="text-xs text-mist-400">
-                        <Link href="/dashboard/integrations" className="text-jade-400 hover:underline">
+                        <Link href="/dashboard/integrations" className="link">
                           Connect Stripe
                         </Link>{" "}
                         to turn this into a link the customer can pay.

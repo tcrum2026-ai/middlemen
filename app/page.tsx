@@ -85,10 +85,15 @@ export default async function LandingPage() {
             <div className="rise">
               <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-mist-400">
                 <ChatIcon width={14} height={14} />
-                <span>Live assistant — wired to a demo business</span>
-                {live ? null : (
-                  <span className="rounded border border-ink-700 px-1.5 py-0.5">scripted mode · no API key set</span>
-                )}
+                {/* Never claim "live" while the fallback is answering — but a
+                    visitor judging the product does not need our env var
+                    names, and scripted replies read worse than real ones, so
+                    saying which they are seeing is in our favour either way. */}
+                <span>
+                  {live
+                    ? "Live assistant — wired to a demo business"
+                    : "Demo assistant — scripted replies, not the real model"}
+                </span>
               </div>
               <ChatPanel
                 widgetKey={business.widget_key}
@@ -149,7 +154,15 @@ export default async function LandingPage() {
               })}
             </div>
 
-            <div className="mt-16 grid gap-6 border-t border-ink-800 pt-12 md:grid-cols-3">
+            {/* Side by side, 01/02/03 reads as a sequence on its own. Stacked
+                on a phone it is three unlabelled paragraphs after a rule, so
+                the signpost has to be written down. */}
+            <div className="mt-16 border-t border-ink-800 pt-12">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-mist-400">
+                Live in three steps
+              </h3>
+            </div>
+            <div className="mt-6 grid gap-6 md:grid-cols-3">
               {STEPS.map(({ step, title, body }) => (
                 <div key={step}>
                   <span className="font-mono text-sm text-jade-400">{step}</span>

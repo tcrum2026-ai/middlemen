@@ -152,7 +152,7 @@ export default async function BillingPage({
             ) : (
               <p className="rounded-lg border border-ink-700 bg-ink-850 px-3 py-2 text-sm text-mist-400">
                 This is the read-only demo workspace.{" "}
-                <Link href="/signup" className="text-jade-400 hover:underline">
+                <Link href="/signup" className="link">
                   Create your own
                 </Link>{" "}
                 to subscribe.

@@ -56,7 +56,7 @@ export default function TermsPage() {
         </p>
         <p>
           Review the{" "}
-          <Link href="/dashboard/approvals" className="text-jade-400 hover:underline">
+          <Link href="/dashboard/approvals" className="link">
             approval queue
           </Link>{" "}
           and set your autonomy level deliberately. If an answer would be expensive to get wrong, keep it behind

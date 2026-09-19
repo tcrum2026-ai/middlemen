@@ -141,7 +141,7 @@ export function WidgetCustomizer({
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
-          <pre className="overflow-x-auto px-3 py-3 font-mono text-[11px] leading-relaxed text-mist-300">
+          <pre tabIndex={0} role="group" aria-label="Embed snippet" className="overflow-x-auto px-3 py-3 font-mono text-[11px] leading-relaxed text-mist-300">
             <code>{snippet}</code>
           </pre>
         </div>
@@ -180,7 +180,7 @@ export function WidgetCustomizer({
               </p>
             </div>
             <div className="flex items-center gap-2 border-t border-[#212733] p-2.5">
-              <span className="flex-1 rounded-lg border border-[#212733] bg-[#07080a] px-2.5 py-1.5 text-[11px] text-[#5c6476]">
+              <span className="flex-1 rounded-lg border border-[#212733] bg-[#07080a] px-2.5 py-1.5 text-[11px] text-[#8d96ab]">
                 Type your message…
               </span>
               <span
@@ -190,7 +190,7 @@ export function WidgetCustomizer({
                 <SendIcon width={13} height={13} />
               </span>
             </div>
-            <p className="pb-2 text-center text-[10px] text-[#5c6476]">
+            <p className="pb-2 text-center text-[10px] text-[#8d96ab]">
               Answers are AI. Calls are handled by our team.
             </p>
           </div>

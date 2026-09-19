@@ -26,7 +26,7 @@ export default async function SignInPage({
         <AuthForm mode="signin" action={signInAction} next={next} />
         <p className="mt-6 text-center text-xs text-mist-400">
           Just looking?{" "}
-          <Link href="/dashboard" className="text-mist-300 hover:text-mist-100">
+          <Link href="/dashboard" className="link-quiet">
             Explore the demo workspace
           </Link>{" "}
           — no account needed.

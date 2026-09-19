@@ -18,7 +18,7 @@ function cellTone(value: string, accent: boolean): string {
 export function Comparison() {
   return (
     <div>
-      <div className="card overflow-x-auto">
+      <div tabIndex={0} role="region" aria-label="How Lobby compares" className="card overflow-x-auto">
         <table className="w-full min-w-[46rem] border-collapse text-sm">
           <thead>
             <tr>

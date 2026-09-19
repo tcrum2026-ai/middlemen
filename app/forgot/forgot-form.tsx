@@ -24,7 +24,7 @@ export function ForgotForm() {
           If that address has an account, a reset link is on its way. It works once, and expires in an hour.
         </p>
         <p className="text-sm text-mist-400">
-          <Link href="/signin" className="text-jade-400 hover:underline">
+          <Link href="/signin" className="link">
             Back to sign in
           </Link>
         </p>
@@ -51,7 +51,7 @@ export function ForgotForm() {
 
       <p className="text-center text-sm text-mist-400">
         Remembered it?{" "}
-        <Link href="/signin" className="text-jade-400 hover:underline">
+        <Link href="/signin" className="link">
           Sign in
         </Link>
       </p>

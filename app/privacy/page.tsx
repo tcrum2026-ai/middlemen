@@ -86,7 +86,7 @@ export default function PrivacyPage() {
       <Clause heading="Getting it out, or getting rid of it">
         <p>
           Everything exports as CSV and JSON from{" "}
-          <Link href="/dashboard/settings" className="text-jade-400 hover:underline">
+          <Link href="/dashboard/settings" className="link">
             Settings
           </Link>{" "}
           — conversations, contacts, knowledge, call briefs, the lot — with no export fee and no support ticket.

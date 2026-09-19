@@ -89,7 +89,11 @@
     "input:focus { border-color: " + accent + "; }",
     "form button { border: 0; border-radius: 9px; padding: 0 14px; background: " + accent + ";",
     "  color: " + onAccent + "; font-weight: 600; font-size: 14px; cursor: pointer; }",
-    ".foot { padding: 0 14px 10px; font-size: 11px; color: #5c6476; text-align: center; }",
+    // The AI disclosure is the one line in here that has to be legible, and it
+    // was the faintest colour in the component: #5c6476 on #0b0d11 is 3.28:1,
+    // under the 4.5:1 WCAG AA needs for text this size. #8d96ab is 6.56:1 and
+    // is what the rest of the widget's secondary text already uses.
+    ".foot { padding: 0 14px 10px; font-size: 11px; color: #8d96ab; text-align: center; }",
   ].join("\n");
   root.appendChild(style);
 

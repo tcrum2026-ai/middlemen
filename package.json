@@ -11,7 +11,8 @@
     "sweep": "node scripts/sweep.mjs",
     "call": "node scripts/call.mjs",
     "test": "node --test \"tests/*.test.ts\"",
-    "check": "tsc --noEmit && eslint app lib components scripts tests && npm test"
+    "check": "tsc --noEmit && eslint app lib components scripts tests && npm test",
+    "a11y": "node scripts/a11y.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",
@@ -24,6 +25,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^9.6.0",
@@ -33,6 +35,7 @@
     "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.25",
+    "playwright": "^1.56.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

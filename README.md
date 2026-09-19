@@ -102,6 +102,7 @@ npm run check                     # types, lint, unit tests — run this before 
 npm test                          # unit tests alone (node --test, no framework)
 npm run sweep                     # every static route, two widths: status, overflow,
                                   # console errors, error boundaries, undefined in the copy
+npm run a11y                      # axe-core over every route at phone width
 npm run call -- <businessId>      # a fake phone call, start to finish
 ```
 
@@ -215,6 +216,13 @@ log with the provider's own error text, so a bad key shows up as `401: API key i
 rather than a message that silently vanished.
 
 ## Accessibility and robustness
+
+`npm run a11y` runs axe-core (WCAG 2.1 A and AA) over every route at 390px and
+exits non-zero on any violation. It earns its place by catching what a
+screenshot cannot: it found the embedded widget's AI disclosure rendered at
+3.28:1 against its own background — the one line in that component that has
+to be legible, in the faintest colour in it — and five side-scrolling regions
+no keyboard could reach.
 
 - Skip link is the first tab stop; focus rings are visible throughout.
 - Chat transcripts are `role="log"` with `aria-live="polite"`, in both the app and the

@@ -124,7 +124,7 @@ export default async function InstallPage() {
                 ) : (
                   <>
                     off for this workspace.{" "}
-                    <Link href="/dashboard/settings" className="text-jade-400 hover:underline">
+                    <Link href="/dashboard/settings" className="link">
                       Turn on answering calls
                     </Link>{" "}
                     and the webhook to point at appears here.

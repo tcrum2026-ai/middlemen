@@ -71,6 +71,39 @@ body {
     background-color: var(--color-ink-850);
   }
 
+  /*
+   * An inline link inside a paragraph must be distinguishable from the text
+   * around it by something other than colour (WCAG 1.4.1) — colour alone
+   * disappears for anyone who cannot separate these two greens. Underlined at
+   * rest, but faintly, so prose does not turn into a field of rules; hover and
+   * focus bring it up to full strength.
+   */
+  .link {
+    color: var(--color-jade-400);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in oklab, var(--color-jade-400) 45%, transparent);
+  }
+  .link:hover,
+  .link:focus-visible {
+    text-decoration-color: currentColor;
+  }
+
+  /* The same, for a link that sits in body-coloured text rather than accent. */
+  .link-quiet {
+    color: var(--color-mist-300);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in oklab, var(--color-mist-300) 40%, transparent);
+  }
+  .link-quiet:hover,
+  .link-quiet:focus-visible {
+    color: var(--color-mist-100);
+    text-decoration-color: currentColor;
+  }
+
   .field {
     width: 100%;
     border-radius: 0.625rem;

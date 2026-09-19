@@ -110,7 +110,12 @@ export default async function IntegrationsPage() {
                 <h3 className="font-semibold">{item.label}</h3>
               </div>
               <p className="mt-2 text-sm leading-relaxed text-mist-400">{item.blurb}</p>
-              <p className="mt-3 overflow-x-auto rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 font-mono text-xs text-mist-300">
+              <p
+                tabIndex={0}
+                role="group"
+                aria-label="Webhook URL"
+                className="mt-3 overflow-x-auto rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 font-mono text-xs text-mist-300"
+              >
                 {origin}
                 {item.path(business.widget_key)}
               </p>
@@ -192,7 +197,7 @@ export default async function IntegrationsPage() {
                         <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-mist-400">
                           Point the provider here
                         </p>
-                        <p className="mt-1.5 overflow-x-auto font-mono text-[11px] text-jade-400">
+                        <p tabIndex={0} role="group" aria-label="Callback URL" className="mt-1.5 overflow-x-auto font-mono text-[11px] text-jade-400">
                           {origin}
                           {provider.callbackPath}
                         </p>

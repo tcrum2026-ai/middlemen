@@ -23,7 +23,7 @@ export function CopyBlock({ code, label }: { code: string; label?: string }) {
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <pre className="overflow-x-auto px-4 py-3.5 font-mono text-xs leading-relaxed text-mist-300">
+      <pre tabIndex={0} role="group" aria-label={label ?? "Snippet"} className="overflow-x-auto px-4 py-3.5 font-mono text-xs leading-relaxed text-mist-300">
         <code>{code}</code>
       </pre>
     </div>

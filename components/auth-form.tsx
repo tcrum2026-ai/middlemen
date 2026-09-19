@@ -83,14 +83,14 @@ export function AuthForm({
         {isSignUp ? (
           <>
             Already have an account?{" "}
-            <Link href="/signin" className="text-jade-400 hover:underline">Sign in</Link>
+            <Link href="/signin" className="link">Sign in</Link>
           </>
         ) : (
           <>
             No account yet?{" "}
-            <Link href="/signup" className="text-jade-400 hover:underline">Create one</Link>
+            <Link href="/signup" className="link">Create one</Link>
             {" · "}
-            <Link href="/forgot" className="text-jade-400 hover:underline">Forgot your password?</Link>
+            <Link href="/forgot" className="link">Forgot your password?</Link>
           </>
         )}
       </p>
