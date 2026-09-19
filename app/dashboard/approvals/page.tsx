@@ -99,7 +99,7 @@ export default async function ApprovalsPage() {
                   {approval.conversation_id ? (
                     <Link
                       href={`/dashboard/inbox/${approval.conversation_id}`}
-                      className="text-sm text-mist-400 hover:text-mist-100"
+                      className="tap text-sm text-mist-400 hover:text-mist-100"
                     >
                       Open thread →
                     </Link>

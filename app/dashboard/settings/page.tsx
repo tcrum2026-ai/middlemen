@@ -155,7 +155,7 @@ export default async function SettingsPage() {
               type="checkbox"
               name="voice_enabled"
               defaultChecked={Boolean(business.voice_enabled)}
-              className="mt-0.5 h-4 w-4 accent-jade-500"
+              className="mt-0.5 h-5 w-5 accent-jade-500"
             />
             <span className="text-sm">
               <span className="font-medium">Answer incoming calls with AI</span>

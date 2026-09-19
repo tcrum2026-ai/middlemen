@@ -33,7 +33,7 @@ export function CopyLink({ url, label = "Copy link" }: { url: string; label?: st
             setCopied(false);
           }
         }}
-        className="shrink-0 text-xs font-medium text-mist-400 hover:text-mist-100"
+        className="tap shrink-0 text-xs font-medium text-mist-400 hover:text-mist-100"
       >
         {copied ? "Copied" : label}
       </button>

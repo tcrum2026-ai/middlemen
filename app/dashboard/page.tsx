@@ -98,7 +98,7 @@ export default async function OverviewPage({
               <PhoneIcon width={16} height={16} className="text-amber-glow" />
               Waiting on a person
             </h2>
-            <Link href="/dashboard/calls" className="text-xs text-mist-400 hover:text-mist-100">
+            <Link href="/dashboard/calls" className="tap text-xs text-mist-400 hover:text-mist-100">
               View all
             </Link>
           </div>
@@ -126,7 +126,7 @@ export default async function OverviewPage({
               <ShieldIcon width={16} height={16} className="text-iris" />
               Needs your approval
             </h2>
-            <Link href="/dashboard/approvals" className="text-xs text-mist-400 hover:text-mist-100">
+            <Link href="/dashboard/approvals" className="tap text-xs text-mist-400 hover:text-mist-100">
               View all
             </Link>
           </div>
@@ -158,7 +158,7 @@ export default async function OverviewPage({
         <Card className="!p-0 min-w-0 lg:col-span-2">
           <div className="flex items-center justify-between border-b border-ink-700 px-5 py-3.5">
             <h2 className="font-semibold">Recent conversations</h2>
-            <Link href="/dashboard/inbox" className="text-xs text-mist-400 hover:text-mist-100">
+            <Link href="/dashboard/inbox" className="tap text-xs text-mist-400 hover:text-mist-100">
               Open inbox
             </Link>
           </div>

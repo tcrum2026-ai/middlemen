@@ -38,16 +38,23 @@ export default async function KnowledgePage() {
           ) : (
             articles.map((article) => (
               <Card key={article.id} className="!p-0">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-ink-700 px-5 py-3">
-                  <h2 className="min-w-0 flex-1 truncate font-semibold">{article.title}</h2>
-                  {isPlaceholder(article) ? <Badge tone="amber">placeholder</Badge> : null}
+                <div className="border-b border-ink-700 px-5 py-3">
+                  {/* The title used to share one row with the source, the
+                      timestamp and a button, so on a phone it was the title
+                      that got truncated — the one part worth reading. */}
+                  <div className="flex items-start gap-2">
+                    <h2 className="min-w-0 flex-1 font-semibold leading-snug">{article.title}</h2>
+                    {isPlaceholder(article) ? <Badge tone="amber">placeholder</Badge> : null}
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between gap-3">
                   <span className="text-xs text-mist-400">
                     {article.source} · {relativeTime(article.updated_at)}
                   </span>
                   <form action={deleteKbAction}>
                     <input type="hidden" name="article_id" value={article.id} />
-                    <ConfirmButton className="text-xs text-mist-400 transition hover:text-rose-alert">Remove</ConfirmButton>
+                    <ConfirmButton className="tap text-xs text-mist-400 transition hover:text-rose-alert">Remove</ConfirmButton>
                   </form>
+                  </div>
                 </div>
                 <p className="whitespace-pre-wrap px-5 py-4 text-sm leading-relaxed text-mist-300">{article.body}</p>
               </Card>

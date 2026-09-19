@@ -137,7 +137,7 @@ export function WidgetCustomizer({
         <div className="min-w-0 rounded-lg border border-ink-700 bg-ink-950">
           <div className="flex items-center justify-between border-b border-ink-700 px-3 py-2">
             <span className="text-xs text-mist-400">Your snippet</span>
-            <button onClick={copy} className="text-xs font-medium text-jade-400 hover:underline">
+            <button onClick={copy} className="tap text-xs font-medium text-jade-400 hover:underline">
               {copied ? "Copied" : "Copy"}
             </button>
           </div>

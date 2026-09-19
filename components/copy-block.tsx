@@ -19,7 +19,7 @@ export function CopyBlock({ code, label }: { code: string; label?: string }) {
     <div className="card overflow-hidden !p-0">
       <div className="flex items-center justify-between border-b border-ink-700 px-4 py-2.5">
         <span className="text-xs text-mist-400">{label ?? "Snippet"}</span>
-        <button onClick={copy} className="text-xs font-medium text-jade-400 hover:underline">
+        <button onClick={copy} className="tap text-xs font-medium text-jade-400 hover:underline">
           {copied ? "Copied" : "Copy"}
         </button>
       </div>

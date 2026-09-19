@@ -42,7 +42,7 @@ for (const route of all) {
   if (!res || res.status() >= 400) { console.log(`skip ${route} (${res?.status()})`); continue; }
   await page.waitForTimeout(300);
   const { violations } = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
   if (!violations.length) continue;
   console.log(`\n${route}`);
