@@ -120,7 +120,22 @@ export function overage(
   return { minutes, cents: Math.round(minutes * rate * 100) };
 }
 
-/** The three Stripe price ids, one per plan. */
+/**
+ * A trial is deliberately smaller than any paid plan: enough to prove the
+ * thing works, not enough to run a business on for free. Pulled out of
+ * entitlement.ts so the same rule can decide what to report to Stripe's
+ * metered billing as it decides what to show on the billing page — two
+ * copies of "which allowance applies" is how they drift and one starts
+ * charging for minutes the other says are still included.
+ */
+export function allowanceFor(
+  trialing: boolean,
+  plan: Allowance,
+  trialAllowance: Allowance,
+): Allowance {
+  return trialing ? trialAllowance : plan;
+}
+
 /** The three Stripe price ids, one per plan. */
 export type PriceMap = Partial<Record<PlanId, string>>;
 

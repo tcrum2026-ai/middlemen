@@ -237,12 +237,16 @@ host with a mounted volume.
   customers (their messages are captured and queued, never dropped), and the dashboard carries a
   banner with a resend button. Without those two variables there is no link to send, so nothing
   asks for one and anyone can sign up with any address. If you are taking real sign-ups, set them.
-- **Voice overage is measured but not charged.** Answered-call minutes are metered accurately and
-  the billing page shows what the overage is worth, but nothing reports that usage to Stripe, so
-  no invoice picks it up. Bill it yourself, or drop the per-minute line from the plans until it is
-  wired. Doing it properly means a metered price per plan in Stripe, storing the subscription item
-  id on the workspace alongside `stripe_subscription_id`, and posting a usage record when
-  `setCallDuration` runs.
+- **Voice overage is billed automatically once a Stripe meter is configured.** Set
+  `STRIPE_VOICE_METER_EVENT` to the event name of a Billing Meter you create in the Stripe
+  dashboard, and attach a metered price using that meter to each paid plan's subscription. When a
+  call ends, `app/api/voice/turn/route.ts` reports only the minutes that call newly pushed past the
+  workspace's allowance (never the whole call, so a workspace already deep in overage isn't rebilled
+  for the same minutes every time another call ends) via `POST /v1/billing/meter_events`, keyed on
+  the conversation id so a retried report is a no-op on Stripe's side. A trial is never billed for
+  overage — the billing page still shows minutes-over for a trial, but that count is a display
+  figure, not what gets reported. Without `STRIPE_VOICE_METER_EVENT` set, the billing page falls
+  back to its old "add it to their invoice yourself" copy and nothing is reported to Stripe.
 - Outlook, WhatsApp, QuickBooks, HubSpot, Shopify and Zapier are listed but not implemented.
 - SQLite means one writer: fine for a single instance, not for horizontal scaling. Moving to
   Postgres is a `lib/db.ts` change, not an application-wide one.

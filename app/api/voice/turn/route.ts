@@ -5,12 +5,17 @@ import { runAssistantTurn } from "@/lib/assistant";
 import { QUOTAS, rateLimit } from "@/lib/rate-limit";
 import { formatPhone } from "@/lib/twilio-signature";
 import { canAnswerCalls } from "@/lib/entitlement";
+import { reportVoiceOverage, voiceMeterConfigured } from "@/lib/billing";
+import { TRIAL_ALLOWANCE, planById } from "@/lib/marketing";
+import { allowanceFor, overage } from "@/lib/plan-rules";
 import {
   addMessage,
   createConversation,
   getBusiness,
   getConversation,
   listMessages,
+  monthStart,
+  monthlyVoiceSeconds,
   setCallDuration,
   updateConversation,
   upsertContact,
@@ -65,7 +70,52 @@ export async function POST(request: Request) {
   // otherwise a subscription that lapsed mid-call would lose the call's usage.
   if (typeof parsed.data.endedSeconds === "number") {
     const ended = conversationId ? getConversation(conversationId) : null;
-    if (ended && ended.business_id === business.id) setCallDuration(ended.id, parsed.data.endedSeconds);
+    // Guards against reporting the same call's usage twice: the bridge posts
+    // this once as the socket closes, but if it were ever retried, a second
+    // POST would find duration_seconds already non-zero and skip both the
+    // overwrite and the Stripe report rather than billing the minutes again.
+    if (ended && ended.business_id === business.id && ended.duration_seconds === 0) {
+      const since = monthStart();
+      const secondsBefore = monthlyVoiceSeconds(business.id, since);
+      const seconds = Math.max(0, Math.round(parsed.data.endedSeconds));
+      setCallDuration(ended.id, seconds);
+
+      const trialing = business.subscription_status === "trialing";
+      // A trial is never charged for overage — `overage().minutes` still
+      // counts minutes past the trial allowance for display purposes (the
+      // billing page shows "10 minutes over" at $0 owed), so this has to be
+      // its own guard rather than trusting that count to mean "billable".
+      if (!trialing && voiceMeterConfigured() && business.stripe_customer_id) {
+        const plan = planById(business.plan);
+        const allowance = allowanceFor(
+          trialing,
+          { conversations: plan.conversations, voiceMinutes: plan.voiceMinutes },
+          TRIAL_ALLOWANCE,
+        );
+        // Report only the minutes this call newly pushed past the allowance —
+        // never the whole call, or a workspace deep in overage gets billed
+        // for every minute of every call all over again each time one ends.
+        const before = overage(Math.ceil(secondsBefore / 60), allowance, plan.overagePerMinute, trialing).minutes;
+        const after = overage(
+          Math.ceil((secondsBefore + seconds) / 60),
+          allowance,
+          plan.overagePerMinute,
+          trialing,
+        ).minutes;
+        const newlyBillable = after - before;
+
+        if (newlyBillable > 0) {
+          const result = await reportVoiceOverage({
+            customerId: business.stripe_customer_id,
+            minutes: newlyBillable,
+            identifier: `voice-${ended.id}`,
+          });
+          if (!result.ok) {
+            console.error(`Voice usage report failed for ${business.id} (${ended.id}): ${result.error}`);
+          }
+        }
+      }
+    }
     return Response.json({ conversationId: ended?.id ?? null, reply: "", signal: { kind: "continue" } });
   }
 

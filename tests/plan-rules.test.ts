@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { blockFor, overage, planForPrice, trialDaysLeft, type RuleInput } from "../lib/plan-rules.ts";
+import { allowanceFor, blockFor, overage, planForPrice, trialDaysLeft, type RuleInput } from "../lib/plan-rules.ts";
 
 /**
  * These rules decide whether a paying customer's phone gets answered. Getting
@@ -168,6 +168,16 @@ describe("overage", () => {
   it("rounds to whole cents rather than carrying a fraction onto an invoice", () => {
     assert.deepEqual(overage(253, ALLOWANCE, 0.333, false), { minutes: 3, cents: 100 });
   });
+
+  it("still counts a trial's minutes past its allowance, at zero cost — this is a display figure, not a bill", () => {
+    // A caller that treats `.minutes` alone as "what to charge" will bill a
+    // trial anyway. `.cents` is the only field that knows about trialing;
+    // anything deciding what to send to a payment processor must check
+    // `trialing` itself, not infer it from this count being non-zero.
+    const result = overage(40, { conversations: 1000, voiceMinutes: 30 }, 0.25, true);
+    assert.equal(result.minutes, 10);
+    assert.equal(result.cents, 0);
+  });
 });
 
 describe("planForPrice — what they are actually billed for", () => {
@@ -216,5 +226,24 @@ describe("planForPrice — what they are actually billed for", () => {
   it("survives a malformed payload without throwing", () => {
     assert.equal(planForPrice({ items: { data: [null, 3, { price: null }] } }, PRICES), null);
     assert.equal(planForPrice({ items: "not an object" }, PRICES), null);
+  });
+});
+
+describe("allowanceFor", () => {
+  const PLAN = { conversations: 1000, voiceMinutes: 250 };
+  const TRIAL = { conversations: 150, voiceMinutes: 30 };
+
+  it("gives a trialing workspace the trial allowance, not the plan's", () => {
+    assert.deepEqual(allowanceFor(true, PLAN, TRIAL), TRIAL);
+  });
+
+  it("gives a paying workspace the plan's own allowance", () => {
+    assert.deepEqual(allowanceFor(false, PLAN, TRIAL), PLAN);
+  });
+
+  it("the trial allowance is smaller — it exists to prove the thing works, not run a business on", () => {
+    const trial = allowanceFor(true, PLAN, TRIAL);
+    assert.ok(trial.conversations < PLAN.conversations);
+    assert.ok(trial.voiceMinutes < PLAN.voiceMinutes);
   });
 });

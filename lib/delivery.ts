@@ -1,6 +1,7 @@
 import "server-only";
 import { getDb, id, now } from "./db";
 import { credentials } from "./integrations";
+import { stripeApiBase } from "./billing";
 
 export interface Delivery {
   id: string;
@@ -176,7 +177,7 @@ export async function createPaymentLink(input: {
   if (!creds) return { error: "Stripe not connected" };
 
   try {
-    const priceResponse = await post("https://api.stripe.com/v1/prices", {
+    const priceResponse = await post(`${stripeApiBase()}/v1/prices`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${creds.secret_key}`,
@@ -191,7 +192,7 @@ export async function createPaymentLink(input: {
     if (!priceResponse.ok) return { error: await stripeMessage(priceResponse) };
     const price = (await priceResponse.json()) as { id: string };
 
-    const linkResponse = await post("https://api.stripe.com/v1/payment_links", {
+    const linkResponse = await post(`${stripeApiBase()}/v1/payment_links`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${creds.secret_key}`,

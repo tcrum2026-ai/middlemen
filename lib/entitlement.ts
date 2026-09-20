@@ -1,8 +1,9 @@
 import "server-only";
 import { getDb } from "./db";
 import { getUserById, needsVerification } from "./auth";
+import { monthStart, monthlyVoiceSeconds } from "./repo";
 import { TRIAL_ALLOWANCE, planById, type Plan } from "./marketing";
-import { blockFor, overage, trialDaysLeft, type Allowance } from "./plan-rules";
+import { allowanceFor, blockFor, overage, trialDaysLeft, type Allowance } from "./plan-rules";
 import type { Business } from "./types";
 
 /**
@@ -36,13 +37,6 @@ export interface Entitlement {
   overageCents: number;
 }
 
-function monthStart(): string {
-  const date = new Date();
-  date.setDate(1);
-  date.setHours(0, 0, 0, 0);
-  return date.toISOString();
-}
-
 export function entitlement(business: Business): Entitlement {
   const db = getDb();
   const since = monthStart();
@@ -53,26 +47,18 @@ export function entitlement(business: Business): Entitlement {
       .get(business.id, since) as { c: number }
   ).c;
 
-  const voiceSeconds = (
-    db
-      .prepare(
-        "SELECT COALESCE(SUM(duration_seconds), 0) AS s FROM conversations " +
-          "WHERE business_id = ? AND channel = 'voice' AND created_at >= ?",
-      )
-      .get(business.id, since) as { s: number }
-  ).s;
-  const voiceMinutes = Math.ceil(voiceSeconds / 60);
+  const voiceMinutes = Math.ceil(monthlyVoiceSeconds(business.id, since) / 60);
 
   const plan = planById(business.plan);
   const trialEndsAt = business.trial_ends_at ? new Date(business.trial_ends_at).getTime() : 0;
   const trialing = business.subscription_status === "trialing";
   const now = Date.now();
 
-  // A trial is deliberately smaller than any paid plan: enough to prove the
-  // thing works, not enough to run a business on for free.
-  const allowance: Allowance = trialing
-    ? { conversations: TRIAL_ALLOWANCE.conversations, voiceMinutes: TRIAL_ALLOWANCE.voiceMinutes }
-    : { conversations: plan.conversations, voiceMinutes: plan.voiceMinutes };
+  const allowance: Allowance = allowanceFor(
+    trialing,
+    { conversations: plan.conversations, voiceMinutes: plan.voiceMinutes },
+    TRIAL_ALLOWANCE,
+  );
 
   const block = blockFor({
     status: business.subscription_status,

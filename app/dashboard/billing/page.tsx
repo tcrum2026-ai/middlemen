@@ -3,7 +3,7 @@ import { Badge, Card, PageHeader } from "@/components/ui";
 import { workspace } from "@/lib/session";
 import { usage } from "@/lib/repo";
 import { entitlement } from "@/lib/entitlement";
-import { billingConfigured } from "@/lib/billing";
+import { billingConfigured, voiceMeterConfigured } from "@/lib/billing";
 import { usd } from "@/components/ui";
 import { ManageBilling, PlanPicker } from "./plan-picker";
 
@@ -111,8 +111,11 @@ export default async function BillingPage({
                         "ring your handoff number instead."
                       : state.overageMinutes
                         ? `${state.overageMinutes} minute${state.overageMinutes === 1 ? "" : "s"} over, worth ` +
-                          `${usd(state.overageCents)}. Lobby measures this; it does not yet bill it automatically, ` +
-                          `so add it to their invoice yourself.`
+                          `${usd(state.overageCents)}. ` +
+                          (voiceMeterConfigured()
+                            ? "Reported to Stripe automatically as calls end."
+                            : "Lobby measures this; it does not yet bill it automatically, so add it to their " +
+                              "invoice yourself.")
                         : `Extra minutes are $${(plan.overagePerMinute ?? 0).toFixed(2)} each, measured to the second.`}
                   </p>
                 </div>

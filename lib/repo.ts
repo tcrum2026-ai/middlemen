@@ -432,6 +432,32 @@ export function setCallDuration(conversationId: string, seconds: number): void {
     .run(Math.max(0, Math.round(seconds)), conversationId);
 }
 
+/** The start of the current calendar month, as the ISO string usage queries filter on. */
+export function monthStart(): string {
+  const date = new Date();
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString();
+}
+
+/**
+ * Total answered-call seconds a workspace has used since `sinceIso`.
+ *
+ * Shared by the billing-page display and the Stripe usage reporter, so both
+ * always agree on what "this month's minutes" means — two copies of this
+ * query is exactly how a display figure and a billed figure drift apart.
+ */
+export function monthlyVoiceSeconds(businessId: string, sinceIso: string): number {
+  return (
+    getDb()
+      .prepare(
+        "SELECT COALESCE(SUM(duration_seconds), 0) AS s FROM conversations " +
+          "WHERE business_id = ? AND channel = 'voice' AND created_at >= ?",
+      )
+      .get(businessId, sinceIso) as { s: number }
+  ).s;
+}
+
 export function createConversation(input: {
   business_id: string;
   contact_id?: string | null;
