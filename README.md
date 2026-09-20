@@ -181,6 +181,7 @@ npm run sweep                     # every static route, two widths: status, over
 npm run a11y                      # axe-core over every route at phone width
 npm run widget                    # the embed, on a third-party page, cross-origin
 npm run journey                   # signup → onboarding → a message → an approval → the reply
+npm run image                     # boots the deployable layout and drives it
 npm run call -- <businessId>      # a fake phone call, start to finish
 ```
 
@@ -192,6 +193,14 @@ quietly is worse: webhook signature verification for Twilio and Stripe
 point makes the voice pause in the middle of a price). Node runs the
 TypeScript directly, so there is no build step and no test framework to keep
 up to date.
+
+`scripts/image.mjs` boots the app from exactly the files the Dockerfile copies and checks it
+serves, keeps its security headers, signs a user in, renders every dashboard page and writes to
+its data directory. It exists because the Dockerfile shipped for weeks setting
+`MIDDLEMEN_DATA_DIR` — the project's old name — while the app read `LOBBY_DATA_DIR`: the mounted
+volume was ignored, SQLite wrote inside the container, and a redeploy would have thrown away
+every customer's data. The build passed, the tests passed, and the app ran perfectly in
+development the whole time.
 
 `scripts/journey.mjs` walks the path every customer takes and checks the
 promise at each step: that the assistant does not invent an answer, that an

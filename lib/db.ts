@@ -14,27 +14,34 @@ import Database from "better-sqlite3";
  * anything written to it is gone at the next cold start. The banner in the
  * dashboard says so out loud rather than letting someone discover it.
  */
-function resolveDataDir(): string {
+function resolveDataDir(): { dir: string; fellBack: boolean } {
+  // An explicit setting is a deliberate choice, including when it points
+  // somewhere temporary. Only a fallback we made ourselves counts as
+  // ephemeral — inferring it from the path would mislabel a volume that
+  // happens to be mounted under /tmp.
   const configured = process.env.LOBBY_DATA_DIR?.trim();
-  if (configured) return path.resolve(configured);
+  if (configured) return { dir: path.resolve(configured), fellBack: false };
 
   const preferred = path.join(process.cwd(), ".data");
   try {
     fs.mkdirSync(preferred, { recursive: true });
     fs.accessSync(preferred, fs.constants.W_OK);
-    return preferred;
+    return { dir: preferred, fellBack: false };
   } catch {
     const fallback = path.join(os.tmpdir(), "lobby-data");
     console.warn(
       `${preferred} is not writable, so the database is going to ${fallback}. ` +
         "That is per-instance and temporary — fine for a demo, wrong for anything real.",
     );
-    return fallback;
+    return { dir: fallback, fellBack: true };
   }
 }
 
-const DATA_DIR = resolveDataDir();
-export const DATA_IS_EPHEMERAL = DATA_DIR.startsWith(os.tmpdir());
+const resolved = resolveDataDir();
+const DATA_DIR = resolved.dir;
+
+/** True only when no writable location was configured and we improvised. */
+export const DATA_IS_EPHEMERAL = resolved.fellBack;
 
 const DB_PATH = path.join(DATA_DIR, "lobby.db");
 

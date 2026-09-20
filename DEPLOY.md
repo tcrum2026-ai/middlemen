@@ -51,15 +51,60 @@ entered in the dashboard under **Integrations** and stored per workspace.
 
 ## 2. Run it
 
-**Docker**
+### The short version
+
+| Where | Data survives? | Costs | Use it for |
+| --- | --- | --- | --- |
+| **Fly.io** with a volume | yes | a few $/month | real customers |
+| **Render** Starter + disk | yes | a few $/month | real customers |
+| **Render** free plan | **no** — wiped on restart, sleeps when idle | nothing | showing someone |
+| **Netlify / Vercel** | **no** — wiped whenever a container recycles | nothing | showing someone |
+| **Docker anywhere** with a mounted volume | yes | your host | real customers |
+
+The split is always the same thing: this app keeps its data in a SQLite file, so it needs
+somewhere to put that file that outlives the process. A host without a disk can run the demo
+and nothing more. `GET /api/health` reports `"storage": "persistent"` or
+`"temporary (resets on restart)"` so you never have to guess which you got.
+
+`npm run image` builds the app, lays out exactly what the Dockerfile copies, boots it, and
+checks it serves, signs in, renders every page and writes to its data directory. Run it before
+you deploy.
+
+### Fly.io
+
+`fly.toml` is in the repo. The volume is the part that matters — without it the data goes.
+
+```bash
+fly launch --no-deploy          # accept the existing fly.toml
+fly volumes create lobby_data --size 1 --region lhr
+fly secrets set LOBBY_DEMO_PASSWORD=pick-something   # demo only; skip for real use
+fly deploy
+```
+
+One machine, deliberately: SQLite has a single writer. Scaling out means moving `lib/db.ts` to
+Postgres first, not raising the machine count.
+
+### Render
+
+`render.yaml` is in the repo. Create → Blueprint → point it at this repo.
+
+It ships on the **free** plan, which has no disk: good for a demo, and the dashboard will say
+the data is temporary. For real use, uncomment the `disk:` block and change `plan: free` to
+`plan: starter`. That costs money, and it is the only version you should give a customer.
+
+### Docker, anywhere
 
 ```bash
 docker build -t lobby .
-docker run -p 3000:3000 -v lobby-data:/data \
-  -e ANTHROPIC_API_KEY=sk-ant-... \
+docker run -d -p 3000:3000 -v lobby-data:/data \
   -e NEXT_PUBLIC_SITE_URL=https://your-domain \
   lobby
 ```
+
+The image sets `LOBBY_DATA_DIR=/data`, so `-v lobby-data:/data` is what keeps your data. Leave
+it out and the container writes to a temporary directory it throws away.
+
+
 
 **Node directly**
 

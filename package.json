@@ -14,7 +14,8 @@
     "check": "tsc --noEmit && eslint app lib components scripts tests && npm test",
     "a11y": "node scripts/a11y.mjs",
     "widget": "node scripts/widget.mjs",
-    "journey": "node scripts/journey.mjs"
+    "journey": "node scripts/journey.mjs",
+    "image": "bash scripts/image.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",

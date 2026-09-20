@@ -1,0 +1,52 @@
+# Fly.io — the closest fit for how this app is actually built: one long-lived
+# process, one writable volume, no cold starts by default.
+#
+#   fly launch --no-deploy      (accept this file when asked)
+#   fly volumes create lobby_data --size 1 --region lhr
+#   fly secrets set LOBBY_DEMO_PASSWORD=pick-something
+#   fly deploy
+#
+# A volume is what makes the data survive. Without one, SQLite falls back to
+# a temporary directory and everything is gone at the next restart — the
+# dashboard says so rather than letting you find out.
+
+app = "lobby"
+primary_region = "lhr"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  LOBBY_DATA_DIR = "/data"
+  PORT = "3000"
+
+[[mounts]]
+  source = "lobby_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # SQLite has one writer, so this runs as exactly one machine. Scaling out
+  # means moving lib/db.ts to Postgres first, not raising this number.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+[[http_service.checks]]
+  grace_period = "20s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/api/health"
+
+# Secrets are set with `fly secrets set`, never in this file — it is in git.
+# Everything that costs money is unset until you add it:
+#   ANTHROPIC_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+#   STRIPE_PRICE_STARTER/_PRO/_BUSINESS, RESEND_API_KEY, AUTH_FROM_EMAIL,
+#   VOICE_BRIDGE_SECRET, VOICE_BRIDGE_URL
