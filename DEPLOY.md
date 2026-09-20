@@ -155,6 +155,22 @@ CSP (`base-uri`, `object-src`, `form-action`) and `Strict-Transport-Security`. F
 everywhere except `/chat/:key`, which is meant to be embeddable. HSTS only applies over HTTPS —
 drop it from `next.config.ts` if you serve this on a domain you also need over plain HTTP.
 
+## 5b. A public demo
+
+Set `LOBBY_DEMO_PASSWORD` and the seeded workspace gets a shared owner, so anyone with the link can
+drive every feature instead of browsing a read-only copy. `LOBBY_DEMO_EMAIL` names the account
+(default `demo@lobby.app`). The dashboard carries a banner saying the data resets and nothing can
+spend money, and `GET /api/health` lists every paid service with whether it is switched on — so the
+claim is checkable rather than promised.
+
+Leave the variable unset in any real deployment. Without it none of this exists.
+
+A serverless host (Netlify, Vercel) can run the demo but not the product: there is no persistent
+disk, so the database falls back to the OS temp directory and is wiped whenever a container recycles,
+and `LOBBY_SCHEDULER=off` is required because a frozen container never fires an interval. `netlify.toml`
+in the repo is configured for exactly that, and says so. For anything real, use the Dockerfile on a
+host with a mounted volume.
+
 ## 6. Known gaps
 
 - Email verification only exists where platform mail does. With `RESEND_API_KEY` and
