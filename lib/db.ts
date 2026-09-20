@@ -1,11 +1,40 @@
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import { randomBytes } from "node:crypto";
 import Database from "better-sqlite3";
 
-const DATA_DIR = process.env.LOBBY_DATA_DIR
-  ? path.resolve(process.env.LOBBY_DATA_DIR)
-  : path.join(process.cwd(), ".data");
+/**
+ * Where the database file lives.
+ *
+ * A real deployment points LOBBY_DATA_DIR at a mounted volume. A serverless
+ * host has no such thing and a read-only application directory, so rather
+ * than crashing on boot we fall back to the one writable path there is.
+ * That is a demo, not a deployment: /tmp is per-instance and disappears, so
+ * anything written to it is gone at the next cold start. The banner in the
+ * dashboard says so out loud rather than letting someone discover it.
+ */
+function resolveDataDir(): string {
+  const configured = process.env.LOBBY_DATA_DIR?.trim();
+  if (configured) return path.resolve(configured);
+
+  const preferred = path.join(process.cwd(), ".data");
+  try {
+    fs.mkdirSync(preferred, { recursive: true });
+    fs.accessSync(preferred, fs.constants.W_OK);
+    return preferred;
+  } catch {
+    const fallback = path.join(os.tmpdir(), "lobby-data");
+    console.warn(
+      `${preferred} is not writable, so the database is going to ${fallback}. ` +
+        "That is per-instance and temporary — fine for a demo, wrong for anything real.",
+    );
+    return fallback;
+  }
+}
+
+const DATA_DIR = resolveDataDir();
+export const DATA_IS_EPHEMERAL = DATA_DIR.startsWith(os.tmpdir());
 
 const DB_PATH = path.join(DATA_DIR, "lobby.db");
 

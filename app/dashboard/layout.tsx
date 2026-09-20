@@ -9,6 +9,9 @@ import { workspace } from "@/lib/session";
 import { needsVerification } from "@/lib/auth";
 import { entitlement } from "@/lib/entitlement";
 import { VerifyBanner } from "./verify-banner";
+import { DemoBanner } from "./demo-banner";
+import { DATA_IS_EPHEMERAL } from "@/lib/db";
+import { demoModeEnabled, spendState } from "@/lib/demo";
 import { signOutAction } from "@/app/auth-actions";
 import { listApprovals, listCallRequests, listConversations, listKbGaps } from "@/lib/repo";
 import { assistantConfigured } from "@/lib/assistant";
@@ -83,6 +86,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </div>
         </div>
       </header>
+
+      {demoModeEnabled() ? <DemoBanner ephemeral={DATA_IS_EPHEMERAL} spendOff={spendState().off} /> : null}
 
       {user && needsVerification(user) ? (
         <VerifyBanner email={user.email} blocking={entitlement(business).blockedTitle?.includes("email") ?? false} />

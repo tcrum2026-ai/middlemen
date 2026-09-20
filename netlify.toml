@@ -1,0 +1,30 @@
+# Netlify configuration — for the public demo only.
+#
+# This app keeps its data in a SQLite file and expects a long-lived process
+# (see DEPLOY.md). Netlify runs Next.js in Lambda: no persistent disk, no
+# background timers, a fresh container whenever one spins up. That is fine
+# for something you click through and wrong for something you run a business
+# on, so everything below is scoped to "a demo anyone can drive".
+#
+# For a real deployment use the Dockerfile on a host with a mounted volume.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # The app directory is read-only in Lambda; /tmp is the one writable path.
+  # It is per-instance and temporary, which is why the dashboard says so.
+  LOBBY_DATA_DIR = "/tmp/lobby-data"
+  # Containers are frozen between requests, so an interval would never fire.
+  LOBBY_SCHEDULER = "off"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  # The SQLite driver is a native addon; it has to travel with the function
+  # rather than be bundled by esbuild.
+  external_node_modules = ["better-sqlite3"]
+  node_bundler = "esbuild"
