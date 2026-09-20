@@ -22,7 +22,20 @@ cp package*.json "$SIM/"
   || { tail -20 /tmp/image-npm.log; exit 1; }
 
 echo "· copying what the Dockerfile copies"
-for item in .next public next.config.mjs server scripts; do cp -r "$ROOT/$item" "$SIM/"; done
+# Read the actual COPY --from=build lines rather than keeping a second,
+# hand-maintained list here: a hardcoded list stays "right" by coincidence
+# when a path in the Dockerfile changes, which is exactly how it missed
+# next.config.ts becoming next.config.mjs and shipped a build that 404's
+# before it starts. node_modules and package.json are excluded: this
+# script installs those itself, production dependencies only, which is
+# the whole point of the steps above — copying the working tree's would
+# silently hide a devDependency the image needs at runtime.
+while read -r src; do
+  case "$src" in
+    node_modules|package.json) continue ;;
+  esac
+  cp -r "$ROOT/$src" "$SIM/$src"
+done < <(grep -oP 'COPY --from=build /app/\K\S+' "$ROOT/Dockerfile")
 
 for pid in $(ps -eo pid,args --no-headers | grep "[n]ext-server" | awk '{print $1}'); do kill "$pid" 2>/dev/null || true; done
 sleep 2
