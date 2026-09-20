@@ -155,6 +155,51 @@ export async function sendHumanReplyAction(data: FormData) {
   revalidatePath("/dashboard/inbox");
 }
 
+/**
+ * Takes a thread away from the assistant without replying yet.
+ *
+ * Replying already did this implicitly, but "take it over in one click" is
+ * the promise, and the click needs to exist before you have written
+ * anything — the moment you decide the assistant should stop is usually
+ * before you know what to say.
+ */
+export async function takeOverAction(data: FormData) {
+  const conversationId = str(data, "conversation_id");
+  if (!conversationId) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("conversation", conversationId, business.id)) return;
+
+  updateConversation(conversationId, { handled_by: "human" });
+  logEvent({
+    business_id: business.id,
+    kind: "reply_sent",
+    summary: "Teammate took over a thread",
+    handled_by: "human",
+  });
+  revalidatePath(`/dashboard/inbox/${conversationId}`);
+  revalidatePath("/dashboard/inbox");
+}
+
+/**
+ * Gives the thread back to the assistant without making it say anything.
+ *
+ * Distinct from aiReplyAction, which spends a model call to produce a reply
+ * right now. Sometimes you have finished the conversation yourself and just
+ * want the assistant picking up whatever comes next.
+ */
+export async function handBackAction(data: FormData) {
+  const conversationId = str(data, "conversation_id");
+  if (!conversationId) return;
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("conversation", conversationId, business.id)) return;
+
+  updateConversation(conversationId, { handled_by: "ai" });
+  revalidatePath(`/dashboard/inbox/${conversationId}`);
+  revalidatePath("/dashboard/inbox");
+}
+
 /** Hands the thread back to the assistant, which replies using its tools. */
 export async function aiReplyAction(data: FormData) {
   const conversationId = str(data, "conversation_id");

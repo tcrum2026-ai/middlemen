@@ -225,6 +225,17 @@
               steps.hidden = false;
               steps.textContent = actionText(data.actions);
             }
+            // Finished with nothing said. That happens when a teammate has
+            // taken the thread over and the assistant is deliberately
+            // staying out of it. Leaving the "..." bubble spinning forever
+            // would read as a hang.
+            if (!started) {
+              started = true;
+              pending.classList.remove("pend");
+              pending.textContent = data.waiting
+                ? "Thanks \u2014 someone from the team is on this thread and will reply here shortly."
+                : "Thanks \u2014 that's with the team and someone will follow up shortly.";
+            }
           } else if (name === "error") {
             throw new Error(data.message);
           }

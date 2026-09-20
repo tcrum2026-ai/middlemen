@@ -98,11 +98,11 @@ if (pending) {
   console.log("· platform mail is not configured, so nothing asks for confirmation");
 }
 
-const chat = async (message) => {
+const chat = async (message, conversationId = null) => {
   const r = await fetch("http://localhost:3000/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ widgetKey: biz.widget_key, message }),
+    body: JSON.stringify({ widgetKey: biz.widget_key, conversationId, message }),
   });
   return r.json();
 };
@@ -150,6 +150,26 @@ check(sentRows[0]?.body === EDIT, "the edited wording is what went out, not the 
 
 const conversation = db.prepare("SELECT handled_by FROM conversations WHERE id=?").get(refund.conversationId);
 check(conversation.handled_by === "human", "the thread is marked as handled by a person");
+
+// ── Taking a thread over must actually silence the assistant ──────────────
+const taken = await chat("What are your hours?");
+await page.goto(`http://localhost:3000/dashboard/inbox/${taken.conversationId}`, { waitUntil: "networkidle" });
+await page.waitForTimeout(400);
+const takeOver = page.locator("button", { hasText: "Take it over" });
+check((await takeOver.count()) > 0, "a thread can be taken over in one click");
+await takeOver.click();
+await page.waitForTimeout(2000);
+
+const afterTakeover = await chat("Actually, do you do Sundays?", taken.conversationId);
+check(afterTakeover.reply === "", "the assistant stays out of a thread a teammate has");
+check(afterTakeover.waiting === true, "the customer is told a person is on it");
+
+await page.goto(`http://localhost:3000/dashboard/inbox/${taken.conversationId}`, { waitUntil: "networkidle" });
+await page.waitForTimeout(400);
+await page.locator("button", { hasText: /take it again/ }).click();
+await page.waitForTimeout(2000);
+const handedBack = await chat("And pricing?", taken.conversationId);
+check(handedBack.reply.length > 0, "handing it back starts the assistant again");
 
 check(pageErrors.length === 0, `no page errors${pageErrors.length ? `: ${pageErrors.join("; ")}` : ""}`);
 

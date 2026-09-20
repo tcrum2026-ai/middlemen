@@ -114,6 +114,21 @@ export async function POST(request: Request) {
         return;
       }
 
+      // A teammate has this thread; the assistant stays out of it. Same
+      // reasoning as the non-streaming route: two voices answering a
+      // complaint is the failure the takeover exists to prevent.
+      if (thread.handled_by === "human" && thread.status !== "closed") {
+        updateConversation(thread.id, { status: "waiting" });
+        await notifyOperator(business, {
+          title: "A reply on a thread you took over",
+          summary: `They wrote: "${message.slice(0, 200)}"\n\nThe assistant is staying out of this one.`,
+          path: `/dashboard/inbox/${thread.id}`,
+        });
+        send("done", { conversationId: thread.id, escalated: true, actions: [], waiting: true });
+        controller.close();
+        return;
+      }
+
       try {
         const turn = await streamAssistantTurn({
           business,

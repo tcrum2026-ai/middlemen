@@ -31,6 +31,19 @@ pipeline, a contacts CRM with a full per-customer timeline, an editable knowledg
 follow-up automations, an integrations directory, analytics, and a four-step onboarding
 flow that ends in one line of code.
 
+### Taking a thread back
+
+"Take it over in one click and the assistant steps back" is on the front page, in the FAQ and
+on the security page. It did not step back — nothing checked `handled_by` before running a
+turn, so a customer who wrote again after a takeover was answered twice: by the teammate who
+took the thread over precisely because the assistant should not be handling it, and by the
+assistant. On a refund or a complaint that is the worst possible moment for two voices that
+disagree.
+
+The thread header has the click now, in both directions. While a teammate holds a thread the
+assistant answers nothing new on it; the message is still captured, the customer is told a
+person is on it, and the operator is notified. Handing it back is one click the other way.
+
 ### How long people actually waited
 
 The reporting capability promises "deflection rate, hours saved, pipeline created, response

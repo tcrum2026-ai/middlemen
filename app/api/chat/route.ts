@@ -108,6 +108,34 @@ export async function POST(request: Request) {
     );
   }
 
+
+  /**
+   * A teammate has this thread. The assistant stays out of it.
+   *
+   * "Take it over in one click and the assistant steps back" is on the front
+   * page, in the FAQ and on the security page. It did not step back: nothing
+   * checked handled_by before running a turn, so a customer who wrote again
+   * after a takeover got answered twice — by the person who took the thread
+   * over precisely because the assistant should not be handling it, and by
+   * the assistant. On a refund or a complaint that is the worst possible
+   * moment for two voices that do not agree.
+   *
+   * The message is still captured and the person is still told. Handing it
+   * back is one click in the inbox.
+   */
+  if (conversation.handled_by === "human" && conversation.status !== "closed") {
+    updateConversation(conversation.id, { status: "waiting" });
+    await notifyOperator(business, {
+      title: "A reply on a thread you took over",
+      summary: `They wrote: "${message.slice(0, 200)}"\n\nThe assistant is staying out of this one.`,
+      path: `/dashboard/inbox/${conversation.id}`,
+    });
+    return NextResponse.json(
+      { conversationId: conversation.id, reply: "", actions: [], escalated: true, waiting: true },
+      { headers: CORS },
+    );
+  }
+
   const turn = await runAssistantTurn({
     business,
     conversation,

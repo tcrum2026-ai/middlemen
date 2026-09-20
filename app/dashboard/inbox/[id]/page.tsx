@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Card, formatDateTime } from "@/components/ui";
 import { SparkIcon } from "@/components/icons";
-import { aiReplyAction, sendHumanReplyAction, setConversationStatusAction } from "../../actions";
+import { aiReplyAction, handBackAction, sendHumanReplyAction, setConversationStatusAction, takeOverAction } from "../../actions";
+import { SubmitButton } from "@/components/submit-button";
 import { activeBusiness } from "@/lib/session";
 import { getContact, getConversation, listMessages } from "@/lib/repo";
 
@@ -26,7 +27,32 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           <Badge tone={conversation.handled_by === "ai" ? "jade" : "iris"}>
             {conversation.handled_by === "ai" ? `Handled by ${business.assistant_name}` : "Handled by a teammate"}
           </Badge>
+
+          {/* The promised one click. While a teammate has it, the assistant
+              does not reply to anything new on this thread. */}
+          {conversation.handled_by === "ai" ? (
+            <form action={takeOverAction} className="ml-auto">
+              <input type="hidden" name="conversation_id" value={conversation.id} />
+              <SubmitButton className="btn btn-ghost px-3 py-1.5 text-xs" pendingLabel="Taking over…">
+                Take it over
+              </SubmitButton>
+            </form>
+          ) : (
+            <form action={handBackAction} className="ml-auto">
+              <input type="hidden" name="conversation_id" value={conversation.id} />
+              <SubmitButton className="btn btn-ghost px-3 py-1.5 text-xs" pendingLabel="Handing back…">
+                Let {business.assistant_name} take it again
+              </SubmitButton>
+            </form>
+          )}
         </div>
+
+        {conversation.handled_by === "human" ? (
+          <p className="mb-4 rounded-lg border border-iris/30 bg-iris/10 px-3 py-2 text-xs text-mist-300">
+            You have this thread. {business.assistant_name} will not reply to anything new on it — the customer&apos;s
+            messages are captured and you are told about them.
+          </p>
+        ) : null}
 
         <Card className="!p-0">
           <div className="space-y-4 p-5">
