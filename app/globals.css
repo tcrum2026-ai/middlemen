@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #07080a;
+  --color-ink-900: #0b0d11;
+  --color-ink-850: #10131a;
+  --color-ink-800: #161a23;
+  --color-ink-700: #212733;
+  --color-ink-600: #323a4a;
+  --color-mist-400: #8d96ab;
+  --color-mist-300: #aab3c5;
+  --color-mist-100: #e7eaf1;
+  --color-jade-500: #19c37d;
+  --color-jade-400: #35d99a;
+  --color-jade-300: #7ff0c4;
+  --color-amber-glow: #f5b544;
+  --color-rose-alert: #f4667d;
+  --color-iris: #7c8cff;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ink-950);
+  color: var(--color-mist-100);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-jade-500) 35%, transparent);
+}
+
+@layer components {
+  .card {
+    border-radius: 1rem;
+    border: 1px solid var(--color-ink-700);
+    background-color: color-mix(in oklab, var(--color-ink-900) 85%, transparent);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.625rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 150ms ease;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background-color: var(--color-jade-500);
+    color: var(--color-ink-950);
+  }
+  .btn-primary:hover {
+    background-color: var(--color-jade-400);
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--color-ink-700);
+    color: var(--color-mist-100);
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-ink-600);
+    background-color: var(--color-ink-850);
+  }
+
+  /*
+   * An inline link inside a paragraph must be distinguishable from the text
+   * around it by something other than colour (WCAG 1.4.1) — colour alone
+   * disappears for anyone who cannot separate these two greens. Underlined at
+   * rest, but faintly, so prose does not turn into a field of rules; hover and
+   * focus bring it up to full strength.
+   */
+  .link {
+    color: var(--color-jade-400);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in oklab, var(--color-jade-400) 45%, transparent);
+  }
+  .link:hover,
+  .link:focus-visible {
+    text-decoration-color: currentColor;
+  }
+
+  /* The same, for a link that sits in body-coloured text rather than accent. */
+  .link-quiet {
+    color: var(--color-mist-300);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in oklab, var(--color-mist-300) 40%, transparent);
+  }
+  .link-quiet:hover,
+  .link-quiet:focus-visible {
+    color: var(--color-mist-100);
+    text-decoration-color: currentColor;
+  }
+
+  /*
+   * Grows a small inline control's hit area to something a thumb can land on,
+   * without changing how it looks. Small text buttons — Copy, Remove, View
+   * all — are visually right at 16px tall and physically wrong on a phone;
+   * the padding is the target, the negative margin keeps the layout.
+   */
+  .tap {
+    padding: 0.5rem;
+    margin: -0.5rem;
+  }
+
+  .field {
+    width: 100%;
+    border-radius: 0.625rem;
+    border: 1px solid var(--color-ink-700);
+    background-color: var(--color-ink-950);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-mist-100);
+    outline: none;
+  }
+  .field:focus {
+    border-color: var(--color-jade-500);
+  }
+  .field::placeholder {
+    color: var(--color-ink-600);
+  }
+
+  .label {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-mist-400);
+  }
+}
+
+/* Visible keyboard focus everywhere, without the permanent outline on clicks. */
+:focus-visible {
+  outline: 2px solid var(--color-jade-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -4rem;
+  z-index: 60;
+  border-radius: 0.5rem;
+  background-color: var(--color-jade-500);
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-ink-950);
+  transition: top 150ms ease;
+}
+.skip-link:focus {
+  top: 0.75rem;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 420ms ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

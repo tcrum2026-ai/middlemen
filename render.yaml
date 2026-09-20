@@ -1,0 +1,80 @@
+# Render blueprint — https://render.com/docs/blueprint-spec
+#
+# Create → Blueprint → pick this repo → pick the branch named below.
+#
+# Two configurations, and the difference is whether your data survives:
+#
+#   free (as written)  No disk. The database falls back to a temporary
+#                      directory and is wiped whenever the service restarts,
+#                      which on the free plan happens after 15 minutes idle.
+#                      The dashboard says so. Good for showing someone.
+#
+#   starter + disk     Uncomment the `disk:` block and set `plan: starter`.
+#                      The data then lives on a real volume and survives
+#                      deploys. This costs a few dollars a month and is the
+#                      only version to point a real customer at.
+#
+# `GET /api/health` reports which one you got, so you never have to guess.
+
+services:
+  - type: web
+    name: lobby
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+
+    # All the work lives on this branch; `main` has only a README. Change
+    # this once the branch is merged.
+    branch: claude/virtual-assistant-website-yol7yd
+
+    # Free instances sleep after 15 minutes and take about a minute to wake.
+    # The first request after a nap is slow, and the database is fresh again.
+    autoDeploy: false
+
+    # Uncomment together with `plan: starter` to keep your data.
+    # disk:
+    #   name: lobby-data
+    #   mountPath: /data
+    #   sizeGB: 1
+
+    envVars:
+      # The image already sets this; repeated here so it is visible in the
+      # place you would go looking for it.
+      - key: LOBBY_DATA_DIR
+        value: /data
+
+      # Turns the shared demo login on. Render will prompt for a value when
+      # you create the blueprint. Leave it blank for a real deployment —
+      # without it there is no shared account at all.
+      - key: LOBBY_DEMO_PASSWORD
+        sync: false
+
+      # Fill this in after the first deploy, once you know the URL Render
+      # gave you: https://<name>.onrender.com. It sets canonical links, the
+      # sitemap and the OG tags. Deliberately not derived from the service —
+      # Render's `fromService` host property has no scheme, and a bare
+      # hostname here produces broken links.
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+
+      # ── Everything below costs money and is deliberately left unset ──────
+      # The app refuses to pretend when one is missing: it says so on the
+      # page rather than failing quietly. Add them when you are ready.
+      #
+      #   ANTHROPIC_API_KEY       real replies instead of the scripted engine
+      #   STRIPE_SECRET_KEY       taking subscriptions
+      #   STRIPE_WEBHOOK_SECRET   required with it; the webhook fails closed
+      #   STRIPE_PRICE_STARTER / _PRO / _BUSINESS
+      #   RESEND_API_KEY + AUTH_FROM_EMAIL   reset mail, email verification
+      #   VOICE_BRIDGE_SECRET / VOICE_BRIDGE_URL   answering phone calls
+      #
+      # The three legal variables are not billable but should be set before
+      # anyone outside sees the site; until they are, /privacy and /terms
+      # carry a visible "not ready to publish" banner.
+      - key: NEXT_PUBLIC_LEGAL_ENTITY
+        sync: false
+      - key: NEXT_PUBLIC_CONTACT_EMAIL
+        sync: false
+      - key: NEXT_PUBLIC_LEGAL_JURISDICTION
+        sync: false

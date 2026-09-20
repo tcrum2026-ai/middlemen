@@ -1,1 +1,369 @@
-# middlemen
+# Lobby
+
+An AI virtual assistant for small businesses. It handles the messages — web chat, email,
+SMS — and hands the phone calls to a person, briefed.
+
+The split is the whole product thesis: an AI voice that mishears an address or promises a
+refund costs more than it saves, so the assistant never places or answers a call. What it
+does instead is the part people hate — gathering the facts first, so the call your team
+makes takes two minutes instead of ten.
+
+Publishing it? Work down [GO-LIVE.md](GO-LIVE.md); [DEPLOY.md](DEPLOY.md) has the detail
+behind each step.
+
+## What the assistant actually does
+
+Every capability below is wired to a tool the model calls during a conversation, writing to
+the same records the dashboard reads.
+
+| Tool | What it does |
+| --- | --- |
+| `search_knowledge` | Answers from the business's own prices, policies and warranty terms. No match → it says so rather than guessing. |
+| `check_availability` | Reads working hours and existing bookings to find real open slots. |
+| `book_appointment` | Books, confirms and files the visit with notes for whoever shows up. |
+| `capture_lead` | Scores intent and files the opportunity with contact details and estimated value. |
+| `draft_quote` | Prices a quote from the rate card; anything over $1,000 is held for review. |
+| `request_human_callback` | The only path to a phone call. Queues it with a written brief. |
+| `send_to_human_review` | Holds refunds, warranty disputes and low-confidence answers for approval. |
+
+Around those: a unified inbox, a call queue, an approvals queue, a schedule, a lead
+pipeline, a contacts CRM with a full per-customer timeline, an editable knowledge base,
+follow-up automations, an integrations directory, analytics, and a four-step onboarding
+flow that ends in one line of code.
+
+### Taking a thread back
+
+"Take it over in one click and the assistant steps back" is on the front page, in the FAQ and
+on the security page. It did not step back — nothing checked `handled_by` before running a
+turn, so a customer who wrote again after a takeover was answered twice: by the teammate who
+took the thread over precisely because the assistant should not be handling it, and by the
+assistant. On a refund or a complaint that is the worst possible moment for two voices that
+disagree.
+
+The thread header has the click now, in both directions. While a teammate holds a thread the
+assistant answers nothing new on it; the message is still captured, the customer is told a
+person is on it, and the operator is notified. Handing it back is one click the other way.
+
+### How long people actually waited
+
+The reporting capability promises "deflection rate, hours saved, pipeline created, response
+time". The first three were on the Analytics page; the fourth was not, and it is the number
+closest to what this product is for. `lib/response-time.ts` pairs each customer message with
+the first reply that followed and reports the median — a mean would let one thread left over
+a bank holiday swamp a thousand six-second replies. Consecutive messages from the same person
+count once, from the first, because that is when they started waiting. The assistant's median
+and a person's sit side by side, with a count of threads still waiting on anyone at all.
+
+### Booking, and changing a booking
+
+The assistant has `book_appointment`, and now `find_appointments`,
+`reschedule_appointment` and `cancel_appointment` — because "books, reschedules and cancels"
+is on the front page and only the first of those existed, so the most common thing anyone
+asks after booking ("can I move Thursday to Friday?") became an escalation.
+
+A move is refused if the new time clashes with another booking *or* with the owner's own
+calendar; moving one appointment on top of another is the same failure as double-booking,
+just harder to notice. Customers get an email for the new time or the cancellation, the same
+way they do for the original booking. Matching a caller to their booking is its own tested
+module (`lib/contact-match.ts`): email and phone are exact, a bare name is a weak match the
+assistant must read back, and an empty claim matches nobody — erring towards "ask again" is
+safe, erring the other way rearranges a stranger's week.
+
+The operator can move one from the dashboard too, with the same clash checks and the reason
+shown when it is refused.
+
+### The calendar goes both ways
+
+Lobby publishes an `.ics` feed so its bookings appear in the owner's calendar, and reads a
+subscribed feed so it knows what they are already committed to. Without the second half the
+assistant only ever saw its own appointments, which means it would offer a customer the hour
+its owner was at the dentist — the most damaging thing this software can do to someone's day.
+
+`lib/ical.ts` parses just enough iCalendar to answer "is this slot spoken for?": events,
+durations, all-day dates, daily/weekly/monthly recurrence with INTERVAL, COUNT, UNTIL and
+BYDAY, and EXDATE. Cancelled events and anything marked free are not busy. Recurrence shapes
+it does not understand are skipped rather than guessed at, because a missed busy block risks
+one double-booking but an invented one silently deletes bookable hours from someone's week,
+and only one of those gets noticed. Timezone handling is the known limit: without VTIMEZONE,
+floating times are read as UTC.
+
+### Follow-ups that actually chase
+
+The rules schedule them; `instrumentation.ts` starts a ticker when the server boots and
+`lib/scheduler.ts` runs the pass every five minutes — syncing what the rules imply and sending
+what has fallen due. Single-instance by design, like SQLite underneath it. One that is more
+than 48 hours overdue is cancelled rather than sent, because a reminder arriving after the
+appointment is worse than none. The dashboard's Send button calls the same delivery function,
+so pressing it by hand and letting it go on its own cannot drift apart. `LOBBY_SCHEDULER=off`
+plus `POST /api/cron/tick` hands the schedule to something external.
+
+### Knowing when it needs you
+
+An escalation is only useful if someone finds out. `lib/notify.ts` posts to Slack when the
+workspace has connected it and emails the owner when the platform can send mail — throttled
+to one message per workspace per half hour, counting what arrived behind it, and only to an
+address that has been confirmed. Every path that leaves something in the queue goes through
+it, including the ones that used to leave silently: a refund request in the scripted engine,
+an unanswerable question, and a workspace whose subscription or allowance has stopped it
+answering.
+
+### The three loops that make it get better
+
+- **Playground** (`/dashboard/playground`) — ask it anything with every tool in **dry-run**:
+  it will tell you it *would* book Thursday at 2pm and write nothing to your calendar, CRM
+  or call queue. The readiness check runs the eight questions every business gets asked and
+  scores what you have no answer for.
+- **Knowledge gaps** (`/dashboard/gaps`) — every question the assistant couldn't answer is
+  recorded and deduped by meaning, ranked by how often it's asked. Write the article once
+  and the gap closes for everyone who asks next.
+- **Follow-ups** (`/dashboard/automations`) — reminders before appointments, one polite
+  chase on a quiet quote, a review request after the job. The assistant drafts and queues
+  them; you edit, send or cancel.
+
+An unedited placeholder article is never quoted to a customer — the assistant treats it as
+missing knowledge and says it doesn't know, which is the honest answer.
+
+A **setup checklist** on the overview is derived entirely from workspace state — real
+articles written, placeholders cleared, callback number set, readiness check actually run,
+first conversation received, teammate added. Nothing there can be ticked without doing it.
+
+**Billing & usage** (`/dashboard/billing`) shows the plan, conversations against the
+allowance, a breakdown of what the month actually contained, and what happens if you stop.
+
+**Export** (`/api/export`) hands back contacts, leads, conversations, appointments, call
+briefs and knowledge as CSV, or the whole workspace as JSON — no request form, no waiting
+period. It's reachable from Settings and from the billing page, because "your data leaves
+when you do" should be a button, not a paragraph.
+
+### Starter packs
+
+Six trade packs (`lib/templates.ts`) load real articles — pricing, hours, policies, warranty
+terms and the lines the assistant must never cross — plus a matching persona and autonomy
+setting. Applied during onboarding or from the knowledge page, previewable at `/templates`.
+
+## Running it
+
+```bash
+npm install
+npm run dev
+```
+
+Open http://localhost:3000. On first run the app seeds a fully populated demo business
+(Brightline Home Services) so every screen has real data. Set `LOBBY_SEED_DEMO=false`
+to start from an empty workspace instead.
+
+### Live replies
+
+Replies are generated by the Claude Messages API with tool use. To turn them on:
+
+1. Create a key at [console.anthropic.com](https://console.anthropic.com) → **API keys**.
+2. Add credit under **Billing**. API usage is prepaid and billed separately from a Claude
+   Pro/Max subscription — a subscription alone will not authenticate API calls.
+3. Put it in `.env.local` (`cp .env.example .env.local`) as `ANTHROPIC_API_KEY=sk-ant-…`
+   and restart the dev server.
+
+**Dashboard → Settings → Assistant connection** tests the key against the API without
+generating anything, so the check costs nothing and tells you specifically whether the key
+was rejected, lacks model permission, or simply can't be reached.
+
+Without a key the app runs a **scripted fallback engine** — keyword routing over the same
+tools — so every screen still works end to end. The dashboard header says which mode is
+active. The fallback is a demo convenience, not a second product: it does not generate
+language, it picks from written responses.
+
+### Checking it without a browser or a phone
+
+```bash
+npm run check                     # types, lint, unit tests — run this before a commit
+npm test                          # unit tests alone (node --test, no framework)
+npm run sweep                     # every static route, two widths: status, overflow,
+                                  # console errors, error boundaries, undefined in the copy
+npm run a11y                      # axe-core over every route at phone width
+npm run widget                    # the embed, on a third-party page, cross-origin
+npm run journey                   # signup → onboarding → a message → an approval → the reply
+npm run image                     # boots the deployable layout and drives it
+npm run call -- <businessId>      # a fake phone call, start to finish
+```
+
+The unit tests cover the code where being wrong is expensive and being wrong
+quietly is worse: webhook signature verification for Twilio and Stripe
+(`lib/signatures.ts`), the rules deciding whether a workspace may answer
+(`lib/plan-rules.ts`), and the string handling that a phone call depends on
+(`lib/text.ts`, `server/sentences.mjs` — a splitter that breaks on the decimal
+point makes the voice pause in the middle of a price). Node runs the
+TypeScript directly, so there is no build step and no test framework to keep
+up to date.
+
+`scripts/image.mjs` boots the app from exactly the files the Dockerfile copies and checks it
+serves, keeps its security headers, signs a user in, renders every dashboard page and writes to
+its data directory. It exists because the Dockerfile shipped for weeks setting
+`MIDDLEMEN_DATA_DIR` — the project's old name — while the app read `LOBBY_DATA_DIR`: the mounted
+volume was ignored, SQLite wrote inside the container, and a redeploy would have thrown away
+every customer's data. The build passed, the tests passed, and the app ran perfectly in
+development the whole time.
+
+`scripts/journey.mjs` walks the path every customer takes and checks the
+promise at each step: that the assistant does not invent an answer, that an
+unanswerable question becomes a gap, that a refund request reaches the queue
+rather than the customer, that **nothing** goes out before someone approves
+it, and that when they do approve it, the wording they edited is what
+actually gets sent — once. Every one of those has been broken at some point
+while every page still rendered.
+
+`scripts/widget.mjs` loads the embed on a page it does not control, with host
+CSS that hides every input and reddens every button, and checks that the
+shadow root shrugs it off, that a price question gets a figure, that the tool
+trace shows, and that asking for a person gets one. It is the only part of
+this product that runs on somebody else's website.
+
+`scripts/call.mjs` speaks Twilio's ConversationRelay protocol, so it exercises the bridge,
+the turn endpoint, the assistant, the transfer signal and the metered duration without a
+phone number or a person to talk to. It needs `npm run voice` running alongside the app,
+with `VOICE_BRIDGE_SECRET` set in both.
+
+## How a business connects
+
+1. **`/connect`** — name, hours, services, assistant persona, and a paste of prices and
+   policies that is split into knowledge base articles.
+2. **`/dashboard/install`** — one script tag:
+
+   ```html
+   <script src="https://your-host/widget.js" data-key="mm_xxx" defer></script>
+   ```
+
+   `/widget-demo.html` renders that widget on a stand-in website to preview it.
+3. Or skip the website entirely: `/chat/<widget-key>` is a hosted chat page for a QR code
+   or link in bio, and `POST /api/chat` is the same endpoint behind email and SMS.
+
+## The sales site
+
+The marketing surface is part of the product, not a wrapper around it:
+
+- **A live assistant in the hero**, wired to the demo workspace — visitors can try to catch it inventing a price.
+- **“Watch it work”** steps through one 9:47pm message and names every record each tool call reads or writes.
+- **An ROI calculator** built on the visitor's own numbers (volume, miss rate, close rate, job value) rather than
+  industry statistics, with its assumptions stated on the page.
+- **An honest comparison table** against AI voice receptionists, answering services, chatbots and doing nothing —
+  including a section on when to buy something else instead.
+- **Six industry pages** at `/for/<trade>` (home services, dental, salon, legal, real estate, auto repair), each
+  with its own sample conversation, day-one knowledge list, and what always reaches a person.
+- **Four honest comparison pages** at `/vs/<alternative>` that lead with where the alternative wins.
+- **A product tour** at `/tour` linking every screen in the order you'd use it, and a `/security` page that states
+  plainly which compliance certifications we don't have.
+- Guardrails section, annual/monthly pricing, objection-handling FAQ, generated OG image, sitemap and structured
+  data.
+
+A **workspace showcase** on the landing page walks through the five screens that do the
+work (inbox, call queue, approvals, playground, analytics) as real markup rather than
+screenshots, so it never goes stale against the product.
+
+There are deliberately no testimonials or customer counts — this product has no customers yet, and inventing them
+is the one thing a page about not making things up shouldn't do.
+
+## Layout
+
+```
+app/
+  page.tsx              sales site with a live assistant demo
+  for/[industry]/       per-trade landing pages
+  vs/[competitor]/      comparison pages
+  tour, templates,      product tour, starter-pack gallery, guardrails
+  security/
+  connect/              four-step onboarding wizard
+  chat/[key]/           hosted chat page
+  dashboard/            inbox, calls, approvals, schedule, leads, contacts,
+                        follow-ups, knowledge, gaps, playground, team,
+                        integrations, analytics, install, settings
+  api/chat/             public chat endpoint (CORS-open, widget-key scoped)
+  api/playground/       dry-run endpoint for the test bench
+  api/onboarding/       creates a workspace
+lib/
+  marketing.ts          sales-site copy (capabilities, plans, FAQ, comparison)
+  industries.ts         per-trade content
+  versus.ts             comparison-page content
+  templates.ts          starter knowledge packs per trade
+  assistant.ts          Claude tool-use engine + scripted fallback
+  repo.ts               data access
+  db.ts                 SQLite schema
+  seed.ts               demo business
+public/widget.js        embeddable widget (shadow DOM, no dependencies)
+```
+
+## Stack
+
+Next.js 15 (App Router, server components, server actions), TypeScript, Tailwind v4,
+SQLite via better-sqlite3, `@anthropic-ai/sdk`. Data lives in `.data/lobby.db`
+(override with `LOBBY_DATA_DIR`).
+
+## Connecting the outside world
+
+Integrations are per-workspace credentials entered in the dashboard, not code changes.
+Paste a key and the thing it powers starts working on the next message. Full instructions in
+[DEPLOY.md](./DEPLOY.md).
+
+| Integration | What starts working | What you paste |
+| --- | --- | --- |
+| Calendar | Booked work appears in Google/Apple/Outlook | Nothing — subscribe to the workspace's `.ics` URL |
+| Website widget | Assistant on your own site | One `<script>` tag |
+| Resend | Booking confirmations, follow-up email, quote delivery | API key + verified from-address |
+| Twilio | Inbound SMS answered automatically, reminders, follow-up texts | SID, auth token, number — then point the number's webhook at `/api/webhooks/twilio` |
+| Inbound email | Mail to `<workspace-slug>@…` answered automatically | Route your provider at `/api/webhooks/email` |
+| Slack | Queued callbacks and approvals posted to a channel | Incoming webhook URL |
+| Stripe | Payment links on quotes | Secret key |
+
+Inbound Twilio requests are **signature-verified** (HMAC-SHA1 over the URL plus sorted body);
+unsigned, mis-signed and tampered requests are rejected. Every send is written to a delivery
+log with the provider's own error text, so a bad key shows up as `401: API key is invalid`
+rather than a message that silently vanished.
+
+## Accessibility and robustness
+
+`npm run a11y` runs axe-core (WCAG 2.1 A and AA) over every route at 390px and
+exits non-zero on any violation. It earns its place by catching what a
+screenshot cannot: it found the embedded widget's AI disclosure rendered at
+3.28:1 against its own background — the one line in that component that has
+to be legible, in the faintest colour in it — and five side-scrolling regions
+no keyboard could reach.
+
+- Skip link is the first tab stop; focus rings are visible throughout.
+- Chat transcripts are `role="log"` with `aria-live="polite"`, in both the app and the
+  embedded widget.
+- Scroll reveals are pure enhancement: a `<noscript>` rule keeps every section visible
+  without JS, `prefers-reduced-motion` disables them, and the visibility check is
+  position-based rather than `IntersectionObserver` — an observer only fires on threshold
+  crossings, so a deep link or a jump to the bottom would otherwise leave sections stuck
+  invisible.
+- The dashboard has a real mobile drawer; every page is checked at 390px and 1440px for
+  horizontal overflow, console errors, and exactly one `h1`.
+- Widget text colour is chosen against the accent by WCAG contrast ratio, so a dark brand
+  colour can't produce an unreadable launcher.
+
+## Accounts and tenancy
+
+- Email + password accounts, hashed with **scrypt** and a per-user salt, compared with
+  `timingSafeEqual`. Sessions are random 256-bit tokens stored **hashed** (SHA-256), so a
+  copy of the database can't be replayed as a cookie; cookies are `httpOnly`, `sameSite=lax`
+  and `secure` in production.
+- A workspace belongs to the account that created it (`businesses.owner_id`). Signed-in
+  users only ever see workspaces they own — the workspace-switch cookie is validated against
+  ownership, so tampering with it changes nothing.
+- The **demo workspace is unowned and public**, so the marketing site can keep linking
+  straight into a real dashboard. It is read-only, enforced server-side: every mutating
+  action resolves a *writable* business first and returns early without one.
+- Actions that take a record id re-check that the record belongs to the caller's workspace
+  (`belongsToBusiness`) rather than trusting the page the form came from.
+- Widget keys and record ids come from `crypto.randomBytes`, not `Math.random()`. A key
+  minted before that change is rotated automatically the first time the app opens the
+  database — re-paste the snippet from the install page if you hit that.
+- The post-sign-in redirect resolves `next` against a sentinel origin and compares, rather
+  than prefix-matching: a backslash is parsed as a slash for http(s), so `/\evil.com` looks
+  relative but points off-site.
+
+## Notes and limits
+
+- **No email verification or password reset.** Accounts are real and isolated, but there's
+  no mail delivery wired up, so neither flow exists yet.
+- **Integrations are directory entries**, not live OAuth connections — connecting toggles
+  state and shapes the UI. The tool layer is where real Gmail/Calendar/Stripe calls belong.
+- **Chart colours** in analytics are stepped for the dark surface and validated for
+  colour-vision separation; identity is also carried by the legend and a table view.
