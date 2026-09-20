@@ -1,4 +1,13 @@
-import type { NextConfig } from "next";
+/**
+ * Authored as .mjs rather than .ts on purpose.
+ *
+ * `next start` loads this file at boot, and when it is TypeScript and the
+ * compiler is absent — which it is in a production image, where
+ * devDependencies are pruned — Next shells out to yarn and installs
+ * TypeScript at container startup. That is a network call on every cold
+ * start, a write into node_modules, and a hang on any host without egress.
+ * JSDoc gives the same type checking with none of that.
+ */
 
 /**
  * Headers that apply to every response.
@@ -24,7 +33,8 @@ const BASE_HEADERS = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
 ];
 
-const nextConfig: NextConfig = {
+/** @type {import("next").NextConfig} */
+const nextConfig = {
   /** better-sqlite3 is a native addon and must not be bundled by the server compiler. */
   serverExternalPackages: ["better-sqlite3"],
 
@@ -35,7 +45,8 @@ const nextConfig: NextConfig = {
    * needlessly lost visitor. Permanent, so search engines learn the real one.
    */
   async redirects() {
-    const toHome = (from: string, hash: string) => ({
+    /** @param {string} from @param {string} hash */
+    const toHome = (from, hash) => ({
       source: from,
       destination: `/#${hash}`,
       permanent: true,

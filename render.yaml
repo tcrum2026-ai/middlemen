@@ -1,16 +1,20 @@
 # Render blueprint — https://render.com/docs/blueprint-spec
 #
-# Two ways to run this, and the difference is whether the data survives.
+# Create → Blueprint → pick this repo → pick the branch named below.
 #
-#   Free plan:   no disk, and the service sleeps when idle. The database
-#                falls back to a temporary directory and is wiped whenever
-#                the service restarts. Fine for a demo, wrong for customers.
-#   Starter:     add the `disk` block below and set plan: starter. The data
-#                then lives on a real volume and survives deploys. This costs
-#                money — a few dollars a month — and is the only configuration
-#                you should point a real customer at.
+# Two configurations, and the difference is whether your data survives:
 #
-# Create → Blueprint, point it at this repo, and Render reads this file.
+#   free (as written)  No disk. The database falls back to a temporary
+#                      directory and is wiped whenever the service restarts,
+#                      which on the free plan happens after 15 minutes idle.
+#                      The dashboard says so. Good for showing someone.
+#
+#   starter + disk     Uncomment the `disk:` block and set `plan: starter`.
+#                      The data then lives on a real volume and survives
+#                      deploys. This costs a few dollars a month and is the
+#                      only version to point a real customer at.
+#
+# `GET /api/health` reports which one you got, so you never have to guess.
 
 services:
   - type: web
@@ -19,56 +23,55 @@ services:
     dockerfilePath: ./Dockerfile
     plan: free
     healthCheckPath: /api/health
+
+    # All the work lives on this branch; `main` has only a README. Change
+    # this once the branch is merged.
+    branch: claude/virtual-assistant-website-yol7yd
+
+    # Free instances sleep after 15 minutes and take about a minute to wake.
+    # The first request after a nap is slow, and the database is fresh again.
     autoDeploy: false
 
-    # Uncomment together with plan: starter to keep your data.
+    # Uncomment together with `plan: starter` to keep your data.
     # disk:
     #   name: lobby-data
     #   mountPath: /data
     #   sizeGB: 1
 
     envVars:
-      # Set by the image; repeated here so it is visible where you configure.
+      # The image already sets this; repeated here so it is visible in the
+      # place you would go looking for it.
       - key: LOBBY_DATA_DIR
         value: /data
 
-      # Render sets this for you; the app prints canonical URLs with it.
-      - key: NEXT_PUBLIC_SITE_URL
-        fromService:
-          type: web
-          name: lobby
-          property: host
-
-      # ── Turn the demo on, or leave it off for a real deployment ──────────
-      # With this set, the seeded workspace has a shared owner and anyone
-      # with the link can drive every feature. Leave it unset for real use.
+      # Turns the shared demo login on. Render will prompt for a value when
+      # you create the blueprint. Leave it blank for a real deployment —
+      # without it there is no shared account at all.
       - key: LOBBY_DEMO_PASSWORD
         sync: false
-      - key: LOBBY_DEMO_EMAIL
+
+      # Fill this in after the first deploy, once you know the URL Render
+      # gave you: https://<name>.onrender.com. It sets canonical links, the
+      # sitemap and the OG tags. Deliberately not derived from the service —
+      # Render's `fromService` host property has no scheme, and a bare
+      # hostname here produces broken links.
+      - key: NEXT_PUBLIC_SITE_URL
         sync: false
 
-      # ── Everything below costs money and is deliberately unset ───────────
-      # The app refuses to pretend when one of these is missing: it says so
-      # on the page rather than failing quietly. Add them when you are ready.
+      # ── Everything below costs money and is deliberately left unset ──────
+      # The app refuses to pretend when one is missing: it says so on the
+      # page rather than failing quietly. Add them when you are ready.
       #
-      #   ANTHROPIC_API_KEY      real replies instead of the scripted engine
-      #   STRIPE_SECRET_KEY      taking subscriptions
-      #   STRIPE_WEBHOOK_SECRET  required with the above; fails closed
+      #   ANTHROPIC_API_KEY       real replies instead of the scripted engine
+      #   STRIPE_SECRET_KEY       taking subscriptions
+      #   STRIPE_WEBHOOK_SECRET   required with it; the webhook fails closed
       #   STRIPE_PRICE_STARTER / _PRO / _BUSINESS
-      #   RESEND_API_KEY + AUTH_FROM_EMAIL   password reset, email verification
-      #   VOICE_BRIDGE_SECRET / _URL         answering phone calls
-      #   CRON_SECRET            only if you set LOBBY_SCHEDULER=off
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: AUTH_FROM_EMAIL
-        sync: false
-
+      #   RESEND_API_KEY + AUTH_FROM_EMAIL   reset mail, email verification
+      #   VOICE_BRIDGE_SECRET / VOICE_BRIDGE_URL   answering phone calls
+      #
+      # The three legal variables are not billable but should be set before
+      # anyone outside sees the site; until they are, /privacy and /terms
+      # carry a visible "not ready to publish" banner.
       - key: NEXT_PUBLIC_LEGAL_ENTITY
         sync: false
       - key: NEXT_PUBLIC_CONTACT_EMAIL

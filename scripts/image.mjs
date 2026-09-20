@@ -79,7 +79,7 @@ ok((await p.locator("main").innerText()).includes("Written on the deployed image
 
 // Public chat API.
 const db = (await import("better-sqlite3")).default;
-const d = new db("/tmp/imgsim/data/lobby.db",{readonly:true});
+const d = new db(process.env.LOBBY_IMAGE_DB ?? "/tmp/lobby-image/data/lobby.db", { readonly: true });
 const key = d.prepare("SELECT widget_key FROM businesses LIMIT 1").get().widget_key;
 const chat = await (await fetch(B+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
   body:JSON.stringify({widgetKey:key,message:"How much is a water heater replacement?"})})).json();

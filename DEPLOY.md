@@ -86,11 +86,25 @@ Postgres first, not raising the machine count.
 
 ### Render
 
-`render.yaml` is in the repo. Create → Blueprint → point it at this repo.
+`render.yaml` is in the repo, and ships on the **free** plan.
 
-It ships on the **free** plan, which has no disk: good for a demo, and the dashboard will say
-the data is temporary. For real use, uncomment the `disk:` block and change `plan: free` to
-`plan: starter`. That costs money, and it is the only version you should give a customer.
+1. **New → Blueprint**, pick this repository.
+2. Pick the branch the code is on. The blueprint names it too, but Render reads `render.yaml`
+   from whichever branch you select here, so it has to be the right one.
+3. Render prompts for the variables marked `sync: false`. Set `LOBBY_DEMO_PASSWORD` to whatever
+   you like — that turns on the shared demo login. Leave the rest blank; every one of them is a
+   paid service, and the app says so on the page rather than failing quietly.
+4. Apply, and wait for the first build. Docker builds of this take a few minutes.
+5. Once it is live, set `NEXT_PUBLIC_SITE_URL` to `https://<name>.onrender.com` and redeploy.
+   Skipping this only affects canonical links, the sitemap and OG tags.
+
+Then open `/api/health` and check `"storage"`. On the free plan it says
+`temporary (resets on restart)` — correct, and the dashboard carries a banner saying so. Free
+instances also sleep after 15 minutes idle and take about a minute to wake, so the first
+request after a pause is slow and the demo data is fresh again.
+
+For real use: uncomment the `disk:` block and change `plan: free` to `plan: starter`. That
+costs a few dollars a month, and it is the only version to point a customer at.
 
 ### Docker, anywhere
 
