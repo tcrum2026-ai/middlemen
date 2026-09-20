@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { getDb, id, now } from "./db";
 import { TRIAL_DAYS } from "./marketing";
 import { overlapsBusy, type BusyInterval } from "./ical";
+import { matchesContact } from "./contact-match";
 import type {
   ActivityEvent,
   AutomationKind,
@@ -546,6 +547,46 @@ export function createAppointment(input: {
     )
     .run(appointment);
   return appointment;
+}
+
+/**
+ * A customer's upcoming appointments, matched however they identified
+ * themselves. Email and phone are exact; a name is a last resort, because
+ * two Daves is a real thing and moving the wrong Dave's slot is worse than
+ * asking which one.
+ */
+export function findUpcomingAppointments(
+  businessId: string,
+  who: { email?: string | null; phone?: string | null; name?: string | null },
+): Appointment[] {
+  const contacts = listContacts(businessId).filter((c) => matchesContact(c, who));
+  if (contacts.length === 0) return [];
+
+  const ids = new Set(contacts.map((c) => c.id));
+  const now = Date.now();
+  return listAppointments(businessId)
+    .filter((a) => a.contact_id && ids.has(a.contact_id))
+    .filter((a) => a.status !== "cancelled" && a.status !== "completed")
+    .filter((a) => new Date(a.starts_at).getTime() > now)
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+}
+
+export function getAppointment(appointmentId: string): Appointment | null {
+  return (getDb().prepare("SELECT * FROM appointments WHERE id = ?").get(appointmentId) as Appointment) ?? null;
+}
+
+/** Moves an appointment. The caller checks the new time is actually free. */
+export function moveAppointment(appointmentId: string, startsAt: string, durationMin?: number): void {
+  const db = getDb();
+  if (durationMin === undefined) {
+    db.prepare("UPDATE appointments SET starts_at = ? WHERE id = ?").run(startsAt, appointmentId);
+  } else {
+    db.prepare("UPDATE appointments SET starts_at = ?, duration_min = ? WHERE id = ?").run(
+      startsAt,
+      durationMin,
+      appointmentId,
+    );
+  }
 }
 
 export function setAppointmentStatus(appointmentId: string, status: Appointment["status"]): void {

@@ -1,7 +1,15 @@
 import { Badge, Card, EmptyState, PageHeader, formatDateTime } from "@/components/ui";
 import { setAppointmentStatusAction } from "../actions";
+import { MoveForm } from "./move-form";
 import { activeBusiness } from "@/lib/session";
 import { getContact, listAppointments } from "@/lib/repo";
+
+/** What a datetime-local field wants: the operator's own clock, no zone. */
+function localInput(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 const STATUS_TONE = { scheduled: "jade", confirmed: "jade", completed: "slate", cancelled: "rose" } as const;
 
@@ -61,15 +69,24 @@ export default async function AppointmentsPage() {
                           ) : null}
                         </div>
                         <Badge tone={STATUS_TONE[appointment.status]}>{appointment.status}</Badge>
-                        <form action={setAppointmentStatusAction} className="flex gap-2">
-                          <input type="hidden" name="appointment_id" value={appointment.id} />
-                          <button name="status" value="confirmed" className="btn btn-ghost px-2.5 py-1.5 text-xs">
-                            Confirm
-                          </button>
-                          <button name="status" value="cancelled" className="btn btn-ghost px-2.5 py-1.5 text-xs">
-                            Cancel
-                          </button>
-                        </form>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <form action={setAppointmentStatusAction} className="flex gap-2">
+                            <input type="hidden" name="appointment_id" value={appointment.id} />
+                            <button name="status" value="confirmed" className="btn btn-ghost px-2.5 py-1.5 text-xs">
+                              Confirm
+                            </button>
+                            <button name="status" value="cancelled" className="btn btn-ghost px-2.5 py-1.5 text-xs">
+                              Cancel
+                            </button>
+                          </form>
+                          {appointment.status !== "cancelled" && appointment.status !== "completed" ? (
+                            <MoveForm
+                              appointmentId={appointment.id}
+                              title={appointment.title}
+                              defaultValue={localInput(appointment.starts_at)}
+                            />
+                          ) : null}
+                        </div>
                       </li>
                     );
                   })}

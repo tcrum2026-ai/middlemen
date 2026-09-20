@@ -24,7 +24,10 @@ import {
   setAppointmentStatus,
   setIntegrationStatus,
   setLeadStage,
+  getAppointment,
   getQuote,
+  listAppointments,
+  moveAppointment,
   setQuotePaymentUrl,
   setQuoteStatus,
   updateBusiness,
@@ -44,7 +47,8 @@ import { sendVerificationEmail } from "@/lib/verify-mail";
 import { getTemplate } from "@/lib/templates";
 import { createPaymentLink, sendEmail, sendSms } from "@/lib/delivery";
 import { disconnect, saveCredentials } from "@/lib/integrations";
-import { forgetFeed } from "@/lib/calendar-feed";
+import { busyFromFeed, forgetFeed } from "@/lib/calendar-feed";
+import { overlapsBusy } from "@/lib/ical";
 import { deliverFollowUp } from "@/lib/scheduler";
 import type {
   Appointment,
@@ -286,6 +290,63 @@ export async function setLeadStageAction(data: FormData) {
   if (!business || !belongsToBusiness("lead", leadId, business.id)) return;
   setLeadStage(leadId, stage);
   revalidatePath("/dashboard/leads");
+}
+
+/**
+ * Moves an appointment from the dashboard.
+ *
+ * The assistant can reschedule; until now a person could only confirm or
+ * cancel, so the one party who can see the whole week had to cancel and
+ * rebook to change a time. Clashes are refused for the same reason the
+ * assistant refuses them — a move on top of another booking is a
+ * double-booking that is harder to spot.
+ */
+export async function moveAppointmentAction(
+  _prev: { error?: string } | null,
+  data: FormData,
+): Promise<{ error?: string }> {
+  const appointmentId = str(data, "appointment_id");
+  const startsAt = str(data, "starts_at");
+  if (!appointmentId || !startsAt) return { error: "Pick a new time first." };
+
+  const business = await writableBusiness();
+  if (!business || !belongsToBusiness("appointment", appointmentId, business.id)) {
+    return { error: "You can't change that appointment." };
+  }
+
+  const appointment = getAppointment(appointmentId);
+  if (!appointment) return { error: "That appointment no longer exists." };
+
+  // A datetime-local field has no timezone; it is the operator's own clock.
+  const when = new Date(startsAt).getTime();
+  if (!Number.isFinite(when)) return { error: "That is not a valid date and time." };
+
+  const minutes = appointment.duration_min;
+  const conflict = listAppointments(business.id).find(
+    (a) =>
+      a.id !== appointmentId &&
+      a.status !== "cancelled" &&
+      a.status !== "completed" &&
+      when < new Date(a.starts_at).getTime() + a.duration_min * 60_000 &&
+      when + minutes * 60_000 > new Date(a.starts_at).getTime(),
+  );
+  // Refusing quietly would look like a broken button, and the operator would
+  // try again rather than find out what is in the way.
+  if (conflict) return { error: `"${conflict.title}" is already booked then.` };
+
+  if (overlapsBusy(when, when + minutes * 60_000, await busyFromFeed(business.id))) {
+    return { error: "Your own calendar is not free then." };
+  }
+
+  moveAppointment(appointmentId, new Date(when).toISOString());
+  logEvent({
+    business_id: business.id,
+    kind: "appointment_booked",
+    summary: `Moved ${appointment.title} to ${new Date(when).toISOString()}`,
+    handled_by: "human",
+  });
+  revalidatePath("/dashboard/appointments");
+  return {};
 }
 
 export async function setQuoteStatusAction(data: FormData) {

@@ -8,6 +8,12 @@ import {
   recordKbGap,
   createAppointment,
   createApproval,
+  findUpcomingAppointments,
+  getAppointment,
+  getContact,
+  listAppointments,
+  moveAppointment,
+  setAppointmentStatus,
   createCallRequest,
   createLead,
   createQuote,
@@ -18,6 +24,7 @@ import {
 } from "./repo";
 import { sendEmail } from "./delivery";
 import { notifyOperator } from "./notify";
+import { overlapsBusy } from "./ical";
 import { busyFromFeed } from "./calendar-feed";
 import type { AssistantAction, Business, Conversation, Message } from "./types";
 import { lastWholeSentence } from "./text";
@@ -327,6 +334,197 @@ function buildTools(
     },
   });
 
+  /**
+   * Finding, moving and cancelling an existing booking.
+   *
+   * "Books, reschedules and cancels" is on the front page. Booking worked;
+   * the other two did not exist, so "can I move Thursday to Friday?" — the
+   * single most common thing anyone asks a receptionist after booking —
+   * became an escalation to a person.
+   */
+  const findAppointments = betaTool({
+    name: "find_appointments",
+    description:
+      "Look up a customer's upcoming appointments before changing one. Match on email or phone where you have " +
+      "them; a name alone is a weak match, so read the results back and let the customer confirm which one.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        email: { type: "string" },
+        phone: { type: "string" },
+        customer_name: { type: "string" },
+      },
+      required: [],
+      additionalProperties: false,
+    },
+    run: (input) => {
+      const found = findUpcomingAppointments(business.id, {
+        email: input.email,
+        phone: input.phone,
+        name: input.customer_name,
+      });
+      record({
+        tool: "find_appointments",
+        label: "Looked up their booking",
+        detail: found.length ? found.map((a) => formatSlot(a.starts_at)).join(" · ") : "nothing upcoming",
+      });
+      if (found.length === 0) {
+        return "No upcoming appointment found for those details. Ask for the email or phone it was booked under, or hand it to a teammate.";
+      }
+      return found
+        .map((a) => `${a.id} — ${a.title} at ${formatSlot(a.starts_at)} (${a.duration_min} min, ${a.location})`)
+        .join("\n");
+    },
+  });
+
+  const rescheduleAppointment = betaTool({
+    name: "reschedule_appointment",
+    description:
+      "Move an existing appointment to a new time. Use find_appointments first for the id, and check_availability " +
+      "for a time that is actually free. Only call this once the customer has agreed to the new time.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        appointment_id: { type: "string" },
+        starts_at: { type: "string", description: "ISO 8601 start time, taken from check_availability" },
+        duration_min: { type: "integer" },
+        reason: { type: "string", description: "Why it moved, for the record" },
+      },
+      required: ["appointment_id", "starts_at"],
+      additionalProperties: false,
+    },
+    run: async (input) => {
+      const appointment = getAppointment(input.appointment_id);
+      if (!appointment || appointment.business_id !== business.id) {
+        return "No appointment with that id. Use find_appointments and try again.";
+      }
+      if (appointment.status === "cancelled") return "That appointment was already cancelled.";
+
+      const when = new Date(input.starts_at).getTime();
+      if (!Number.isFinite(when)) return "That start time is not a valid date.";
+      if (when < Date.now()) return "That time is in the past. Offer the customer a time from check_availability.";
+
+      // The slot has to be genuinely free, including against the owner's own
+      // calendar. Moving one booking on top of another is the same failure
+      // as double-booking, just harder to notice.
+      const minutes = input.duration_min ?? appointment.duration_min;
+      const clashes = listAppointments(business.id).some(
+        (a) =>
+          a.id !== appointment.id &&
+          a.status !== "cancelled" &&
+          a.status !== "completed" &&
+          when < new Date(a.starts_at).getTime() + a.duration_min * 60_000 &&
+          when + minutes * 60_000 > new Date(a.starts_at).getTime(),
+      );
+      if (clashes) return "Something else is booked then. Offer the customer another time from check_availability.";
+      if (overlapsBusy(when, when + minutes * 60_000, await busyFromFeed(business.id))) {
+        return "The calendar is not free then. Offer the customer another time from check_availability.";
+      }
+
+      if (dryRun) {
+        record({
+          tool: "reschedule_appointment",
+          label: "Would move appointment",
+          detail: `${formatSlot(appointment.starts_at)} → ${formatSlot(input.starts_at)}`,
+        });
+        return wouldHave(`Would move it to ${formatSlot(input.starts_at)}.`);
+      }
+
+      const was = appointment.starts_at;
+      moveAppointment(appointment.id, input.starts_at, input.duration_min);
+      logEvent({
+        business_id: business.id,
+        kind: "appointment_booked",
+        summary: `Moved ${appointment.title} to ${formatSlot(input.starts_at)}`,
+        minutes_saved: 8,
+      });
+      record({
+        tool: "reschedule_appointment",
+        label: "Moved appointment",
+        detail: `${formatSlot(was)} → ${formatSlot(input.starts_at)}`,
+      });
+
+      const contact = appointment.contact_id ? getContact(appointment.contact_id) : null;
+      if (contact?.email) {
+        const delivery = await sendEmail({
+          businessId: business.id,
+          to: contact.email,
+          subject: `Moved: ${appointment.title} is now ${formatSlot(input.starts_at)}`,
+          body:
+            `Hi ${contact.name.split(" ")[0]},\n\n` +
+            `Your appointment with ${business.name} has moved from ${formatSlot(was)} to ` +
+            `${formatSlot(input.starts_at)}.\n\nReply to this email if that does not work.\n\n${business.name}`,
+        });
+        if (delivery.status === "sent") {
+          record({ tool: "reschedule_appointment", label: "Sent the new confirmation", detail: contact.email });
+        }
+      }
+      return `Moved to ${formatSlot(input.starts_at)}. Confirm the new time back to the customer.`;
+    },
+  });
+
+  const cancelAppointment = betaTool({
+    name: "cancel_appointment",
+    description:
+      "Cancel an existing appointment. Use find_appointments first for the id. Check the business's cancellation " +
+      "policy in the knowledge base before promising anything about fees or refunds.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        appointment_id: { type: "string" },
+        reason: { type: "string" },
+      },
+      required: ["appointment_id"],
+      additionalProperties: false,
+    },
+    run: async (input) => {
+      const appointment = getAppointment(input.appointment_id);
+      if (!appointment || appointment.business_id !== business.id) {
+        return "No appointment with that id. Use find_appointments and try again.";
+      }
+      if (appointment.status === "cancelled") return "That one is already cancelled.";
+
+      if (dryRun) {
+        record({
+          tool: "cancel_appointment",
+          label: "Would cancel appointment",
+          detail: `${formatSlot(appointment.starts_at)} · ${appointment.title}`,
+        });
+        return wouldHave(`Would cancel ${formatSlot(appointment.starts_at)}.`);
+      }
+
+      setAppointmentStatus(appointment.id, "cancelled");
+      logEvent({
+        business_id: business.id,
+        kind: "appointment_booked",
+        summary: `Cancelled ${appointment.title}${input.reason ? ` — ${input.reason}` : ""}`,
+        minutes_saved: 5,
+      });
+      record({
+        tool: "cancel_appointment",
+        label: "Cancelled appointment",
+        detail: `${formatSlot(appointment.starts_at)} · ${appointment.title}`,
+      });
+
+      const contact = appointment.contact_id ? getContact(appointment.contact_id) : null;
+      if (contact?.email) {
+        const delivery = await sendEmail({
+          businessId: business.id,
+          to: contact.email,
+          subject: `Cancelled: ${appointment.title}`,
+          body:
+            `Hi ${contact.name.split(" ")[0]},\n\n` +
+            `Your appointment with ${business.name} on ${formatSlot(appointment.starts_at)} has been ` +
+            `cancelled.\n\nReply to this email whenever you would like to rebook.\n\n${business.name}`,
+        });
+        if (delivery.status === "sent") {
+          record({ tool: "cancel_appointment", label: "Sent the cancellation", detail: contact.email });
+        }
+      }
+      return `Cancelled. Tell the customer it is done, and mention the cancellation policy if one applies.`;
+    },
+  });
+
   const captureLead = betaTool({
     name: "capture_lead",
     description:
@@ -624,7 +822,17 @@ function buildTools(
     },
   });
 
-  const shared = [searchKnowledge, checkAvailability, bookAppointment, captureLead, draftQuote, sendToHumanReview];
+  const shared = [
+    searchKnowledge,
+    checkAvailability,
+    bookAppointment,
+    findAppointments,
+    rescheduleAppointment,
+    cancelAppointment,
+    captureLead,
+    draftQuote,
+    sendToHumanReview,
+  ];
   // On a live call a queued callback is the wrong shape — the caller is already
   // on the line, so the handoff is a transfer.
   return mode === "voice"
@@ -1015,6 +1223,11 @@ function askingAbout(text: string): boolean {
   return ASKING_ABOUT.some((phrase) => text.includes(phrase));
 }
 const BOOK_WORDS = ["book", "appointment", "schedule", "come out", "visit", "slot"];
+const CHANGE_WORDS = [
+  "reschedule", "re-schedule", "move my", "move the", "change my appointment", "change the appointment",
+  "push it back", "different day", "different time", "another day", "another time", "cancel my",
+  "cancel the appointment", "cancel my appointment", "call it off",
+];
 const PRICE_WORDS = ["price", "cost", "quote", "how much", "pricing", "rate", "fee", "charge", "estimate", "ballpark", "$"];
 const REFUND_WORDS = ["refund", "money back", "warranty", "complaint", "lawyer", "dispute"];
 
@@ -1146,6 +1359,24 @@ async function simulateTurn(args: {
       text,
       PRICE_WORDS,
     )}\n\nWant me to check availability for a visit?`;
+  } else if (hits(text, CHANGE_WORDS)) {
+    // Changing an existing booking needs to know which one, and the scripted
+    // engine cannot hold that conversation. It says so and fetches a person
+    // rather than pretending, which is what the live assistant's
+    // find_appointments tool exists to avoid.
+    record({ tool: "find_appointments", label: "Looked up their booking", detail: "scripted mode — needs a person" });
+    if (!dryRun) {
+      await notifyOperator(business, {
+        title: "Someone wants to change an appointment",
+        summary: `They wrote: "${last?.body ?? ""}"`,
+        path: "/dashboard/appointments",
+      });
+    }
+    markEscalated();
+    escalated = true;
+    reply =
+      "I can help with that — let me get someone who has your booking in front of them. " +
+      "They'll confirm the change with you shortly.";
   } else if (hits(text, BOOK_WORDS)) {
     const slots = availableSlots(business.id, 7, 30, await busyFromFeed(business.id)).slice(0, 3);
     record({ tool: "check_availability", label: "Checked calendar", detail: `${slots.length} slots offered` });

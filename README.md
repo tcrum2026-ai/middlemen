@@ -31,6 +31,24 @@ pipeline, a contacts CRM with a full per-customer timeline, an editable knowledg
 follow-up automations, an integrations directory, analytics, and a four-step onboarding
 flow that ends in one line of code.
 
+### Booking, and changing a booking
+
+The assistant has `book_appointment`, and now `find_appointments`,
+`reschedule_appointment` and `cancel_appointment` — because "books, reschedules and cancels"
+is on the front page and only the first of those existed, so the most common thing anyone
+asks after booking ("can I move Thursday to Friday?") became an escalation.
+
+A move is refused if the new time clashes with another booking *or* with the owner's own
+calendar; moving one appointment on top of another is the same failure as double-booking,
+just harder to notice. Customers get an email for the new time or the cancellation, the same
+way they do for the original booking. Matching a caller to their booking is its own tested
+module (`lib/contact-match.ts`): email and phone are exact, a bare name is a weak match the
+assistant must read back, and an empty claim matches nobody — erring towards "ask again" is
+safe, erring the other way rearranges a stranger's week.
+
+The operator can move one from the dashboard too, with the same clash checks and the reason
+shown when it is refused.
+
 ### The calendar goes both ways
 
 Lobby publishes an `.ics` feed so its bookings appear in the owner's calendar, and reads a
