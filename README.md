@@ -31,6 +31,16 @@ pipeline, a contacts CRM with a full per-customer timeline, an editable knowledg
 follow-up automations, an integrations directory, analytics, and a four-step onboarding
 flow that ends in one line of code.
 
+### How long people actually waited
+
+The reporting capability promises "deflection rate, hours saved, pipeline created, response
+time". The first three were on the Analytics page; the fourth was not, and it is the number
+closest to what this product is for. `lib/response-time.ts` pairs each customer message with
+the first reply that followed and reports the median — a mean would let one thread left over
+a bank holiday swamp a thousand six-second replies. Consecutive messages from the same person
+count once, from the first, because that is when they started waiting. The assistant's median
+and a person's sit side by side, with a count of threads still waiting on anyone at all.
+
 ### Booking, and changing a booking
 
 The assistant has `book_appointment`, and now `find_appointments`,

@@ -1,6 +1,7 @@
 import { Card, PageHeader, StatTile, usd } from "@/components/ui";
+import { humanDuration } from "@/lib/response-time";
 import { activeBusiness } from "@/lib/session";
-import { listEvents, metrics } from "@/lib/repo";
+import { listEvents, metrics, responseTimes } from "@/lib/repo";
 
 /**
  * Series colours are stepped for the dark chart surface and validated for
@@ -17,6 +18,7 @@ function dayLabel(date: string): string {
 export default async function AnalyticsPage() {
   const business = await activeBusiness();
   const stats = metrics(business.id);
+  const replies = responseTimes(business.id);
   const events = listEvents(business.id, 400);
 
   const peak = Math.max(1, ...stats.byDay.map((d) => Math.max(d.ai, d.human)));
@@ -48,6 +50,51 @@ export default async function AnalyticsPage() {
         <StatTile label="Appointments booked" value={String(stats.appointments)} hint="Active on the calendar" />
         <StatTile label="Pipeline created" value={usd(stats.pipelineCents)} hint={`${stats.leads} leads`} />
       </div>
+
+      {/*
+        The number this product exists for. A median, not a mean: one thread
+        left over a bank holiday would otherwise swamp a thousand six-second
+        replies. The two sides sit next to each other because the contrast is
+        the whole argument — and when the right-hand side is the faster one,
+        that is worth knowing too.
+      */}
+      <Card className="mt-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-semibold">How long people waited</h2>
+          <p className="text-xs text-mist-400">Median first reply, last 14 days</p>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div>
+            <p className="text-3xl font-semibold tabular-nums text-jade-400">
+              {humanDuration(replies.medianByAi)}
+            </p>
+            <p className="mt-1 text-sm text-mist-300">when the assistant answered</p>
+            <p className="text-xs text-mist-400">
+              {replies.answeredByAi} repl{replies.answeredByAi === 1 ? "y" : "ies"}
+            </p>
+          </div>
+          <div>
+            <p className="text-3xl font-semibold tabular-nums">{humanDuration(replies.medianByHuman)}</p>
+            <p className="mt-1 text-sm text-mist-300">when a person answered</p>
+            <p className="text-xs text-mist-400">
+              {replies.answeredByHuman} repl{replies.answeredByHuman === 1 ? "y" : "ies"}
+            </p>
+          </div>
+          <div>
+            <p
+              className={`text-3xl font-semibold tabular-nums ${
+                replies.unanswered > 0 ? "text-amber-glow" : "text-mist-400"
+              }`}
+            >
+              {replies.unanswered}
+            </p>
+            <p className="mt-1 text-sm text-mist-300">still waiting on a reply</p>
+            <p className="text-xs text-mist-400">
+              {replies.unanswered > 0 ? "Open them from the inbox" : "Nothing outstanding"}
+            </p>
+          </div>
+        </div>
+      </Card>
 
       <Card className="mt-5 !p-0">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-700 px-5 py-3.5">

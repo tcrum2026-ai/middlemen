@@ -4,6 +4,7 @@ import { getDb, id, now } from "./db";
 import { TRIAL_DAYS } from "./marketing";
 import { overlapsBusy, type BusyInterval } from "./ical";
 import { matchesContact } from "./contact-match";
+import { responseStats, type ResponseStats } from "./response-time";
 import type {
   ActivityEvent,
   AutomationKind,
@@ -1444,6 +1445,22 @@ export interface Usage {
   followUpsSent: number;
   /** Plan allowance for the seeded demo plan. */
   included: number;
+}
+
+/**
+ * Median time a customer waited for an answer, over the last `days`.
+ *
+ * The arithmetic lives in lib/response-time.ts so it can be tested; this
+ * just gathers the threads.
+ */
+export function responseTimes(businessId: string, days = 14): ResponseStats {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const threads = listConversations(businessId)
+    .filter((c) => c.created_at >= since)
+    .map((c) =>
+      listMessages(c.id).map((m) => ({ role: m.role, at: new Date(m.created_at).getTime() })),
+    );
+  return responseStats(threads);
 }
 
 export function usage(businessId: string, included = 2500): Usage {
