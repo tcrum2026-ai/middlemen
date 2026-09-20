@@ -92,6 +92,14 @@ every workspace stays on a trial that eventually stops answering.
       picks them up. Either invoice it by hand each month from that figure, or take the per-minute
       line off the plans until it is wired. `DEPLOY.md` § 6 says what wiring it involves.
 
+## 4c. Check follow-ups actually leave
+
+- [ ] Connect Resend or Twilio for the workspace (Integrations), turn on an automation rule,
+      and confirm a due follow-up goes out on its own within five minutes. The log line on the
+      Automations page says what happened — "emailed", or the reason it could not be.
+- [ ] If you set `LOBBY_SCHEDULER=off`, point something at `POST /api/cron/tick` with the
+      `x-cron-secret` header and check it returns a count rather than 403.
+
 ## 5. Watch the first week
 
 - [ ] **Approvals** daily. That queue is where the assistant asks rather than guesses, and early

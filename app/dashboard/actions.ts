@@ -45,6 +45,7 @@ import { getTemplate } from "@/lib/templates";
 import { createPaymentLink, sendEmail, sendSms } from "@/lib/delivery";
 import { disconnect, saveCredentials } from "@/lib/integrations";
 import { forgetFeed } from "@/lib/calendar-feed";
+import { deliverFollowUp } from "@/lib/scheduler";
 import type {
   Appointment,
   AssistantAction,
@@ -545,30 +546,17 @@ export async function setFollowUpStatusAction(data: FormData) {
 
   if (status === "sent") {
     const followUp = listFollowUps(business.id).find((f) => f.id === followUpId);
-    const contact = followUp?.contact_id ? getContact(followUp.contact_id) : null;
-
-    // Actually send it when a provider is connected; the delivery log records
-    // the outcome either way, so "sent" never means "we hope so".
-    const delivery =
-      followUp?.channel === "email" && contact?.email
-        ? await sendEmail({
-            businessId: business.id,
-            to: contact.email,
-            subject: `A note from ${business.name}`,
-            body: followUp.body,
-          })
-        : followUp?.channel === "sms" && contact?.phone
-          ? await sendSms({ businessId: business.id, to: contact.phone, body: followUp.body })
-          : null;
+    // Same delivery path the ticker uses, so pressing Send by hand and
+    // letting it go on its own cannot behave differently.
+    const delivery = followUp
+      ? await deliverFollowUp(business, followUp)
+      : { ok: false, detail: "that follow-up no longer exists" };
 
     logEvent({
       business_id: business.id,
       kind: "follow_up_sent",
-      summary:
-        delivery?.status === "sent"
-          ? `Follow-up sent by ${followUp?.channel}`
-          : `Follow-up marked sent (${delivery?.detail ?? "no contact details"})`,
-      minutes_saved: 5,
+      summary: delivery.ok ? `Follow-up ${delivery.detail}` : `Follow-up not delivered — ${delivery.detail}`,
+      minutes_saved: delivery.ok ? 5 : 0,
     });
   }
 

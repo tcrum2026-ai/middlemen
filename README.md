@@ -46,6 +46,16 @@ one double-booking but an invented one silently deletes bookable hours from some
 and only one of those gets noticed. Timezone handling is the known limit: without VTIMEZONE,
 floating times are read as UTC.
 
+### Follow-ups that actually chase
+
+The rules schedule them; `instrumentation.ts` starts a ticker when the server boots and
+`lib/scheduler.ts` runs the pass every five minutes — syncing what the rules imply and sending
+what has fallen due. Single-instance by design, like SQLite underneath it. One that is more
+than 48 hours overdue is cancelled rather than sent, because a reminder arriving after the
+appointment is worse than none. The dashboard's Send button calls the same delivery function,
+so pressing it by hand and letting it go on its own cannot drift apart. `LOBBY_SCHEDULER=off`
+plus `POST /api/cron/tick` hands the schedule to something external.
+
 ### Knowing when it needs you
 
 An escalation is only useful if someone finds out. `lib/notify.ts` posts to Slack when the

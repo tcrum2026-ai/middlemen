@@ -65,7 +65,13 @@ export async function sendEmail(input: {
   }
 
   try {
-    const response = await post("https://api.resend.com/emails", {
+    // Same override as platform mail, for the same two reasons: relays
+    // exist, and a send path that can only be exercised against the real
+    // provider is one nobody checks until a customer does not get their
+    // appointment reminder.
+    const endpoint =
+      (process.env.RESEND_API_BASE?.trim().replace(/\/$/, "") || "https://api.resend.com") + "/emails";
+    const response = await post(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${creds.api_key}`,

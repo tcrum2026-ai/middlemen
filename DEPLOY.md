@@ -19,6 +19,9 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `VOICE_APP_URL` | Answering phone calls | Where the bridge reaches the app. `http://127.0.0.1:3000` when both run on the same host. |
 | `INBOUND_EMAIL_SECRET` | Inbound email webhook | **Required to turn inbound email on.** The webhook fails closed: unset, it returns 503 and accepts nothing, because otherwise anyone could trigger a paid model call on any workspace. Checked against `x-inbound-secret`. |
 | `INBOUND_EMAIL_DOMAIN` | Inbound email webhook | The domain you route mail from, e.g. `inbound.your-domain`. The Install page shows the forwarding address only when this is set. |
+| `LOBBY_SCHEDULER` | Turning the built-in ticker off | The app sends due follow-ups itself every five minutes. Set to `off` only if you would rather drive that from outside. |
+| `CRON_SECRET` | `POST /api/cron/tick` | **Required by that endpoint**, which fails closed without it. It sends real email and SMS on a customer's behalf, so an open URL is a way for a stranger to spend their money and their sending reputation. |
+| `RESEND_API_BASE` | A mail relay | Only if you post mail somewhere other than Resend. Leave unset otherwise. |
 | `STRIPE_SECRET_KEY` | **Charging for Lobby** | Your platform Stripe key. Unset, the plan buttons on `/dashboard/billing` are disabled and say so — nobody can subscribe. |
 | `STRIPE_WEBHOOK_SECRET` | **Charging for Lobby** | **Required.** `POST /api/billing/webhook` fails closed: unset, it returns 503, because an unverified billing webhook lets a stranger hand themselves a paid plan. Signatures older than 5 minutes are rejected too. |
 | `STRIPE_PRICE_STARTER` / `_PRO` / `_BUSINESS` | **Charging for Lobby** | The recurring price ids. A plan with no price id refuses checkout with a readable error rather than a blank page. |
@@ -27,6 +30,13 @@ Note the two different Stripe keys. The variables above are *yours* — the plat
 account that charges for Lobby. The Stripe key entered per workspace under **Integrations**
 is the *customer's*, so their assistant can send their customers a payment link. They are
 never the same key.
+
+**Follow-ups send themselves.** Your automation rules schedule them; the app runs a pass every
+five minutes and sends the ones that have fallen due, on the channel they were written for,
+using the workspace's own Resend or Twilio credentials. One that is more than 48 hours overdue
+is dropped rather than sent — "your appointment is tomorrow" arriving three days afterwards is
+worse than nothing. Set `LOBBY_SCHEDULER=off` and POST `/api/cron/tick` if you would rather own
+the schedule.
 
 **Knowing something needs you.** When the assistant escalates — a refund, a question it
 cannot answer, a caller who wanted a person, a stopped subscription — it posts to Slack if
