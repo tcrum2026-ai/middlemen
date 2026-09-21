@@ -8,41 +8,43 @@ import Database from "better-sqlite3";
  * Where the database file lives.
  *
  * A real deployment points LOBBY_DATA_DIR at a mounted volume. Without it, we
- * still have to boot, so we improvise a writable path — but writable is not
- * the same question as durable, and only the operator can answer the second
- * one. A serverless host with a read-only app directory forces us to /tmp,
- * which obviously does not survive a cold start. A host like Render's free
- * plan is the sneakier case: the container filesystem is perfectly writable,
- * ./.data succeeds, and the app would otherwise call that "persistent" —
- * right up until the free instance sleeps or redeploys and takes the
- * "database" with it, because nothing was ever mounted. Only an explicit
- * LOBBY_DATA_DIR is evidence of a real volume; an unset one is ephemeral by
- * default regardless of which writable path we landed on.
+ * still have to boot, so we improvise a writable path. A serverless host with
+ * a read-only app directory forces us to /tmp, which obviously does not
+ * survive a cold start.
+ *
+ * LOBBY_DATA_DIR being *set* is not proof a volume is mounted there, though —
+ * the Dockerfile bakes ENV LOBBY_DATA_DIR=/data into the image unconditionally,
+ * so it reads as "configured" on every container built from it, whether or
+ * not that deploy actually attached a disk at /data. Render's free plan is
+ * exactly that: no disk, but /data is a perfectly writable directory, so
+ * durability can't be inferred from the path resolving or being writable at
+ * all — both are true right up until the instance sleeps or redeploys and
+ * takes the "database" with it. Only LOBBY_DATA_PERSISTENT says the operator
+ * actually attached a volume; nothing else here is asked to prove that.
  */
-function resolveDataDir(): { dir: string; ephemeral: boolean } {
+function resolveDataDir(): string {
   const configured = process.env.LOBBY_DATA_DIR?.trim();
-  if (configured) return { dir: path.resolve(configured), ephemeral: false };
+  if (configured) return path.resolve(configured);
 
   const preferred = path.join(process.cwd(), ".data");
   try {
     fs.mkdirSync(preferred, { recursive: true });
     fs.accessSync(preferred, fs.constants.W_OK);
-    return { dir: preferred, ephemeral: true };
+    return preferred;
   } catch {
     const fallback = path.join(os.tmpdir(), "lobby-data");
     console.warn(
       `${preferred} is not writable, so the database is going to ${fallback}. ` +
         "That is per-instance and temporary — fine for a demo, wrong for anything real.",
     );
-    return { dir: fallback, ephemeral: true };
+    return fallback;
   }
 }
 
-const resolved = resolveDataDir();
-const DATA_DIR = resolved.dir;
+const DATA_DIR = resolveDataDir();
 
-/** True unless LOBBY_DATA_DIR was explicitly set to a mounted volume. */
-export const DATA_IS_EPHEMERAL = resolved.ephemeral;
+/** False only when the operator has said, explicitly, that a volume is mounted. */
+export const DATA_IS_EPHEMERAL = process.env.LOBBY_DATA_PERSISTENT?.trim() !== "true";
 
 const DB_PATH = path.join(DATA_DIR, "lobby.db");
 

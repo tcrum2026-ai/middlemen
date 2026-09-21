@@ -18,6 +18,9 @@ primary_region = "lhr"
 
 [env]
   LOBBY_DATA_DIR = "/data"
+  # Only this — not LOBBY_DATA_DIR being set — is what tells the app the path
+  # above is a real volume and not just a writable directory in the image.
+  LOBBY_DATA_PERSISTENT = "true"
   PORT = "3000"
 
 [[mounts]]

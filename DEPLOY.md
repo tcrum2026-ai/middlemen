@@ -9,6 +9,7 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `ANTHROPIC_API_KEY` | Live replies | Without it the assistant runs its scripted fallback and every screen still works. Key from [console.anthropic.com](https://console.anthropic.com) → API keys; add credit under Billing (API usage is prepaid and separate from a Claude subscription). |
 | `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap, OG tags | e.g. `https://lobby.app` |
 | `LOBBY_DATA_DIR` | Where SQLite lives | Defaults to `./.data`. Point it at a mounted volume. |
+| `LOBBY_DATA_PERSISTENT` | What `/api/health` reports for `storage` | Set to `true` only once `LOBBY_DATA_DIR` is a real mounted volume. `LOBBY_DATA_DIR` being set is not proof of that by itself — this image sets it unconditionally, so a deploy with no disk attached would otherwise be misreported as persistent. |
 | `LOBBY_SEED_DEMO` | Set `false` to start empty | Otherwise the demo workspace is seeded on first run. |
 | `NEXT_PUBLIC_LEGAL_ENTITY` | Privacy policy and terms | Your legal name. Until it, the contact address and the jurisdiction are all set, both pages show a visible "not ready to publish" banner. |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Legal pages, Enterprise plan | Also what the "Contact sales" button mails. Unset, that plan shows "Start free" rather than offering a conversation nobody can have. |
@@ -112,11 +113,14 @@ costs a few dollars a month, and it is the only version to point a customer at.
 docker build -t lobby .
 docker run -d -p 3000:3000 -v lobby-data:/data \
   -e NEXT_PUBLIC_SITE_URL=https://your-domain \
+  -e LOBBY_DATA_PERSISTENT=true \
   lobby
 ```
 
 The image sets `LOBBY_DATA_DIR=/data`, so `-v lobby-data:/data` is what keeps your data. Leave
-it out and the container writes to a temporary directory it throws away.
+it out and the container writes to a directory it throws away when it stops. `LOBBY_DATA_PERSISTENT=true`
+is what `/api/health` actually trusts to say `storage: persistent` — set it only alongside a real
+`-v`, since the image sets `LOBBY_DATA_DIR` either way.
 
 
 

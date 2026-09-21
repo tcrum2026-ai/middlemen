@@ -32,7 +32,10 @@ services:
     # The first request after a nap is slow, and the database is fresh again.
     autoDeploy: false
 
-    # Uncomment together with `plan: starter` to keep your data.
+    # Uncomment together with `plan: starter` to keep your data, and add
+    # LOBBY_DATA_PERSISTENT: "true" to envVars below — that is the only
+    # thing that tells the app /data is a real volume and not just a
+    # writable directory the image happens to create at that path.
     # disk:
     #   name: lobby-data
     #   mountPath: /data
@@ -40,7 +43,9 @@ services:
 
     envVars:
       # The image already sets this; repeated here so it is visible in the
-      # place you would go looking for it.
+      # place you would go looking for it. It does NOT by itself mean a
+      # volume is mounted — the Dockerfile sets this same value whether or
+      # not this deploy has a disk, so /api/health cannot trust it alone.
       - key: LOBBY_DATA_DIR
         value: /data
 
