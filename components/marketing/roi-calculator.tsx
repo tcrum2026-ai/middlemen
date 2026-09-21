@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { planById } from "@/lib/marketing";
+
+const PRO_PRICE = planById("pro").monthly ?? 0;
 
 function money(value: number): string {
   return `$${Math.round(value).toLocaleString("en-US")}`;
@@ -54,7 +57,7 @@ function Slider({
  * Deliberately built on the visitor's own numbers rather than industry
  * averages: the output is their arithmetic, not a vendor claim.
  */
-export function RoiCalculator({ planPrice = 149 }: { planPrice?: number }) {
+export function RoiCalculator({ planPrice = PRO_PRICE }: { planPrice?: number }) {
   const [enquiries, setEnquiries] = useState(40);
   const [missedPct, setMissedPct] = useState(25);
   const [closePct, setClosePct] = useState(30);

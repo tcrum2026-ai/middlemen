@@ -30,7 +30,7 @@ const CONTROLS = [
       "Claim to be a human being. Every call opens by saying it is an AI, and asking for a person transfers it.",
       "Approve a refund, credit, warranty claim or discount you didn't write down.",
       "Send a quote above your limit without a teammate approving it.",
-      "Claim to be a human being.",
+      "Offer a discount, price match or exception nobody wrote down as policy.",
     ],
   },
   {

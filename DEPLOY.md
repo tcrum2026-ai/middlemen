@@ -164,8 +164,9 @@ All of this is done in the dashboard, per workspace:
 
 ## 3b. Taking payment for Lobby itself
 
-1. In your own Stripe dashboard, create one **recurring** product per plan — Starter $49/mo,
-   Pro $149/mo, Business $399/mo — and copy each price id into `STRIPE_PRICE_*`.
+1. In your own Stripe dashboard, create one **recurring** product per plan — Starter $59/mo,
+   Pro $199/mo, Business $449/mo — and copy each price id into `STRIPE_PRICE_*`. (Current prices
+   live in `lib/marketing.ts`'s `PLANS`; check there first in case they've since changed.)
 2. Add an endpoint under Developers → Webhooks pointing at `https://your-domain/api/billing/webhook`,
    subscribed to `checkout.session.completed`, `customer.subscription.created`,
    `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and

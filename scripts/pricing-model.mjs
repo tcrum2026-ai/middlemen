@@ -40,43 +40,18 @@ for (const m of Object.keys(PRICE)) {
   );
 }
 
-console.log("\n\nMARGIN AT CANDIDATE PRICES (assume a customer uses 60% of allowance)\n");
-const plans = [
-  { name: "Starter $59",  price: 59,  chats: 500,  voiceMin: 0,    model: "sonnet-5" },
-  { name: "Pro $179",     price: 179, chats: 1500, voiceMin: 500,  model: "sonnet-5" },
-  { name: "Business $449",price: 449, chats: 4000, voiceMin: 2000, model: "sonnet-5" },
-  { name: "Pro on Opus",  price: 179, chats: 1500, voiceMin: 500,  model: "opus-5" },
+// Kept in sync by hand with the PLANS array in lib/marketing.ts — this script
+// has no build step, so it can't import the TypeScript source directly.
+const PLANS = [
+  { name: "Starter $59",   price: 59,  chats: 300,  voiceMin: 0,    model: "sonnet-5", over: null },
+  { name: "Pro $199",      price: 199, chats: 1000, voiceMin: 300,  model: "sonnet-5", over: 0.22 },
+  { name: "Business $449", price: 449, chats: 3000, voiceMin: 1200, model: "sonnet-5", over: 0.18 },
 ];
-for (const p of plans) {
-  const use = 0.6;
-  const chatCost = chatConversation(p.model) * p.chats * use;
-  const vmin = p.voiceMin * use;
-  const voiceCost = vmin * (voiceCall(p.model).total / 3);
-  const cogs = chatCost + voiceCost;
-  const margin = ((p.price - cogs) / p.price) * 100;
-  console.log(`${p.name.padEnd(16)} COGS $${cogs.toFixed(2).padStart(7)}   margin ${margin.toFixed(0).padStart(3)}%   (chat $${chatCost.toFixed(2)}, voice $${voiceCost.toFixed(2)})`);
-}
 
-console.log("\n\nWORST CASE — customer uses 100% of allowance\n");
-for (const p of plans) {
-  const cogs = chatConversation(p.model) * p.chats + p.voiceMin * (voiceCall(p.model).total / 3);
-  console.log(`${p.name.padEnd(16)} COGS $${cogs.toFixed(2).padStart(7)}   margin ${(((p.price - cogs) / p.price) * 100).toFixed(0).padStart(4)}%`);
-}
-
-console.log("\n\nTODAY'S PUBLISHED PLAN (Team $149 / 2,500 conversations, Opus 5)\n");
-const today = chatConversation("opus-5") * 2500;
-console.log(`  100% use: COGS $${today.toFixed(2)} on $149 revenue  →  margin ${(((149-today)/149)*100).toFixed(0)}%`);
-console.log(`   60% use: COGS $${(today*0.6).toFixed(2)} on $149 revenue  →  margin ${(((149-today*0.6)/149)*100).toFixed(0)}%`);
-
-console.log("\n\n=== REVISED: realistic allowances, voice metered ===\n");
-const revised = [
-  { name: "Starter $49",   price: 49,  chats: 300,  voiceMin: 0,    model: "sonnet-5", over: null },
-  { name: "Pro $149",      price: 149, chats: 1000, voiceMin: 250,  model: "sonnet-5", over: 0.25 },
-  { name: "Business $399", price: 399, chats: 3000, voiceMin: 1000, model: "sonnet-5", over: 0.20 },
-];
+console.log("\n\nMARGIN AT PUBLISHED PRICES\n");
 for (const use of [0.6, 1.0]) {
   console.log(`-- customer uses ${use * 100}% of allowance --`);
-  for (const p of revised) {
+  for (const p of PLANS) {
     const chatCost = chatConversation(p.model) * p.chats * use;
     const voiceCost = p.voiceMin * use * (voiceCall(p.model).total / 3);
     const cogs = chatCost + voiceCost;
@@ -84,12 +59,20 @@ for (const use of [0.6, 1.0]) {
   }
   console.log("");
 }
+
 console.log("-- overage margin (per extra voice minute) --");
-for (const p of revised.filter(x => x.over)) {
+for (const p of PLANS.filter((x) => x.over)) {
   const cost = voiceCall(p.model).total / 3;
   console.log(`  ${p.name.padEnd(15)} charge $${p.over.toFixed(2)}  cost $${cost.toFixed(3)}  margin ${(((p.over-cost)/p.over)*100).toFixed(0)}%`);
 }
-console.log("\n-- what if a Business customer runs Opus 5? --");
-const b = revised[2];
-const opusCogs = chatConversation("opus-5") * b.chats + b.voiceMin * (voiceCall("opus-5").total / 3);
-console.log(`  Business on Opus, 100% use: COGS $${opusCogs.toFixed(2)} → margin ${(((b.price-opusCogs)/b.price)*100).toFixed(0)}%`);
+
+console.log("\n-- what if a Pro or Business customer runs Opus 5? --");
+for (const p of PLANS.slice(1)) {
+  const cogs = chatConversation("opus-5") * p.chats + p.voiceMin * (voiceCall("opus-5").total / 3);
+  console.log(`  ${p.name} on Opus, 100% use: COGS $${cogs.toFixed(2)} → margin ${(((p.price - cogs) / p.price) * 100).toFixed(0)}%`);
+}
+
+console.log("\n\nFOR CONTEXT — the launch pricing this replaced (Team $149 / 2,500 conversations, Opus 5)\n");
+const launch = chatConversation("opus-5") * 2500;
+console.log(`  100% use: COGS $${launch.toFixed(2)} on $149 revenue  →  margin ${(((149 - launch) / 149) * 100).toFixed(0)}%`);
+console.log(`   60% use: COGS $${(launch * 0.6).toFixed(2)} on $149 revenue  →  margin ${(((149 - launch * 0.6) / 149) * 100).toFixed(0)}%`);

@@ -146,9 +146,10 @@ export type PriceMap = Partial<Record<PlanId, string>>;
  * subscription, and Stripe never rewrites it — so after a customer switches
  * plan in the billing portal, the metadata still names what they bought
  * originally while the price names what they now pay. Trusting the metadata
- * means a downgrade keeps the old allowance (they pay $49 for Business
- * limits) and an upgrade doesn't grant the new one (they pay $399 and stay
- * capped at Starter). The price is the fact; the metadata is a memory.
+ * means a downgrade keeps the old allowance (they pay Starter money for
+ * Business limits) and an upgrade doesn't grant the new one (they pay
+ * Business money and stay capped at Starter). The price is the fact; the
+ * metadata is a memory.
  *
  * Returns null when no price on the object maps to a known plan, which the
  * caller should treat as "leave the recorded plan alone" rather than guess.

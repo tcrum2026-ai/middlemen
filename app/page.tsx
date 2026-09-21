@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/marketing/site-footer";
 import { RoiCalculator } from "@/components/marketing/roi-calculator";
 import { Mechanism } from "@/components/marketing/mechanism";
 import { Pricing } from "@/components/marketing/pricing";
+import { Screenshot } from "@/components/marketing/screenshot";
 import { Badge } from "@/components/ui";
 import {
   ArrowIcon,
@@ -21,7 +22,7 @@ import {
 } from "@/components/icons";
 import { activeBusiness } from "@/lib/session";
 import { assistantConfigured } from "@/lib/assistant";
-import { CAPABILITIES, FAQS, STEPS } from "@/lib/marketing";
+import { CAPABILITIES, FAQS, STEPS, TRUST } from "@/lib/marketing";
 import { LEGAL } from "@/lib/legal";
 
 const ICONS = {
@@ -174,6 +175,62 @@ export default async function LandingPage() {
           </div>
         </section>
 
+        {/* proof, not a redrawn mockup */}
+        <section id="proof" className="border-t border-ink-800 py-24">
+          <div className="mx-auto max-w-6xl px-5">
+            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
+              This is the actual product.
+            </h2>
+            <p className="mt-4 max-w-2xl text-mist-400">
+              Not renders, not a Figma file dressed up as a screenshot. These are three screens from the same demo
+              workspace you can sign into above, captured from the running app.
+            </p>
+
+            <div className="mt-12 grid gap-8 lg:grid-cols-3">
+              <div>
+                <Screenshot
+                  src="/marketing/shots/approvals.png"
+                  alt="The real Lobby approvals queue, with a refund request waiting on a person"
+                  title="Approvals"
+                />
+                <p className="mt-3 text-sm text-mist-400">
+                  A $320 refund request, held for a person — with a draft reply already written, editable before it
+                  sends.
+                </p>
+              </div>
+              <div>
+                <Screenshot
+                  src="/marketing/shots/gaps.png"
+                  alt="The real Lobby knowledge gaps screen, listing questions the assistant had no answer for"
+                  title="Knowledge gaps"
+                />
+                <p className="mt-3 text-sm text-mist-400">
+                  Every question it couldn&apos;t answer, waiting for one sentence back — write it once and the gap
+                  closes for every customer who asks next.
+                </p>
+              </div>
+              <div>
+                <Screenshot
+                  src="/marketing/shots/analytics.png"
+                  alt="The real Lobby analytics page, showing 80% of interactions handled by AI and $3,493 in pipeline created"
+                  title="Analytics"
+                />
+                <p className="mt-3 text-sm text-mist-400">
+                  Fourteen days for one demo business: 80% of interactions handled without a person, 12 hours back,
+                  three appointments booked.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <Link href="/tour" className="btn btn-ghost px-5 py-3">
+                See every screen
+                <ArrowIcon width={16} height={16} />
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* the line we don't cross */}
         <section id="calls" className="border-t border-ink-800 bg-ink-900/40 py-24">
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 lg:grid-cols-2">
@@ -205,32 +262,16 @@ export default async function LandingPage() {
               </Link>
             </div>
 
-            <div className="card overflow-hidden">
-              <div className="flex items-center justify-between border-b border-ink-700 px-5 py-3">
-                <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <PhoneIcon width={16} height={16} className="text-jade-400" />
-                  Live call · 01:12
-                </span>
-                <Badge tone="rose">transferring</Badge>
-              </div>
-              <div className="space-y-4 p-5 text-sm">
-                <div>
-                  <p className="font-semibold">Dana Whitfield · (555) 271-8890</p>
-                  <p className="text-xs text-mist-400">Answered by Ava · caller asked for a person</p>
-                </div>
-                <div className="rounded-lg border border-ink-700 bg-ink-950 p-4 leading-relaxed text-mist-300">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-mist-400">
-                    Brief, handed over with the call
-                  </p>
-                  Leak at the base of the tank, now spraying; cold supply is shut off. Ava booked tomorrow 12–2pm
-                  for assessment and quoted the $89 diagnostic. Likely full replacement —{" "}
-                  <span className="text-mist-100">she has not been quoted a replacement price</span>. She asked to
-                  speak to someone about doing it today.
-                </div>
-                <div className="flex gap-2">
-                  <span className="btn btn-primary flex-1 justify-center">Ringing your team…</span>
-                </div>
-              </div>
+            <div>
+              <Screenshot
+                src="/marketing/shots/calls.png"
+                alt="The real Lobby call queue, showing a briefed handoff for a caller who asked for a person"
+                title="Call queue"
+                aspect="4 / 3"
+              />
+              <p className="mt-3 text-xs text-mist-400">
+                A real screenshot of the demo workspace — this is the actual call queue, not a mockup.
+              </p>
             </div>
           </div>
         </section>
@@ -259,6 +300,33 @@ export default async function LandingPage() {
               <div className="mt-8">
                 <RoiCalculator />
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* under the hood */}
+        <section id="security" className="border-t border-ink-800 bg-ink-900/40 py-24">
+          <div className="mx-auto max-w-6xl px-5">
+            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
+              What actually stops it from embarrassing you.
+            </h2>
+            <p className="mt-4 max-w-2xl text-mist-400">
+              Not a compliance badge. The specific mechanisms, and the ones we&apos;d want to know about before
+              trusting a vendor with our own front desk.
+            </p>
+            <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {TRUST.slice(0, 6).map((item) => (
+                <div key={item.title}>
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-mist-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-12 text-center">
+              <Link href="/security" className="btn btn-ghost px-5 py-3">
+                Every guardrail, in detail
+                <ArrowIcon width={16} height={16} />
+              </Link>
             </div>
           </div>
         </section>

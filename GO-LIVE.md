@@ -76,8 +76,9 @@ None of these are required to go live; the widget alone works on day one.
 Skip this only if you are running Lobby for yourself. Without it the plans are decorative and
 every workspace stays on a trial that eventually stops answering.
 
-- [ ] Create three recurring Stripe prices — Starter $49, Pro $149, Business $399 — and set
-      `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS`.
+- [ ] Create three recurring Stripe prices — Starter $59, Pro $199, Business $449 (check
+      `lib/marketing.ts`'s `PLANS` for the current numbers) — and set `STRIPE_PRICE_STARTER`,
+      `STRIPE_PRICE_PRO`, `STRIPE_PRICE_BUSINESS`.
 - [ ] Set `STRIPE_SECRET_KEY`, and add a webhook at `POST /api/billing/webhook` for the six
       subscription events listed in `DEPLOY.md` § 3b. Paste its signing secret into
       `STRIPE_WEBHOOK_SECRET` — the endpoint returns 503 and accepts nothing until you do.
