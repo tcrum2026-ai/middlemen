@@ -21,7 +21,14 @@ export function Pricing({ contactEmail = "" }: { contactEmail?: string }) {
   return (
     <div>
       <div className="mb-8 flex items-center justify-center gap-3">
-        <span className={`text-sm ${annual ? "text-mist-400" : "text-mist-100"}`}>Monthly</span>
+        {/* The labels toggle too, not just the small switch — a much bigger click target for the same action. */}
+        <button
+          type="button"
+          onClick={() => setAnnual(false)}
+          className={`text-sm ${annual ? "text-mist-400 hover:text-mist-200" : "text-mist-100"}`}
+        >
+          Monthly
+        </button>
         <button
           role="switch"
           aria-checked={annual}
@@ -38,9 +45,13 @@ export function Pricing({ contactEmail = "" }: { contactEmail?: string }) {
             style={{ height: "1.125rem", width: "1.125rem" }}
           />
         </button>
-        <span className={`text-sm ${annual ? "text-mist-100" : "text-mist-400"}`}>
+        <button
+          type="button"
+          onClick={() => setAnnual(true)}
+          className={`text-sm ${annual ? "text-mist-100" : "text-mist-400 hover:text-mist-200"}`}
+        >
           Annual <span className="text-jade-400">— two months free</span>
-        </span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
