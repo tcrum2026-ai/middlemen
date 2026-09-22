@@ -88,10 +88,11 @@ every workspace stays on a trial that eventually stops answering.
       log in Stripe — a 403 there means the signing secret is wrong.
 - [ ] Cancel that test subscription and confirm the workspace flips to `canceled` and the
       assistant stops answering, capturing messages for a person instead of dropping them.
-- [ ] **Decide what to do about voice overage.** Minutes over a plan's allowance are measured
-      accurately and priced on the billing page, but nothing reports them to Stripe, so no invoice
-      picks them up. Either invoice it by hand each month from that figure, or take the per-minute
-      line off the plans until it is wired. `DEPLOY.md` § 6 says what wiring it involves.
+- [ ] **Voice overage bills itself once you set `STRIPE_VOICE_METER_EVENT`.** Create a Billing
+      Meter in the Stripe dashboard with that event name, attach a metered price using it to each
+      paid plan's subscription, and set the env var. Skip it and overage still shows correctly on
+      the billing page — it just falls back to "invoice it yourself" instead of billing
+      automatically. `DEPLOY.md` § 6 has the exact setup.
 
 ## 4c. Check follow-ups actually leave
 
@@ -117,6 +118,8 @@ every workspace stays on a trial that eventually stops answering.
 
 ## Known gaps
 
-Listed honestly in `DEPLOY.md` § 6 — the short version: no email verification on sign-up, several
-listed integrations are not implemented, and SQLite means one instance. None of them stop you
-publishing; all of them are worth knowing before a customer finds them.
+Listed honestly in `DEPLOY.md` § 6 — the short version: email verification and voice-overage
+billing are both real, but only when their env vars are set (RESEND_API_KEY/AUTH_FROM_EMAIL, and
+STRIPE_VOICE_METER_EVENT); several listed integrations are not implemented; and SQLite means one
+instance. None of them stop you publishing; all of them are worth knowing before a customer finds
+them.

@@ -85,6 +85,7 @@ export default function TermsPage() {
             "Paid plans bill monthly or yearly in advance. A conversation means one customer thread, however many messages it contains.",
             "Answered call minutes beyond your plan's allowance are billed in arrears at the per-minute rate shown on the pricing page, measured to the second. Your telephony provider bills you separately for the underlying phone number and carrier charges.",
             "Cancelling takes effect at the end of the period you have paid for. There is no cancellation fee and no retention call.",
+            "No refund for the unused part of a period you cancel partway through. If you were charged in error — a double charge, a plan change that didn't take, anything that looks like our mistake — email us within 14 days of the charge and we will refund it once we've checked.",
             "Your export works whether or not the subscription is current.",
           ]}
         />

@@ -2,10 +2,19 @@
  * Page sweep: every route, two widths.
  *
  * Checks content, not just status. An error boundary returns HTTP 200 with a
- * friendly apology, so a status-only sweep reports a crashing page as healthy —
- * which is exactly how a broken billing page shipped.
+ * friendly apology, so a status-only sweep reports a crashing page and calls
+ * it healthy — which is exactly how a broken billing page shipped.
  *
  *   node scripts/sweep.mjs [baseUrl]
+ *
+ * Run against `next dev`, an occasional random route fails with "Hydration
+ * failed" — a different one each run, always on a page rendering
+ * relativeTime()'s output ("3h ago"). Confirmed against a real production
+ * build (`npm run build && npm run start`, three consecutive clean runs)
+ * that this never reproduces there: it's Turbopack dev-mode's extra render
+ * pass computing the label a moment apart from the one already sent, not a
+ * bug real visitors hit. If this starts failing against a production build
+ * instead, that's a real regression — chase it then, not before.
  */
 import { chromium } from "playwright";
 import { readdirSync, statSync } from "node:fs";
