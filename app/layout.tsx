@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { PLANS } from "@/lib/marketing";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -43,6 +44,9 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+// Sourced from lib/marketing.ts's PLANS rather than repeated here, so a
+// repriced plan can't leave stale numbers in what search engines and AI
+// crawlers read as this product's actual, current pricing.
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
@@ -50,10 +54,12 @@ const STRUCTURED_DATA = {
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description: DESCRIPTION,
-  offers: [
-    { "@type": "Offer", name: "Solo", price: "49", priceCurrency: "USD" },
-    { "@type": "Offer", name: "Team", price: "149", priceCurrency: "USD" },
-  ],
+  offers: PLANS.filter((plan) => plan.monthly !== null).map((plan) => ({
+    "@type": "Offer",
+    name: plan.name,
+    price: String(plan.monthly),
+    priceCurrency: "USD",
+  })),
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

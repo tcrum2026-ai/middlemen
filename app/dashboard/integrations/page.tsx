@@ -252,7 +252,7 @@ export default async function IntegrationsPage() {
                   </Badge>
                   <span className="text-xs uppercase tracking-wide text-mist-400">{delivery.channel}</span>
                   <span className="min-w-0 flex-1 truncate text-mist-300">
-                    {delivery.recipient} — {delivery.subject ?? delivery.body.slice(0, 60)}
+                    {delivery.recipient} — {delivery.subject ?? delivery.body}
                   </span>
                   {delivery.detail ? (
                     <span className="truncate text-xs text-mist-400">{delivery.detail}</span>
