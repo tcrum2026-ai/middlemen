@@ -173,7 +173,10 @@ export function ChatPanel({
         className={`flex-1 space-y-3 overflow-y-auto px-4 py-4 ${heightClass}`}
       >
         {messages.map((message, index) => (
-          <div key={index} className={message.role === "customer" ? "flex justify-end" : "flex justify-start"}>
+          <div
+            key={index}
+            className={`rise ${message.role === "customer" ? "flex justify-end" : "flex justify-start"}`}
+          >
             <div className="max-w-[85%] space-y-2">
               {message.actions?.length ? (
                 <ul className="space-y-1">
@@ -211,7 +214,7 @@ export function ChatPanel({
         ))}
 
         {busy && !messages[messages.length - 1]?.streaming ? (
-          <div className="flex justify-start">
+          <div className="fade-in flex justify-start">
             <div
               aria-label="Assistant is typing"
               className="rounded-2xl border border-ink-700 bg-ink-850 px-3.5 py-3"

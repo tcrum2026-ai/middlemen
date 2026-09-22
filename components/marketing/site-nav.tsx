@@ -51,7 +51,7 @@ export function SiteNav() {
       </nav>
 
       {open ? (
-        <div className="border-t border-ink-800 px-5 py-3 md:hidden">
+        <div className="dropdown border-t border-ink-800 px-5 py-3 md:hidden">
           <div className="flex flex-col">
             {LINKS.map((link) => (
               <a

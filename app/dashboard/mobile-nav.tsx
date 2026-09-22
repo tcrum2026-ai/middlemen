@@ -44,9 +44,9 @@ export function MobileNav({ counts }: { counts: NavCounts }) {
           <button
             aria-label="Close menu"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm"
+            className="fade-in absolute inset-0 bg-ink-950/70 backdrop-blur-sm"
           />
-          <div className="absolute left-0 top-0 h-full w-64 overflow-y-auto border-r border-ink-800 bg-ink-900 p-4">
+          <div className="slide-in-left absolute left-0 top-0 h-full w-64 overflow-y-auto border-r border-ink-800 bg-ink-900 p-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-semibold">Menu</span>
               <button onClick={() => setOpen(false)} aria-label="Close menu" className="text-mist-400 hover:text-mist-100">

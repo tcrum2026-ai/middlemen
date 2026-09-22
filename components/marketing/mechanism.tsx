@@ -160,26 +160,28 @@ export function Mechanism() {
           </span>
         </div>
 
-        <h3 className="mt-4 text-xl font-semibold tracking-tight">{beat.title}</h3>
-        <p className="mt-3 text-[15px] leading-relaxed text-mist-300">{beat.detail}</p>
+        <div key={active} className="fade-in">
+          <h3 className="mt-4 text-xl font-semibold tracking-tight">{beat.title}</h3>
+          <p className="mt-3 text-[15px] leading-relaxed text-mist-300">{beat.detail}</p>
 
-        <ul className="mt-5 flex flex-wrap gap-2">
-          {beat.records.map((record) => (
-            <li
-              key={record.label}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
-                record.kind === "write"
-                  ? "border-jade-500/30 bg-jade-500/[0.07] text-jade-300"
-                  : "border-ink-700 bg-ink-850 text-mist-300"
-              }`}
-            >
-              <span className="font-mono text-[10px] uppercase tracking-wider opacity-70">
-                {record.kind === "write" ? "wrote" : "read"}
-              </span>
-              {record.label}
-            </li>
-          ))}
-        </ul>
+          <ul className="mt-5 flex flex-wrap gap-2">
+            {beat.records.map((record) => (
+              <li
+                key={record.label}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+                  record.kind === "write"
+                    ? "border-jade-500/30 bg-jade-500/[0.07] text-jade-300"
+                    : "border-ink-700 bg-ink-850 text-mist-300"
+                }`}
+              >
+                <span className="font-mono text-[10px] uppercase tracking-wider opacity-70">
+                  {record.kind === "write" ? "wrote" : "read"}
+                </span>
+                {record.label}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <div className="mt-auto pt-6">
           <div className="flex gap-1.5">

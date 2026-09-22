@@ -80,9 +80,8 @@ export function WorkspaceShowcase() {
 
       <p className="mt-4 text-sm text-mist-400">{active.caption}</p>
 
-      <div className="mt-4">
+      <div key={active.id} className="fade-in mt-4">
         <Screenshot
-          key={active.id}
           src={active.src}
           alt={`The real ${active.label} screen in the Lobby dashboard`}
           title={active.label}

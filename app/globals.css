@@ -22,12 +22,34 @@
 
 html {
   color-scheme: dark;
+  scroll-behavior: smooth;
 }
 
 body {
   background-color: var(--color-ink-950);
   color: var(--color-mist-100);
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * A baseline so every link, button and form field eases into a hover or
+ * focus state — without this, most of the site's hover: classes changed
+ * colour instantly while a handful of buttons (which set their own
+ * `transition`) eased, which reads as inconsistent even when no one can
+ * say exactly why. Low specificity (a bare tag selector) so any
+ * component's own transition-* utility still wins outright.
+ */
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    text-decoration-color 150ms ease,
+    opacity 150ms ease;
 }
 
 ::selection {
@@ -69,6 +91,11 @@ body {
   .btn-ghost:hover {
     border-color: var(--color-ink-600);
     background-color: var(--color-ink-850);
+  }
+
+  /* A small press-down on click — the kind of feedback a physical button gives for free. */
+  .btn:active {
+    transform: scale(0.97);
   }
 
   /*
@@ -180,6 +207,50 @@ body {
 
 .rise {
   animation: rise 420ms ease both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* For content that replaces itself in place — a tab panel, a swapped screenshot — where
+   `.rise`'s vertical travel would fight the fixed frame it sits inside. */
+.fade-in {
+  animation: fade-in 200ms ease both;
+}
+
+@keyframes dropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dropdown {
+  animation: dropdown 180ms ease both;
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* The dashboard's mobile drawer — slides from the edge it's hinged to, rather than just appearing. */
+.slide-in-left {
+  animation: slide-in-left 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
