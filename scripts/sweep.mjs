@@ -32,7 +32,37 @@ function routes(dir = "app", prefix = "") {
 // these is broken however healthy its status code looks.
 const BROKEN = [/That screen failed to load/i, /Application error/i, /This page could not be found/i];
 
-const list = [...routes(), "/for/home-services", "/vs/answering-service", "/chat/demo-missing"];
+/**
+ * The dynamic-ID pages — a thread, a contact, the public chat page — are
+ * real product surfaces, not edge cases, but their [id]/[key] segments make
+ * the static route walk above skip them entirely. Pulling one real id of
+ * each from a page that already lists them means this keeps testing them
+ * even after a reseed changes what those ids are.
+ */
+async function dynamicRoutes() {
+  const found = [];
+  const inboxHtml = await fetch(`${BASE}/dashboard/inbox`).then((r) => r.text()).catch(() => "");
+  const thread = inboxHtml.match(/\/dashboard\/inbox\/([\w-]+)/);
+  if (thread) found.push(`/dashboard/inbox/${thread[1]}`);
+
+  const contactsHtml = await fetch(`${BASE}/dashboard/contacts`).then((r) => r.text()).catch(() => "");
+  const contact = contactsHtml.match(/\/dashboard\/contacts\/([\w-]+)/);
+  if (contact) found.push(`/dashboard/contacts/${contact[1]}`);
+
+  const installHtml = await fetch(`${BASE}/dashboard/install`).then((r) => r.text()).catch(() => "");
+  const chatKey = installHtml.match(/\/chat\/([\w-]+)/);
+  if (chatKey) found.push(`/chat/${chatKey[1]}`);
+
+  return found;
+}
+
+const list = [
+  ...routes(),
+  "/for/home-services",
+  "/vs/answering-service",
+  "/chat/demo-missing",
+  ...(await dynamicRoutes()),
+];
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 let bad = 0;
 

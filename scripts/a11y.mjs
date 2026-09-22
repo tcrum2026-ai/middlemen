@@ -31,7 +31,30 @@ function routes(dir = "app", prefix = "") {
   return [...new Set(out)];
 }
 
-const all = ["/", ...routes().filter(r => r !== "/")].sort();
+/**
+ * Same reasoning as scripts/sweep.mjs: a thread, a contact and the public
+ * chat page are core surfaces that their own [id]/[key] segment hides from
+ * the static route walk above. Pulled from a page that already lists them,
+ * so this keeps working across a reseed.
+ */
+async function dynamicRoutes() {
+  const found = [];
+  const inboxHtml = await fetch("http://localhost:3000/dashboard/inbox").then((r) => r.text()).catch(() => "");
+  const thread = inboxHtml.match(/\/dashboard\/inbox\/([\w-]+)/);
+  if (thread) found.push(`/dashboard/inbox/${thread[1]}`);
+
+  const contactsHtml = await fetch("http://localhost:3000/dashboard/contacts").then((r) => r.text()).catch(() => "");
+  const contact = contactsHtml.match(/\/dashboard\/contacts\/([\w-]+)/);
+  if (contact) found.push(`/dashboard/contacts/${contact[1]}`);
+
+  const installHtml = await fetch("http://localhost:3000/dashboard/install").then((r) => r.text()).catch(() => "");
+  const chatKey = installHtml.match(/\/chat\/([\w-]+)/);
+  if (chatKey) found.push(`/chat/${chatKey[1]}`);
+
+  return found;
+}
+
+const all = ["/", ...routes().filter(r => r !== "/"), ...(await dynamicRoutes())].sort();
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
 const page = await ctx.newPage();
