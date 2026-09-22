@@ -1,17 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LOGOMARK_PATH } from "@/lib/brand";
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 font-semibold tracking-tight ${className}`}>
-      <span className="relative grid h-7 w-7 place-items-center rounded-lg bg-jade-500 text-ink-950">
-        {/* A doorway: the arch you walk through, and the floor you land on. */}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 20v-8a6 6 0 0 1 12 0v8" />
-          <path d="M3.5 20h17" />
+      <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-jade-500 text-ink-950">
+        {/* A doorway with a speech-bubble tail: the room customers arrive at, and the fact that something in it talks back. */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d={LOGOMARK_PATH} />
         </svg>
       </span>
-      Lobby
+      <span className="tracking-[-0.01em]">Lobby</span>
     </span>
   );
 }

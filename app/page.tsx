@@ -6,6 +6,7 @@ import { RoiCalculator } from "@/components/marketing/roi-calculator";
 import { Mechanism } from "@/components/marketing/mechanism";
 import { Pricing } from "@/components/marketing/pricing";
 import { Screenshot } from "@/components/marketing/screenshot";
+import { Countdown } from "@/components/marketing/countdown";
 import { Badge } from "@/components/ui";
 import {
   ArrowIcon,
@@ -48,6 +49,16 @@ export default async function LandingPage() {
       <SiteNav />
 
       <main id="content">
+        {/* launch countdown */}
+        <section className="border-b border-ink-800 bg-ink-900/40 py-8">
+          <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-5 text-center">
+            <Countdown />
+            <p className="text-xs text-mist-400">
+              The product works today — sign up now for early access, or explore the demo below.
+            </p>
+          </div>
+        </section>
+
         {/* hero */}
         <section className="relative overflow-hidden">
           <div
