@@ -564,6 +564,7 @@ export function createAppointment(input: {
     notes: input.notes ?? null,
     source: input.source ?? "ai",
     created_at: now(),
+    google_event_id: null,
   };
   getDb()
     .prepare(
@@ -574,6 +575,13 @@ export function createAppointment(input: {
     )
     .run(appointment);
   return appointment;
+}
+
+/** Set once the booking has been pushed to the owner's connected Google Calendar. */
+export function setAppointmentGoogleEventId(appointmentId: string, googleEventId: string | null): void {
+  getDb()
+    .prepare("UPDATE appointments SET google_event_id = ? WHERE id = ?")
+    .run(googleEventId, appointmentId);
 }
 
 /**

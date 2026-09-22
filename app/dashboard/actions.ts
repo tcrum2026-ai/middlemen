@@ -48,6 +48,7 @@ import { getTemplate } from "@/lib/templates";
 import { createPaymentLink, sendEmail, sendSms } from "@/lib/delivery";
 import { disconnect, saveCredentials } from "@/lib/integrations";
 import { busyFromFeed, forgetFeed } from "@/lib/calendar-feed";
+import { disconnectGoogleCalendar, updatePushedAppointment, deletePushedAppointment } from "@/lib/google-calendar";
 import { overlapsBusy } from "@/lib/ical";
 import { deliverFollowUp } from "@/lib/scheduler";
 import type {
@@ -390,6 +391,11 @@ export async function moveAppointmentAction(
     summary: `Moved ${appointment.title} to ${new Date(when).toISOString()}`,
     handled_by: "human",
   });
+  // Best-effort: keeps the real Google Calendar event in sync, but a hiccup
+  // here must never block the move that already succeeded in our own records.
+  void updatePushedAppointment(business.id, { ...appointment, starts_at: new Date(when).toISOString() }).catch(
+    () => {},
+  );
   revalidatePath("/dashboard/appointments");
   return {};
 }
@@ -468,6 +474,10 @@ export async function setAppointmentStatusAction(data: FormData) {
   const business = await writableBusiness();
   if (!business || !belongsToBusiness("appointment", appointmentId, business.id)) return;
   setAppointmentStatus(appointmentId, status);
+  if (status === "cancelled") {
+    const appointment = getAppointment(appointmentId);
+    if (appointment) void deletePushedAppointment(business.id, appointment).catch(() => {});
+  }
   revalidatePath("/dashboard/appointments");
   revalidatePath("/dashboard");
 }
@@ -698,8 +708,13 @@ export async function disconnectIntegrationAction(data: FormData) {
 
   const business = await writableBusiness();
   if (!business) return;
-  disconnect(business.id, provider);
-  if (provider === "calendar-feed") forgetFeed(business.id);
+  if (provider === "google-calendar") {
+    // Also tells Google to revoke the grant, not just delete our copy of the token.
+    await disconnectGoogleCalendar(business.id);
+  } else {
+    disconnect(business.id, provider);
+  }
+  if (provider === "calendar-feed" || provider === "google-calendar") forgetFeed(business.id);
   setIntegrationStatus(business.id, provider, "disconnected");
   revalidatePath("/dashboard/integrations");
 }

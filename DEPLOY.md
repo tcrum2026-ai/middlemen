@@ -26,6 +26,7 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `STRIPE_SECRET_KEY` | **Charging for Lobby** | Your platform Stripe key. Unset, the plan buttons on `/dashboard/billing` are disabled and say so — nobody can subscribe. |
 | `STRIPE_WEBHOOK_SECRET` | **Charging for Lobby** | **Required.** `POST /api/billing/webhook` fails closed: unset, it returns 503, because an unverified billing webhook lets a stranger hand themselves a paid plan. Signatures older than 5 minutes are rejected too. |
 | `STRIPE_PRICE_STARTER` / `_PRO` / `_BUSINESS` | **Charging for Lobby** | The recurring price ids. A plan with no price id refuses checkout with a readable error rather than a blank page. |
+| `GOOGLE_OAUTH_CLIENT_ID` + `GOOGLE_OAUTH_CLIENT_SECRET` | One-click Google Calendar | A single OAuth client for every workspace's "Connect Google Calendar" button — not a per-workspace credential. Unset, that button is replaced with a note explaining what to set, and the paste-a-secret-URL calendar (Integrations → Your calendar) still works without it. |
 
 Note the two different Stripe keys. The variables above are *yours* — the platform
 account that charges for Lobby. The Stripe key entered per workspace under **Integrations**
@@ -152,8 +153,9 @@ All of this is done in the dashboard, per workspace:
 | What | Where | What you paste |
 | --- | --- | --- |
 | Website widget | Install | One `<script>` tag on your site |
-| Calendar (out) | Integrations | Subscribe to the `.ics` URL in Google/Apple/Outlook so Lobby's bookings appear there |
-| Calendar (in) | Integrations → Your calendar | Paste your calendar's **secret iCal address**, so Lobby never offers a time you are already busy |
+| Calendar (out) | Integrations | Subscribe to the `.ics` URL in Google/Apple/Outlook so Lobby's bookings appear there — not needed at all once Google Calendar is connected below, since bookings are then written there directly |
+| Calendar, Google (two-way) | Integrations → Google Calendar | Click "Connect Google Calendar" and approve access. Needs `GOOGLE_OAUTH_CLIENT_ID`/`_SECRET` set on the deployment — see § 3c |
+| Calendar, other (in only) | Integrations → Your calendar | For anything that isn't Google, or if you'd rather not use OAuth: paste your calendar's **secret iCal address**, so Lobby never offers a time you are already busy. One-way — bookings still need the feed above to show up there |
 | Email sending | Integrations → Resend | API key + a from-address on a verified domain |
 | Inbound email | Your mail provider | Forward/route to `POST /api/webhooks/email`, addressed to `<workspace-slug>@…` |
 | SMS | Integrations → Twilio | Account SID, auth token, your number |
@@ -179,6 +181,28 @@ Every new workspace starts on a 14-day trial with a reduced allowance and no car
 trial ends or an allowance runs out the assistant stops replying and hands the thread to a
 person — the message is still captured, never dropped. That behaviour is in `lib/entitlement.ts`
 and it is what `/terms` promises.
+
+## 3c. Google Calendar, the one-click way
+
+Setting this up is free — it's a Google Cloud OAuth client, not a paid API.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create (or reuse) a project, then
+   enable the **Google Calendar API** under APIs & Services → Library.
+2. Under APIs & Services → OAuth consent screen, add the scopes this app requests
+   (`.../auth/calendar`, `openid`, `email`) and, while the app is in "Testing" status, add every
+   Google account that should be able to connect as a test user — otherwise Google shows an
+   "unverified app" warning to anyone who isn't listed.
+3. Under Credentials → Create Credentials → OAuth client ID → Web application, add an authorized
+   redirect URI of `https://your-domain/api/integrations/google-calendar/callback` (and, for local
+   testing, `http://localhost:3000/api/integrations/google-calendar/callback`).
+4. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` to that client's id and secret.
+5. In a workspace's Integrations page, click **Connect Google Calendar** and approve access. From
+   then on, that workspace's real availability blocks bookings, and every booking Lobby makes is
+   written straight onto the connected calendar — no separate feed to subscribe to.
+
+Disconnecting revokes the grant with Google, not just this app's copy of the token. If a refresh
+ever fails — the owner revoked access from their Google account, for instance — the workspace is
+treated as disconnected rather than left silently broken.
 
 ## 4. Before real customers see it
 
@@ -252,6 +276,13 @@ host with a mounted volume.
   overage — the billing page still shows minutes-over for a trial, but that count is a display
   figure, not what gets reported. Without `STRIPE_VOICE_METER_EVENT` set, the billing page falls
   back to its old "add it to their invoice yourself" copy and nothing is reported to Stripe.
+- **Google Calendar's one-click connect needs `GOOGLE_OAUTH_CLIENT_ID`/`_SECRET` set** (§ 3c);
+  without them the button on Integrations is replaced with a note saying so, and the paste-a-secret-URL
+  calendar still works either way. It also only ever writes to the connected account's **primary**
+  calendar — there is no picker for a secondary one.
 - Outlook, WhatsApp, QuickBooks, HubSpot, Shopify and Zapier are listed but not implemented.
-- SQLite means one writer: fine for a single instance, not for horizontal scaling. Moving to
-  Postgres is a `lib/db.ts` change, not an application-wide one.
+- SQLite means one writer: fine for a single instance, not for horizontal scaling. Every query in
+  this codebase calls `better-sqlite3` synchronously (`.prepare().get()/.run()/.all()`, no
+  `await`), so moving to any real network database — Postgres included — is not a `lib/db.ts`-only
+  change: a network round trip is inherently async, and that ripples into every file that queries
+  the database, not just the one that opens the connection.

@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { Badge, Card, PageHeader, relativeTime } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
 import { CopyBlock } from "@/components/copy-block";
@@ -6,9 +7,18 @@ import { CheckIcon, PlugIcon, SparkIcon } from "@/components/icons";
 import { assistantConfigured } from "@/lib/assistant";
 import { disconnectIntegrationAction, saveIntegrationAction } from "../actions";
 import { activeBusiness } from "@/lib/session";
-import { feedStatus } from "@/lib/calendar-feed";
+import { feedStatus, googleCalendarStatus } from "@/lib/calendar-feed";
 import { PROVIDERS, isConnected, maskedCredentials } from "@/lib/integrations";
+import { googleCalendarConfigured } from "@/lib/google-calendar";
 import { listDeliveries } from "@/lib/delivery";
+
+const GOOGLE_CALENDAR_ERRORS: Record<string, string> = {
+  not_configured: "This deployment hasn't got a Google OAuth client set up yet — see DEPLOY.md.",
+  denied: "Google Calendar wasn't connected — access was declined on Google's screen.",
+  state_mismatch: "That link had expired or didn't come from this page. Try connecting again.",
+  no_code: "Google didn't send back an authorization code. Try connecting again.",
+  exchange_failed: "Google refused the connection. Try disconnecting and connecting again.",
+};
 
 /** Things that need nothing but a URL — no keys, no OAuth. */
 const ZERO_CONFIG = [
@@ -29,21 +39,41 @@ const ZERO_CONFIG = [
 ];
 
 
-export default async function IntegrationsPage() {
+export default async function IntegrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ connected?: string; google_calendar_error?: string }>;
+}) {
   const business = await activeBusiness();
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const calendar = await feedStatus(business.id);
+  const google = await googleCalendarStatus(business.id);
   const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
   const deliveries = listDeliveries(business.id, 8);
   const brainLive = assistantConfigured();
+  const params = await searchParams;
+  const justConnectedGoogle = params.connected === "google-calendar";
+  const googleError = params.google_calendar_error ? GOOGLE_CALENDAR_ERRORS[params.google_calendar_error] : null;
 
   return (
     <div>
       <PageHeader
         title="Integrations"
-        subtitle="Paste a key, and the thing it powers starts working on the next message. Nothing here is required to go live."
+        subtitle="Connect a key or an account, and the thing it powers starts working on the next message. Nothing here is required to go live."
       />
+
+      {justConnectedGoogle ? (
+        <div className="mb-5 rounded-xl border border-jade-500/30 bg-jade-500/[0.06] px-4 py-3 text-sm text-mist-200">
+          <span className="font-medium text-jade-400">Google Calendar connected.</span> Your real availability now
+          blocks bookings, and every appointment from here on appears on your calendar automatically.
+        </div>
+      ) : null}
+      {googleError ? (
+        <div className="mb-5 rounded-xl border border-rose-alert/30 bg-rose-alert/10 px-4 py-3 text-sm text-mist-200">
+          <span className="font-medium text-rose-alert">Couldn&apos;t connect Google Calendar.</span> {googleError}
+        </div>
+      ) : null}
 
       <section className="mb-8" id="assistant">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">The assistant itself</h2>
@@ -127,12 +157,13 @@ export default async function IntegrationsPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">Connect with a key</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">Connect a provider</h2>
         <div className="space-y-4">
           {PROVIDERS.map((provider) => {
             const connected = isConnected(business.id, provider.id);
             const health = provider.id === "calendar-feed" ? calendar : null;
             const saved = maskedCredentials(business.id, provider.id);
+            const isGoogleCalendar = provider.id === "google-calendar";
             return (
               <Card key={provider.id} className="!p-0">
                 <div className="flex flex-wrap items-center gap-3 border-b border-ink-700 px-5 py-3.5">
@@ -167,45 +198,79 @@ export default async function IntegrationsPage() {
                     )}
                   </p>
                 ) : null}
+                {isGoogleCalendar && google.connected ? (
+                  <p className="border-b border-ink-700 px-5 py-2.5 text-xs text-mist-400">
+                    Connected as <span className="text-mist-200">{google.email}</span>. Read {google.events}{" "}
+                    commitment{google.events === 1 ? "" : "s"} in the next 30 days; every booking from here on is
+                    written straight to this calendar.
+                  </p>
+                ) : null}
 
                 <div className="grid grid-cols-1 gap-5 p-5 lg:grid-cols-[1.4fr_1fr]">
-                  <form action={saveIntegrationAction} className="space-y-3">
-                    <input type="hidden" name="provider" value={provider.id} />
-                    {provider.fields.map((field) => (
-                      <div key={field.name}>
-                        <label className="label" htmlFor={`${provider.id}-${field.name}`}>
-                          {field.label}
-                        </label>
-                        <input
-                          id={`${provider.id}-${field.name}`}
-                          name={field.name}
-                          type={field.secret ? "password" : "text"}
-                          defaultValue={saved[field.name] ?? ""}
-                          placeholder={field.placeholder}
-                          autoComplete="off"
-                          className="field font-mono text-xs"
-                        />
-                      </div>
-                    ))}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button className="btn btn-primary px-3 py-1.5 text-xs">
-                        {connected ? "Update" : "Connect"}
-                      </button>
+                  {isGoogleCalendar ? (
+                    <div className="space-y-3">
                       {connected ? (
-                        <ConfirmButton
-                          formAction={disconnectIntegrationAction}
-                          confirmLabel="Delete the key?"
-                          pendingLabel="Disconnecting…"
-                          className="btn btn-ghost px-3 py-1.5 text-xs"
-                        >
-                          Disconnect
-                        </ConfirmButton>
-                      ) : null}
-                      {provider.docs ? (
-                        <span className="text-xs text-mist-400">Key lives at {provider.docs}</span>
-                      ) : null}
+                        <form action={disconnectIntegrationAction}>
+                          <input type="hidden" name="provider" value={provider.id} />
+                          <ConfirmButton
+                            confirmLabel="Disconnect Google Calendar?"
+                            pendingLabel="Disconnecting…"
+                            className="btn btn-ghost px-3 py-1.5 text-xs"
+                          >
+                            Disconnect
+                          </ConfirmButton>
+                        </form>
+                      ) : googleCalendarConfigured() ? (
+                        <Link href="/api/integrations/google-calendar/start" className="btn btn-primary px-3 py-1.5 text-xs">
+                          Connect Google Calendar
+                        </Link>
+                      ) : (
+                        <p className="text-xs text-mist-400">
+                          Needs <code className="font-mono text-mist-300">GOOGLE_OAUTH_CLIENT_ID</code> and{" "}
+                          <code className="font-mono text-mist-300">GOOGLE_OAUTH_CLIENT_SECRET</code> set on this
+                          deployment — see DEPLOY.md. Until then, use the calendar below instead.
+                        </p>
+                      )}
                     </div>
-                  </form>
+                  ) : (
+                    <form action={saveIntegrationAction} className="space-y-3">
+                      <input type="hidden" name="provider" value={provider.id} />
+                      {provider.fields.map((field) => (
+                        <div key={field.name}>
+                          <label className="label" htmlFor={`${provider.id}-${field.name}`}>
+                            {field.label}
+                          </label>
+                          <input
+                            id={`${provider.id}-${field.name}`}
+                            name={field.name}
+                            type={field.secret ? "password" : "text"}
+                            defaultValue={saved[field.name] ?? ""}
+                            placeholder={field.placeholder}
+                            autoComplete="off"
+                            className="field font-mono text-xs"
+                          />
+                        </div>
+                      ))}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button className="btn btn-primary px-3 py-1.5 text-xs">
+                          {connected ? "Update" : "Connect"}
+                        </button>
+                        {connected ? (
+                          <ConfirmButton
+                            formAction={disconnectIntegrationAction}
+                            confirmLabel="Delete the key?"
+                            pendingLabel="Disconnecting…"
+                            className="btn btn-ghost px-3 py-1.5 text-xs"
+                          >
+                            Disconnect
+                          </ConfirmButton>
+                        ) : null}
+                        {provider.docs ? (
+                          <span className="text-xs text-mist-400">Key lives at {provider.docs}</span>
+                        ) : null}
+                      </div>
+                    </form>
+                  )}
 
                   <div className="rounded-xl border border-ink-700 bg-ink-950 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wider text-mist-400">
@@ -271,7 +336,7 @@ export default async function IntegrationsPage() {
           <p className="text-sm leading-relaxed text-mist-300">
             Outlook, WhatsApp, QuickBooks, HubSpot, Shopify and Zapier aren&apos;t implemented. They&apos;re listed
             here so you know where the edge is, not as a promise with a date on it. Everything above this line is
-            wired to a real provider — if you can paste a key into it, it works.
+            wired to a real provider — if you can connect it, it works.
           </p>
           <p className="mt-3 text-sm text-mist-400">
             Need one of them sooner? The delivery layer in <code className="font-mono text-xs">lib/delivery.ts</code>{" "}

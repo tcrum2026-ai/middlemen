@@ -83,3 +83,12 @@ services:
         sync: false
       - key: NEXT_PUBLIC_LEGAL_JURISDICTION
         sync: false
+
+      # Free to create (a Google Cloud OAuth client, not a paid API) — see
+      # DEPLOY.md § 3c. Unset, the paste-a-secret-URL calendar under
+      # Integrations still works; this only adds the one-click "Connect
+      # Google Calendar" button that also writes bookings back.
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false

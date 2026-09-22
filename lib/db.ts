@@ -353,6 +353,13 @@ const ADDED_COLUMNS: { table: string; column: string; ddl: string }[] = [
     column: "effort",
     ddl: "ALTER TABLE businesses ADD COLUMN effort TEXT NOT NULL DEFAULT 'medium'",
   },
+  {
+    // Lets a moved or cancelled booking find and update the real Google Calendar
+    // event it created, instead of leaving a stale copy behind on the owner's calendar.
+    table: "appointments",
+    column: "google_event_id",
+    ddl: "ALTER TABLE appointments ADD COLUMN google_event_id TEXT",
+  },
 ];
 
 function migrate(db: Database.Database): void {

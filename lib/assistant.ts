@@ -13,6 +13,7 @@ import {
   getContact,
   listAppointments,
   moveAppointment,
+  setAppointmentGoogleEventId,
   setAppointmentStatus,
   createCallRequest,
   createLead,
@@ -26,6 +27,7 @@ import { sendEmail } from "./delivery";
 import { notifyOperator } from "./notify";
 import { overlapsBusy } from "./ical";
 import { busyFromFeed } from "./calendar-feed";
+import { pushAppointment, updatePushedAppointment, deletePushedAppointment } from "./google-calendar";
 import type { AssistantAction, Business, Conversation, Message } from "./types";
 import { lastWholeSentence } from "./text";
 
@@ -315,6 +317,13 @@ function buildTools(
         label: "Booked appointment",
         detail: `${formatSlot(appointment.starts_at)} · ${input.service}`,
       });
+      // Best-effort: a Google hiccup must never stop a booking that's already
+      // real in our own records — the customer has been told it's confirmed.
+      void pushAppointment(business.id, appointment)
+        .then((eventId) => {
+          if (eventId) setAppointmentGoogleEventId(appointment.id, eventId);
+        })
+        .catch(() => {});
       if (input.email) {
         const delivery = await sendEmail({
           businessId: business.id,
@@ -432,6 +441,11 @@ function buildTools(
 
       const was = appointment.starts_at;
       moveAppointment(appointment.id, input.starts_at, input.duration_min);
+      void updatePushedAppointment(business.id, {
+        ...appointment,
+        starts_at: input.starts_at,
+        duration_min: input.duration_min ?? appointment.duration_min,
+      }).catch(() => {});
       logEvent({
         business_id: business.id,
         kind: "appointment_booked",
@@ -494,6 +508,7 @@ function buildTools(
       }
 
       setAppointmentStatus(appointment.id, "cancelled");
+      void deletePushedAppointment(business.id, appointment).catch(() => {});
       logEvent({
         business_id: business.id,
         kind: "appointment_booked",

@@ -20,6 +20,13 @@ export interface Provider {
   /** Shown after saving, when there's something to paste elsewhere. */
   callbackPath?: string;
   docs?: string;
+  /**
+   * Connected by redirecting to the provider and back, not by pasting a key.
+   * The Integrations page renders its own button for these instead of the
+   * generic field form — `fields` still describes what's stored, so
+   * `isConnected`/`disconnect`/`credentials` work unchanged.
+   */
+  oauth?: boolean;
 }
 
 export const PROVIDERS: Provider[] = [
@@ -61,11 +68,33 @@ export const PROVIDERS: Provider[] = [
     docs: "api.slack.com/messaging/webhooks",
   },
   {
-    id: "calendar-feed",
-    label: "Your calendar (read)",
+    id: "google-calendar",
+    label: "Google Calendar",
     group: "Scheduling",
     blurb:
-      "Reads the calendar you already keep, so the assistant never offers a time you are not free.",
+      "Reads your real availability and writes every booking straight onto your calendar — no secret URL to paste, " +
+      "and no separate feed to subscribe to.",
+    enables: [
+      "No double-booking over your own commitments",
+      "Every booking appears on your calendar automatically",
+      "Moved or cancelled bookings update there too",
+    ],
+    fields: [
+      { name: "access_token", label: "Access token", secret: true },
+      { name: "refresh_token", label: "Refresh token", secret: true },
+      { name: "expires_at", label: "Expires at" },
+      { name: "account_email", label: "Connected account" },
+    ],
+    oauth: true,
+  },
+  {
+    id: "calendar-feed",
+    label: "Your calendar (read, by URL)",
+    group: "Scheduling",
+    blurb:
+      "For a calendar that isn't Google, or if you'd rather not use OAuth: reads the calendar you already keep, so " +
+      "the assistant never offers a time you are not free. One-way — bookings still need the feed above or the " +
+      "Calendar subscription to show up there.",
     enables: ["No double-booking over your own commitments"],
     fields: [
       {

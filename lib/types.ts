@@ -103,6 +103,8 @@ export interface Appointment {
   notes: string | null;
   source: string;
   created_at: string;
+  /** The real Google Calendar event this booking pushed to, if the workspace is connected. */
+  google_event_id: string | null;
 }
 
 export interface Lead {
