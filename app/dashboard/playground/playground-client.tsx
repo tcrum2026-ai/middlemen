@@ -117,7 +117,7 @@ export function PlaygroundClient({
             </div>
           ) : (
             turns.map((turn, index) => (
-              <div key={index} className={turn.role === "customer" ? "flex justify-end" : "flex justify-start"}>
+              <div key={index} className={`rise ${turn.role === "customer" ? "flex justify-end" : "flex justify-start"}`}>
                 <div className="max-w-[85%] space-y-2">
                   <div
                     className={`whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed ${
@@ -146,7 +146,7 @@ export function PlaygroundClient({
               </div>
             ))
           )}
-          {busy ? <p className="text-sm text-mist-400">Thinking…</p> : null}
+          {busy ? <p className="fade-in text-sm text-mist-400">Thinking…</p> : null}
         </div>
 
         <form

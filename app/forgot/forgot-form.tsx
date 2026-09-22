@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { requestResetAction, type ForgotState } from "@/app/reset-actions";
 
@@ -16,6 +16,9 @@ function Submit() {
 
 export function ForgotForm() {
   const [state, action] = useActionState<ForgotState | null, FormData>(requestResetAction, null);
+  // Same reason as the sign-in form: an uncontrolled field goes blank once the action
+  // settles, even on a rate-limit error, so a retry means retyping the address.
+  const [email, setEmail] = useState("");
 
   if (state?.sent) {
     return (
@@ -38,7 +41,16 @@ export function ForgotForm() {
         <label className="label" htmlFor="email">
           Email
         </label>
-        <input id="email" name="email" type="email" autoComplete="email" required className="field" />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          className="field"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
       </div>
 
       {state?.error ? (

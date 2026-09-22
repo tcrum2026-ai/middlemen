@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 type State = { error?: string } | null;
 
@@ -16,6 +16,12 @@ export function AuthForm({
 }) {
   const [state, formAction, pending] = useActionState<State, FormData>(action, null);
   const isSignUp = mode === "signup";
+  // React resets an uncontrolled form's fields once its action settles — including on
+  // a failed submission. Left alone, a mistyped password wipes the email too, so a
+  // typo means retyping both. Controlling just this field keeps it through an error
+  // without having to control (and fight autofill on) the rest of the form.
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
 
   return (
     <form action={formAction} className="card space-y-4 p-6">
@@ -24,7 +30,16 @@ export function AuthForm({
       {isSignUp ? (
         <div>
           <label className="label" htmlFor="name">Your name</label>
-          <input id="name" name="name" required autoComplete="name" className="field" placeholder="Sam Rivera" />
+          <input
+            id="name"
+            name="name"
+            required
+            autoComplete="name"
+            className="field"
+            placeholder="Sam Rivera"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
       ) : null}
 
@@ -38,6 +53,8 @@ export function AuthForm({
           autoComplete="email"
           className="field"
           placeholder="you@yourbusiness.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
       </div>
 

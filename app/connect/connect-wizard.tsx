@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowIcon, CheckIcon } from "@/components/icons";
 import { TEMPLATES, templateToText } from "@/lib/templates";
 
@@ -62,6 +62,42 @@ const DEFAULT_HOURS: Hours = {
 
 const STEPS = ["Business", "Hours & services", "Your assistant", "Knowledge"];
 
+/**
+ * Four steps of typing — including a full week of hours and a knowledge base —
+ * is a lot to lose to an accidental refresh or a tab closed to go check
+ * something. sessionStorage rather than localStorage: this is a draft of the
+ * signup in front of you right now, not something that should reappear for a
+ * different business signing up later on the same machine.
+ */
+const DRAFT_KEY = "lobby-connect-draft";
+
+interface Draft {
+  step: number;
+  name: string;
+  industry: string;
+  website: string;
+  email: string;
+  phone: string;
+  hours: Hours;
+  services: string;
+  integrations: string[];
+  assistantName: string;
+  tone: string;
+  autonomy: "cautious" | "balanced" | "autonomous";
+  callNumber: string;
+  knowledge: string;
+  pack: string | null;
+}
+
+function loadDraft(): Partial<Draft> | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as Partial<Draft>) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Trades that ship a starter pack, so step 1's answer can preload step 4. */
 const INDUSTRY_PACK: Record<string, string> = {
   "Home services (plumbing & HVAC)": "home-services",
@@ -92,6 +128,77 @@ export function ConnectWizard() {
   const [callNumber, setCallNumber] = useState("");
   const [knowledge, setKnowledge] = useState("");
   const [pack, setPack] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
+
+  // Runs once, client-only, after the first paint — so that first paint always
+  // matches the server's blank wizard and a returning draft is applied a
+  // moment later instead of causing a hydration mismatch.
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft) {
+      if (draft.step !== undefined) setStep(draft.step);
+      if (draft.name !== undefined) setName(draft.name);
+      if (draft.industry !== undefined) setIndustry(draft.industry);
+      if (draft.website !== undefined) setWebsite(draft.website);
+      if (draft.email !== undefined) setEmail(draft.email);
+      if (draft.phone !== undefined) setPhone(draft.phone);
+      if (draft.hours !== undefined) setHours(draft.hours);
+      if (draft.services !== undefined) setServices(draft.services);
+      if (draft.integrations !== undefined) setIntegrations(draft.integrations);
+      if (draft.assistantName !== undefined) setAssistantName(draft.assistantName);
+      if (draft.tone !== undefined) setTone(draft.tone);
+      if (draft.autonomy !== undefined) setAutonomy(draft.autonomy);
+      if (draft.callNumber !== undefined) setCallNumber(draft.callNumber);
+      if (draft.knowledge !== undefined) setKnowledge(draft.knowledge);
+      if (draft.pack !== undefined) setPack(draft.pack);
+    }
+    setRestored(true);
+  }, []);
+
+  // Waits for the restore above to land first, so this doesn't fire once on
+  // mount with blank defaults and clobber the very draft it's about to read.
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      const draft: Draft = {
+        step,
+        name,
+        industry,
+        website,
+        email,
+        phone,
+        hours,
+        services,
+        integrations,
+        assistantName,
+        tone,
+        autonomy,
+        callNumber,
+        knowledge,
+        pack,
+      };
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // Private browsing or a full storage quota — the wizard still works, it just won't survive a refresh.
+    }
+  }, [
+    restored,
+    step,
+    name,
+    industry,
+    website,
+    email,
+    phone,
+    hours,
+    services,
+    integrations,
+    assistantName,
+    tone,
+    autonomy,
+    callNumber,
+    knowledge,
+    pack,
+  ]);
 
   function applyPack(slug: string) {
     const template = TEMPLATES.find((t) => t.slug === slug);
@@ -152,6 +259,11 @@ export function ConnectWizard() {
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? "Something went wrong");
+      }
+      try {
+        sessionStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // Nothing to clean up if storage was never available.
       }
       router.push("/dashboard?welcome=1");
       router.refresh();
