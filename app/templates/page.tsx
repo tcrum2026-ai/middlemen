@@ -51,7 +51,7 @@ export default function TemplatesPage() {
                 <Badge tone="iris">{template.assistantName}</Badge>
               </div>
 
-              <div className="grid gap-5 p-5 lg:grid-cols-[1.4fr_1fr]">
+              <div className="grid grid-cols-1 gap-5 p-5 lg:grid-cols-[1.4fr_1fr]">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-mist-400">What it loads</p>
                   <ul className="mt-3 space-y-3">

@@ -116,7 +116,7 @@ export function Mechanism() {
   const beat = BEATS[active];
 
   return (
-    <div ref={container} className="grid gap-5 lg:grid-cols-[20rem_1fr]">
+    <div ref={container} className="grid grid-cols-1 gap-5 lg:grid-cols-[20rem_1fr]">
       <ol className="space-y-1">
         {BEATS.map((item, index) => {
           const style = ACTOR_STYLE[item.actor];

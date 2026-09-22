@@ -17,7 +17,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const contact = conversation.contact_id ? getContact(conversation.contact_id) : null;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_18rem]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_18rem]">
       <div>
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Link href="/dashboard/inbox" className="text-sm text-mist-400 hover:text-mist-100">

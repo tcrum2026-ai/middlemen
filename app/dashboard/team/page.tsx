@@ -18,7 +18,7 @@ export default async function TeamPage() {
         subtitle="Who the assistant hands work to. Anyone on call duty can be assigned a queued callback."
       />
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_22rem]">
         <Card className="!p-0">
           <div className="flex items-center justify-between border-b border-ink-700 px-5 py-3.5">
             <h2 className="font-semibold">Teammates</h2>

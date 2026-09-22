@@ -26,7 +26,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
         subtitle={[contact.email, contact.phone, contact.company].filter(Boolean).join(" · ") || "No details captured yet"}
       />
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_18rem]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_18rem]">
         <Card className="!p-0">
           <div className="border-b border-ink-700 px-5 py-3.5">
             <h2 className="font-semibold">Everything, in order</h2>

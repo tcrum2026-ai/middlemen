@@ -138,7 +138,7 @@ export default function TourPage() {
         <div className="mx-auto max-w-4xl space-y-4 px-5">
           {STOPS.map((stop) => (
             <Card key={stop.step} className="!p-0">
-              <div className="grid gap-4 p-6 sm:grid-cols-[4rem_1fr]">
+              <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-[4rem_1fr]">
                 <span className="font-mono text-sm text-jade-400">{stop.step}</span>
                 <div>
                   <h2 className="text-lg font-semibold">{stop.title}</h2>

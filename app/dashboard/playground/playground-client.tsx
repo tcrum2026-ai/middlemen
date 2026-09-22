@@ -88,7 +88,7 @@ export function PlaygroundClient({
     : null;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_22rem]">
       <Card className="flex flex-col !p-0">
         <div className="flex items-center gap-2 border-b border-ink-700 px-5 py-3">
           <SparkIcon width={16} height={16} className="text-jade-400" />

@@ -31,7 +31,7 @@ export default async function KnowledgePage() {
         </div>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-3">
           {articles.length === 0 ? (
             <EmptyState title="Nothing to work from yet" body="Add your prices, policies and FAQs and the assistant can start answering." />

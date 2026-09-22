@@ -66,7 +66,7 @@ export function WidgetCustomizer({
   const onAccent = readableOn(accent);
 
   return (
-    <div className="grid min-w-0 gap-5 lg:grid-cols-[1fr_1fr]">
+    <div className="grid grid-cols-1 min-w-0 gap-5 lg:grid-cols-[1fr_1fr]">
       <div className="card min-w-0 space-y-4 p-5">
         <div>
           <label className="label" htmlFor="widget-title">Launcher text</label>

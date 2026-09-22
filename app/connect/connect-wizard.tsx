@@ -162,7 +162,7 @@ export function ConnectWizard() {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[14rem_1fr]">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[14rem_1fr]">
       <ol className="space-y-1">
         {STEPS.map((label, index) => (
           <li key={label}>
@@ -208,7 +208,7 @@ export function ConnectWizard() {
                 ))}
               </select>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="website">Website</label>
                 <input id="website" className="field" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" />
@@ -275,7 +275,7 @@ export function ConnectWizard() {
 
         {step === 2 ? (
           <div className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="assistant">Assistant name</label>
                 <input id="assistant" className="field" value={assistantName} onChange={(e) => setAssistantName(e.target.value)} />
@@ -293,7 +293,7 @@ export function ConnectWizard() {
 
             <div>
               <p className="label">How much should it decide on its own?</p>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {([
                   ["cautious", "Cautious", "Drafts everything, sends nothing without you."],
                   ["balanced", "Balanced", "Answers and books freely; escalates money and risk."],

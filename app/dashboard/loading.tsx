@@ -6,7 +6,7 @@ export default function DashboardLoading() {
         <div className="h-7 w-56 rounded-lg bg-ink-800" />
         <div className="mt-2 h-4 w-96 max-w-full rounded bg-ink-850" />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="card p-4">
             <div className="h-3 w-20 rounded bg-ink-800" />

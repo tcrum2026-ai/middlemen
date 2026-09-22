@@ -29,7 +29,7 @@ export default async function LeadsPage() {
       {leads.length === 0 ? (
         <EmptyState title="No leads yet" body="Buying intent in any channel becomes a scored lead automatically." />
       ) : (
-        <div className="grid gap-3 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
           {STAGES.map((stage) => {
             const inStage = leads.filter((l) => l.stage === stage);
             return (

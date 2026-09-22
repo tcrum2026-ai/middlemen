@@ -36,7 +36,7 @@ export default async function GapsPage() {
 
               <form id={`answer-${gap.id}`} action={answerGapAction} className="space-y-3 p-5 pb-0">
                 <input type="hidden" name="gap_id" value={gap.id} />
-                <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr]">
                   <div>
                     <label className="label" htmlFor={`title-${gap.id}`}>Article title</label>
                     <input

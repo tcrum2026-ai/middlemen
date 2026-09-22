@@ -28,7 +28,7 @@ export default async function InstallPage() {
         subtitle="One line on your site and your assistant is answering. No build step, no framework, no dependencies."
       />
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_19rem]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_19rem]">
         <div className="min-w-0 space-y-5">
           <section>
             <h2 className="mb-2 font-semibold">1. Make it yours, then paste it before &lt;/body&gt;</h2>

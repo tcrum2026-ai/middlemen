@@ -46,7 +46,7 @@ export default async function AutomationsPage() {
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-4">
           {rules.map((rule) => {
             const copy = RULE_COPY[rule.kind];
@@ -70,7 +70,7 @@ export default async function AutomationsPage() {
                     </label>
                   </div>
 
-                  <div className="grid gap-3 p-5 sm:grid-cols-[8rem_8rem_1fr]">
+                  <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-[8rem_8rem_1fr]">
                     <div>
                       <label className="label" htmlFor={`delay-${rule.id}`}>
                         {rule.kind === "appointment_reminder" ? "Hours before" : "Hours after"}
@@ -104,7 +104,7 @@ export default async function AutomationsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 border-t border-ink-800 px-5 py-3">
+                  <div className="flex flex-wrap items-center gap-3 border-t border-ink-800 px-5 py-3">
                     <button className="btn btn-primary px-3 py-1.5 text-xs">Save</button>
                     <p className="text-xs text-mist-400">
                       <code className="font-mono">{"{{name}}"}</code>,{" "}

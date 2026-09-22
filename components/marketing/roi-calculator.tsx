@@ -89,7 +89,7 @@ export function RoiCalculator({ planPrice = PRO_PRICE }: { planPrice?: number })
   }, [enquiries, missedPct, handledPct, closePct, jobValue, planPrice]);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr]">
       <div className="card space-y-6 p-6">
         <Slider
           id="roi-enquiries"

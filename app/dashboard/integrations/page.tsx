@@ -104,7 +104,7 @@ export default async function IntegrationsPage() {
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-mist-400">Nothing to configure</h2>
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {ZERO_CONFIG.map((item) => (
             <Card key={item.id} className="min-w-0">
               <div className="flex items-center gap-2">
@@ -168,7 +168,7 @@ export default async function IntegrationsPage() {
                   </p>
                 ) : null}
 
-                <div className="grid gap-5 p-5 lg:grid-cols-[1.4fr_1fr]">
+                <div className="grid grid-cols-1 gap-5 p-5 lg:grid-cols-[1.4fr_1fr]">
                   <form action={saveIntegrationAction} className="space-y-3">
                     <input type="hidden" name="provider" value={provider.id} />
                     {provider.fields.map((field) => (

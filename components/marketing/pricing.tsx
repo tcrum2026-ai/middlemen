@@ -43,7 +43,7 @@ export function Pricing({ contactEmail = "" }: { contactEmail?: string }) {
         </span>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {PLANS.map((plan) => {
           const monthly = plan.monthly;
           const shown = monthly === null ? null : annual ? (monthly * ANNUAL_MONTHS_CHARGED) / 12 : monthly;

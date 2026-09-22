@@ -41,7 +41,7 @@ export default async function BillingPage({
         </div>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-5">
           <Card>
             <div className="flex flex-wrap items-start justify-between gap-3">
