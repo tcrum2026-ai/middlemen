@@ -132,4 +132,8 @@ export const QUOTAS = {
   voicePerWorkspace: { limit: 60, windowMs: 60 * 60_000 },
   /** Utterances within one call — an open mic must not bill indefinitely. */
   voiceTurnsPerCall: { limit: 60, windowMs: 30 * 60_000 },
+  /** Connecting a provider calls out to it with the pasted key. */
+  connectPerWorkspace: { limit: 20, windowMs: 60 * 60_000 },
+  /** A test text costs the workspace real money, so a stuck button can't run up a bill. */
+  testSendPerWorkspace: { limit: 10, windowMs: 60 * 60_000 },
 } as const;

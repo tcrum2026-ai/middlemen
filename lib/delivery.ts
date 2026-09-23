@@ -32,6 +32,11 @@ export function listDeliveries(businessId: string, limit = 50): Delivery[] {
     .all(businessId, limit) as Delivery[];
 }
 
+/** Same reason as RESEND_API_BASE and STRIPE_API_BASE: a send path should be testable against a stand-in. */
+export function twilioApiBase(): string {
+  return process.env.TWILIO_API_BASE?.trim().replace(/\/$/, "") || "https://api.twilio.com";
+}
+
 async function post(url: string, init: RequestInit & { timeoutMs?: number }): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), init.timeoutMs ?? 10_000);
@@ -115,7 +120,7 @@ export async function sendSms(input: {
 
   try {
     const response = await post(
-      `https://api.twilio.com/2010-04-01/Accounts/${creds.account_sid}/Messages.json`,
+      `${twilioApiBase()}/2010-04-01/Accounts/${creds.account_sid}/Messages.json`,
       {
         method: "POST",
         headers: {

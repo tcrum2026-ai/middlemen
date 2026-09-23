@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { QUOTAS, rateLimit } from "@/lib/rate-limit";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   addKbArticle,
   belongsToBusiness,
@@ -45,8 +45,9 @@ import {
 import { verificationAvailable } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/verify-mail";
 import { getTemplate } from "@/lib/templates";
-import { createPaymentLink, sendEmail, sendSms } from "@/lib/delivery";
-import { disconnect, saveCredentials } from "@/lib/integrations";
+import { createPaymentLink, notifySlack, sendEmail, sendSms } from "@/lib/delivery";
+import { credentials, disconnect, getProvider, isConnected, saveCredentials } from "@/lib/integrations";
+import { checkCredentials } from "@/lib/connect-checks";
 import { busyFromFeed, forgetFeed } from "@/lib/calendar-feed";
 import { disconnectGoogleCalendar, updatePushedAppointment, deletePushedAppointment } from "@/lib/google-calendar";
 import { overlapsBusy } from "@/lib/ical";
@@ -682,24 +683,144 @@ export async function setFollowUpStatusAction(data: FormData) {
 
 /* -------------------------------------------------------------- integrations */
 
-export async function saveIntegrationAction(data: FormData) {
+export interface ConnectResult {
+  ok: boolean;
+  message: string;
+  notes: string[];
+}
+
+/** The public address this request came in on — what a provider's webhook has to point at. */
+async function requestOrigin(): Promise<string | null> {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+  if (configured) return configured;
+  const list = await headers();
+  const host = list.get("x-forwarded-host") ?? list.get("host");
+  if (!host) return null;
+  const proto = list.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+/**
+ * Checks the pasted credentials with the provider before saving them, so
+ * "connected" means it works — not just that something was typed in.
+ */
+export async function connectIntegrationAction(
+  _prev: ConnectResult | null,
+  data: FormData,
+): Promise<ConnectResult> {
   const provider = str(data, "provider");
-  if (!provider) return;
+  const definition = provider ? getProvider(provider) : undefined;
+  if (!provider || !definition || definition.oauth) {
+    return { ok: false, message: "That integration can't be connected this way.", notes: [] };
+  }
 
   const business = await writableBusiness();
-  if (!business) return;
+  if (!business) return { ok: false, message: "Sign in to your own workspace to connect services.", notes: [] };
 
-  const values: Record<string, string> = {};
-  for (const [key, value] of data.entries()) {
-    if (key === "provider" || typeof value !== "string") continue;
-    values[key] = value;
+  if (!rateLimit(`connect:${business.id}`, QUOTAS.connectPerWorkspace).ok) {
+    return { ok: false, message: "Too many connection attempts just now. Try again in a few minutes.", notes: [] };
   }
-  saveCredentials(business.id, provider, values);
+
+  // A secret field left untouched posts back its mask; check with the real
+  // stored value, not the dots.
+  const stored = credentials(business.id, provider) ?? {};
+  const values: Record<string, string> = {};
+  for (const field of definition.fields) {
+    const posted = data.get(field.name);
+    const value = typeof posted === "string" ? posted.trim() : "";
+    values[field.name] = field.secret && value.startsWith("••") ? (stored[field.name] ?? "") : value;
+  }
+  const missing = definition.fields.find((field) => !values[field.name]);
+  if (missing) return { ok: false, message: `Fill in ${missing.label.toLowerCase()} first.`, notes: [] };
+
+  const result = await checkCredentials(provider, values, {
+    origin: await requestOrigin(),
+    businessName: business.name,
+  });
+  if (!result.ok) return { ok: false, message: result.message, notes: result.notes };
+
+  saveCredentials(business.id, provider, { ...values, ...result.normalized });
+  setIntegrationStatus(business.id, provider, "connected");
   // Otherwise a corrected URL keeps serving the old calendar for five
   // minutes, which on this integration means five more minutes of the
   // double-bookings someone just tried to stop.
   if (provider === "calendar-feed") forgetFeed(business.id);
   revalidatePath("/dashboard/integrations");
+  revalidatePath("/dashboard");
+  return { ok: true, message: result.message, notes: result.notes };
+}
+
+/** Provider error bodies are JSON envelopes; pull out the sentence a person can act on. */
+function readableDetail(detail: string | null): string {
+  if (!detail) return "";
+  const body = detail.replace(/^\d{3}:\s*/, "");
+  try {
+    const parsed = JSON.parse(body) as { message?: string; error?: { message?: string } | string };
+    const text = parsed.message ?? (typeof parsed.error === "string" ? parsed.error : parsed.error?.message);
+    if (text) return text;
+  } catch {
+    // Not JSON — show it as it came.
+  }
+  return body;
+}
+
+/**
+ * Sends a real message through a connected provider so the owner can see it
+ * arrive — the only proof that matters that a channel works end to end.
+ */
+export async function sendTestAction(_prev: ConnectResult | null, data: FormData): Promise<ConnectResult> {
+  const provider = str(data, "provider");
+  const { business, user, canWrite } = await workspace();
+  if (!user || !canWrite) return { ok: false, message: "Sign in to your own workspace to send a test.", notes: [] };
+  if (!provider || !isConnected(business.id, provider)) {
+    return { ok: false, message: "Connect it first, then send a test.", notes: [] };
+  }
+  if (!rateLimit(`test-send:${business.id}`, QUOTAS.testSendPerWorkspace).ok) {
+    return { ok: false, message: "That's a lot of tests in an hour — try again a bit later.", notes: [] };
+  }
+
+  let delivery;
+  if (provider === "resend") {
+    delivery = await sendEmail({
+      businessId: business.id,
+      to: user.email,
+      subject: `Test from ${business.name}'s assistant`,
+      body:
+        `This is a test from Lobby. If you're reading it, confirmations, follow-ups and quotes from ` +
+        `${business.name} will reach your customers the same way.\n\nNothing to do — you can delete this.`,
+    });
+  } else if (provider === "twilio") {
+    const to = str(data, "to");
+    if (!to || to.replace(/\D/g, "").length < 7) {
+      return { ok: false, message: "Enter the mobile number to text, with its country code.", notes: [] };
+    }
+    delivery = await sendSms({
+      businessId: business.id,
+      to,
+      body: `Test from ${business.name}'s assistant on Lobby. If this arrived, texting works — reply to it and your assistant will answer.`,
+    });
+  } else if (provider === "slack") {
+    delivery = await notifySlack({
+      businessId: business.id,
+      text: `Test from Lobby: alerts for ${business.name} will appear in this channel.`,
+    });
+  } else {
+    return { ok: false, message: "There's no test for that integration.", notes: [] };
+  }
+
+  revalidatePath("/dashboard/integrations");
+  if (delivery.status === "sent") {
+    const where =
+      provider === "resend" ? `Sent to ${user.email} — check your inbox (and spam, the first time).` :
+      provider === "twilio" ? `Sent to ${delivery.recipient}. It usually arrives within a few seconds.` :
+      "Posted — check the channel.";
+    return { ok: true, message: where, notes: [] };
+  }
+  return {
+    ok: false,
+    message: `It didn't go through: ${readableDetail(delivery.detail) || "no reason given"}.`,
+    notes: [],
+  };
 }
 
 export async function disconnectIntegrationAction(data: FormData) {

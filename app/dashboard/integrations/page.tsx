@@ -5,8 +5,10 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { CopyBlock } from "@/components/copy-block";
 import { CheckIcon, PlugIcon, SparkIcon } from "@/components/icons";
 import { assistantConfigured } from "@/lib/assistant";
-import { disconnectIntegrationAction, saveIntegrationAction } from "../actions";
-import { activeBusiness } from "@/lib/session";
+import { disconnectIntegrationAction } from "../actions";
+import { workspace } from "@/lib/session";
+import { IntegrationForm } from "@/components/integration-form";
+import { TestSend } from "@/components/test-send";
 import { feedStatus, googleCalendarStatus } from "@/lib/calendar-feed";
 import { PROVIDERS, isConnected, maskedCredentials } from "@/lib/integrations";
 import { googleCalendarConfigured } from "@/lib/google-calendar";
@@ -44,12 +46,16 @@ export default async function IntegrationsPage({
 }: {
   searchParams: Promise<{ connected?: string; google_calendar_error?: string }>;
 }) {
-  const business = await activeBusiness();
+  const { business, user, canWrite } = await workspace();
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
   const calendar = await feedStatus(business.id);
   const google = await googleCalendarStatus(business.id);
-  const origin = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
+  // Same precedence as connectIntegrationAction, so the webhook address shown
+  // here is the one Twilio was actually pointed at.
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") ||
+    `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
   const deliveries = listDeliveries(business.id, 8);
   const brainLive = assistantConfigured();
   const params = await searchParams;
@@ -233,43 +239,22 @@ export default async function IntegrationsPage({
                       )}
                     </div>
                   ) : (
-                    <form action={saveIntegrationAction} className="space-y-3">
-                      <input type="hidden" name="provider" value={provider.id} />
-                      {provider.fields.map((field) => (
-                        <div key={field.name}>
-                          <label className="label" htmlFor={`${provider.id}-${field.name}`}>
-                            {field.label}
-                          </label>
-                          <input
-                            id={`${provider.id}-${field.name}`}
-                            name={field.name}
-                            type={field.secret ? "password" : "text"}
-                            defaultValue={saved[field.name] ?? ""}
-                            placeholder={field.placeholder}
-                            autoComplete="off"
-                            className="field font-mono text-xs"
-                          />
-                        </div>
-                      ))}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button className="btn btn-primary px-3 py-1.5 text-xs">
-                          {connected ? "Update" : "Connect"}
-                        </button>
-                        {connected ? (
-                          <ConfirmButton
-                            formAction={disconnectIntegrationAction}
-                            confirmLabel="Delete the key?"
-                            pendingLabel="Disconnecting…"
-                            className="btn btn-ghost px-3 py-1.5 text-xs"
-                          >
-                            Disconnect
-                          </ConfirmButton>
-                        ) : null}
-                        {provider.docs ? (
-                          <span className="text-xs text-mist-400">Key lives at {provider.docs}</span>
-                        ) : null}
-                      </div>
-                    </form>
+                    <div className="min-w-0 space-y-4">
+                      <IntegrationForm
+                        providerId={provider.id}
+                        fields={provider.fields}
+                        saved={saved}
+                        connected={connected}
+                        docs={provider.docs}
+                      />
+                      {connected && canWrite && (provider.id === "resend" || provider.id === "twilio" || provider.id === "slack") ? (
+                        <TestSend
+                          provider={provider.id}
+                          ownerEmail={user?.email}
+                          defaultPhone={business.call_handoff_number || business.phone}
+                        />
+                      ) : null}
+                    </div>
                   )}
 
                   <div className="rounded-xl border border-ink-700 bg-ink-950 p-4">
@@ -287,7 +272,7 @@ export default async function IntegrationsPage({
                     {provider.callbackPath ? (
                       <>
                         <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-mist-400">
-                          Point the provider here
+                          {provider.id === "twilio" ? "Webhook — set for you on connect" : "Point the provider here"}
                         </p>
                         <p tabIndex={0} role="group" aria-label="Callback URL" className="mt-1.5 overflow-x-auto font-mono text-[11px] text-jade-400">
                           {origin}

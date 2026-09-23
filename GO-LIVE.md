@@ -48,7 +48,8 @@ things in, and how to check each one actually took.
 None of these are required to go live; the widget alone works on day one.
 
 - [ ] **Website** — paste the one-line snippet from Install onto your site.
-- [ ] **Email sending** — Integrations → Resend, with a from-address on a verified domain.
+- [ ] **Email sending** — Integrations → Resend, with a from-address on a verified domain. Connect
+      refuses an unverified domain and says why; once connected, hit **Send me a test email**.
 - [ ] **Password reset and email verification** — `RESEND_API_KEY` + `AUTH_FROM_EMAIL`. Until
       both are set, a locked-out user cannot get back in on their own, *and* email verification is
       off — meaning anyone can sign up with any address and burn a trial's worth of model and
@@ -56,10 +57,13 @@ None of these are required to go live; the widget alone works on day one.
       by signing up as yourself and checking the link arrives.
 - [ ] **Inbound email** — `INBOUND_EMAIL_SECRET` *and* `INBOUND_EMAIL_DOMAIN`, then route mail to
       `POST /api/webhooks/email`. The webhook rejects everything until the secret is set.
-- [ ] **SMS** — Integrations → Twilio, then point the number's webhook at
-      `POST /api/webhooks/twilio`. Requests are signature-verified.
+- [ ] **SMS** — Integrations → Twilio. Connect from the deployed site, not localhost: Lobby checks
+      the keys, finds the number and points its webhooks here itself. Read the notes it shows — if
+      the number already sent texts somewhere else, it says so and leaves it. Then **Text me a
+      test**, and reply to it: the reply should come back answered.
 - [ ] **Phone calls** — run `npm run voice` with `VOICE_BRIDGE_SECRET` set, put TLS in front of it,
-      point your number's Voice webhook at `POST /api/voice/incoming`, then turn on "Answer
+      check the Twilio connect notes say calls come to Lobby (or set the Voice webhook to
+      `POST /api/voice/incoming` yourself if it said it left your line alone), then turn on "Answer
       incoming calls with AI" in Settings. **Call yourself before you point real customers at it**,
       and listen for the AI disclosure at the start. Check your recording and consent obligations
       where you are and where your callers are — Lobby stores transcripts, not audio, but if you

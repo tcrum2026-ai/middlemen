@@ -23,6 +23,7 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `LOBBY_SCHEDULER` | Turning the built-in ticker off | The app sends due follow-ups itself every five minutes. Set to `off` only if you would rather drive that from outside. |
 | `CRON_SECRET` | `POST /api/cron/tick` | **Required by that endpoint**, which fails closed without it. It sends real email and SMS on a customer's behalf, so an open URL is a way for a stranger to spend their money and their sending reputation. |
 | `RESEND_API_BASE` | A mail relay | Only if you post mail somewhere other than Resend. Leave unset otherwise. |
+| `TWILIO_API_BASE` | Testing | Points every Twilio call — sends and the connect-time checks — at a stand-in server. Leave unset in any real deployment. |
 | `STRIPE_SECRET_KEY` | **Charging for Lobby** | Your platform Stripe key. Unset, the plan buttons on `/dashboard/billing` are disabled and say so — nobody can subscribe. |
 | `STRIPE_WEBHOOK_SECRET` | **Charging for Lobby** | **Required.** `POST /api/billing/webhook` fails closed: unset, it returns 503, because an unverified billing webhook lets a stranger hand themselves a paid plan. Signatures older than 5 minutes are rejected too. |
 | `STRIPE_PRICE_STARTER` / `_PRO` / `_BUSINESS` | **Charging for Lobby** | The recurring price ids. A plan with no price id refuses checkout with a readable error rather than a blank page. |
@@ -158,9 +159,9 @@ All of this is done in the dashboard, per workspace:
 | Calendar, other (in only) | Integrations → Your calendar | For anything that isn't Google, or if you'd rather not use OAuth: paste your calendar's **secret iCal address**, so Lobby never offers a time you are already busy. One-way — bookings still need the feed above to show up there |
 | Email sending | Integrations → Resend | API key + a from-address on a verified domain |
 | Inbound email | Your mail provider | Forward/route to `POST /api/webhooks/email`, addressed to `<workspace-slug>@…` |
-| SMS | Integrations → Twilio | Account SID, auth token, your number |
-| Inbound SMS | Twilio console | Set the number's webhook to `POST /api/webhooks/twilio` — requests are signature-verified |
-| Phone calls | Twilio console | Set the number's **Voice** webhook to `POST /api/voice/incoming`, then switch on "Answer incoming calls with AI" in Settings. Signature-verified against that workspace's own auth token; with voice off, calls ring your handoff number instead |
+| SMS | Integrations → Twilio | Account SID, auth token, your number. Lobby checks them with Twilio before saving, finds the number on the account, and stores it in the exact form inbound messages are matched against |
+| Inbound SMS | Automatic | On connect, the number's messaging webhook is pointed at `POST /api/webhooks/twilio` — but only if it's unset or still Twilio's demo URL. A webhook already pointing somewhere else is left alone and the page says so, with the address to set by hand. Needs `NEXT_PUBLIC_SITE_URL` (or a public https host) so Twilio can reach it. Requests are signature-verified |
+| Phone calls | Automatic, then Settings | The voice webhook is pointed at `POST /api/voice/incoming` on connect under the same rule — never overwriting a line that already goes somewhere. Switch on "Answer incoming calls with AI" in Settings; until then, calls ring your handoff number. Signature-verified against that workspace's own auth token |
 | Team alerts | Integrations → Slack | An incoming webhook URL |
 | Payment links | Integrations → Stripe | The workspace's own secret key, for charging *their* customers |
 
