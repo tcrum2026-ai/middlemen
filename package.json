@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start",
+    "start": "node server/index.mjs",
     "lint": "eslint",
     "voice": "node server/voice-bridge.mjs",
     "sweep": "node scripts/sweep.mjs",

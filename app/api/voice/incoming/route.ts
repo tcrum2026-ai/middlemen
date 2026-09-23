@@ -5,6 +5,7 @@ import { QUOTAS, rateLimitAll } from "@/lib/rate-limit";
 import { canAnswerCalls } from "@/lib/entitlement";
 import { publicUrl, twiml, twilioSignatureValid, xmlEscape } from "@/lib/twilio-signature";
 import type { Business } from "@/lib/types";
+import { issueCallToken } from "../../../../server/call-token.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,13 +21,17 @@ function businessForNumber(to: string): Business | null {
   return null;
 }
 
-/** Where the bridge listens. Same host by default, `wss` scheme, voice path. */
+/**
+ * Where the relay listens. By default it's this same site at /voice-relay —
+ * server/index.mjs serves both on one port. VOICE_BRIDGE_URL, or a
+ * VOICE_BRIDGE_PORT for a separately-run bridge, points elsewhere.
+ */
 function bridgeUrl(request: Request): string {
   const configured = process.env.VOICE_BRIDGE_URL?.trim();
   if (configured) return configured;
   const url = new URL(publicUrl(request));
-  const port = process.env.VOICE_BRIDGE_PORT?.trim() || "8080";
-  return `wss://${url.hostname}:${port}`;
+  const port = process.env.VOICE_BRIDGE_PORT?.trim();
+  return port ? `wss://${url.hostname}:${port}` : `wss://${url.host}/voice-relay`;
 }
 
 /**
@@ -59,7 +64,11 @@ export async function POST(request: Request) {
     return new Response("Bad signature", { status: 403 });
   }
 
-  if (!canAnswerCalls(business)) {
+  // No relay secret means no relay to hand the call to; ring a person instead.
+  const relaySecret = process.env.VOICE_BRIDGE_SECRET?.trim() ?? "";
+  const callSid = params.CallSid ?? "";
+
+  if (!canAnswerCalls(business) || !relaySecret || !callSid) {
     // Voice is off, out of allowance, or the subscription has lapsed. Ring the
     // human line rather than answering with something we cannot back.
     return business.call_handoff_number
@@ -113,6 +122,7 @@ export async function POST(request: Request) {
       `dtmfDetection="true" ` +
       `reportInputDuringAgentSpeech="false">` +
       `<Parameter name="businessId" value="${xmlEscape(business.id)}"/>` +
+      `<Parameter name="token" value="${xmlEscape(issueCallToken(relaySecret, business.id, callSid))}"/>` +
       `<Parameter name="from" value="${xmlEscape(from)}"/>` +
       `</ConversationRelay>` +
       `</Connect>`,

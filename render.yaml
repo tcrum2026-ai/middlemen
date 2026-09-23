@@ -72,7 +72,6 @@ services:
       #   STRIPE_WEBHOOK_SECRET   required with it; the webhook fails closed
       #   STRIPE_PRICE_STARTER / _PRO / _BUSINESS
       #   RESEND_API_KEY + AUTH_FROM_EMAIL   reset mail, email verification
-      #   VOICE_BRIDGE_SECRET / VOICE_BRIDGE_URL   answering phone calls
       #
       # The three legal variables are not billable but should be set before
       # anyone outside sees the site; until they are, /privacy and /terms

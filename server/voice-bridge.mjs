@@ -8,41 +8,40 @@
  * means this process can be restarted without losing anything but calls in
  * flight.
  *
- * Next's App Router cannot hold a long-lived WebSocket, which is why this is a
- * separate process at all.
+ * Next's App Router cannot hold a long-lived WebSocket, so this can't be a
+ * route. It normally runs inside server/index.mjs — the same process and port
+ * as the site, at /voice-relay — so a single-service host like Render needs
+ * nothing extra. It can still run on its own port for anyone who wants the
+ * two apart:
  *
  *   node server/voice-bridge.mjs
  *
  * Protocol: https://www.twilio.com/docs/voice/twiml/connect/conversationrelay
  */
 
+import { pathToFileURL } from "node:url";
 import { WebSocketServer } from "ws";
 import { splitSentences } from "./sentences.mjs";
+import { callTokenValid } from "./call-token.mjs";
 
-const PORT = Number(process.env.VOICE_BRIDGE_PORT ?? 8080);
-const APP_URL = (process.env.VOICE_APP_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
-const SECRET = process.env.VOICE_BRIDGE_SECRET ?? "";
+/**
+ * One socket is exactly one phone call.
+ *
+ * @param {import("ws").WebSocket} socket
+ * @param {{ appUrl: string, secret: string }} options
+ */
+export function handleRelayConnection(socket, { appUrl, secret }) {
+  async function callApp(path, payload) {
+    const response = await fetch(`${appUrl}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-bridge-secret": secret },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+    return response.json();
+  }
 
-if (!SECRET) {
-  console.error("VOICE_BRIDGE_SECRET is not set. The bridge refuses to start without it.");
-  process.exit(1);
-}
-
-async function callApp(path, payload) {
-  const response = await fetch(`${APP_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-bridge-secret": SECRET },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!response.ok) throw new Error(`${path} returned ${response.status}`);
-  return response.json();
-}
-
-const server = new WebSocketServer({ port: PORT });
-console.log(`Voice bridge listening on :${PORT}, app at ${APP_URL}`);
-
-server.on("connection", (socket) => {
   /** Per-call state. One socket is exactly one phone call. */
   const call = {
     startedAt: Date.now(),
@@ -50,6 +49,8 @@ server.on("connection", (socket) => {
     callSid: "",
     from: "",
     conversationId: null,
+    /** Only true once setup carried a token /api/voice/incoming minted for this call. */
+    verified: false,
     /** Set while a turn is in flight so a barge-in can discard its output. */
     generation: 0,
     busy: false,
@@ -132,6 +133,9 @@ server.on("connection", (socket) => {
 
     switch (message.type) {
       case "setup": {
+        // One call, one setup. A second could otherwise re-point a verified
+        // socket at a different workspace.
+        if (call.verified) return;
         call.callSid = message.callSid ?? "";
         call.from = message.from ?? "";
         call.businessId = message.customParameters?.businessId ?? "";
@@ -141,6 +145,12 @@ server.on("connection", (socket) => {
           endCall("error", "misconfigured");
           return;
         }
+        if (!callTokenValid(secret, call.businessId, call.callSid, message.customParameters?.token)) {
+          console.warn(`Refused a relay connection claiming workspace ${call.businessId}: no valid call token.`);
+          socket.close(1008, "unauthorized");
+          return;
+        }
+        call.verified = true;
         console.log(`Call ${call.callSid} from ${call.from} → workspace ${call.businessId}`);
         // Opens the conversation record so the greeting Twilio already spoke
         // has somewhere to belong.
@@ -160,6 +170,7 @@ server.on("connection", (socket) => {
       }
 
       case "prompt": {
+        if (!call.verified) return;
         // Interim results arrive with last:false; only act on the final one.
         if (message.last === false) return;
         const text = (message.voicePrompt ?? "").trim();
@@ -175,6 +186,7 @@ server.on("connection", (socket) => {
       }
 
       case "dtmf": {
+        if (!call.verified) return;
         const digit = message.digit ?? "";
         if (digit) await handleUtterance(`[caller pressed ${digit}]`);
         return;
@@ -209,11 +221,45 @@ server.on("connection", (socket) => {
   });
 
   socket.on("error", (error) => console.error("Socket error:", error.message));
-});
+}
 
-for (const signal of ["SIGINT", "SIGTERM"]) {
-  process.on(signal, () => {
-    console.log(`\n${signal} — closing the bridge.`);
-    server.close(() => process.exit(0));
+/**
+ * Serves the relay on an existing HTTP server — the site's own — at `path`.
+ * Any other upgrade request is refused, since nothing else here speaks WebSocket.
+ *
+ * @param {import("node:http").Server} httpServer
+ * @param {{ path: string, appUrl: string, secret: string }} options
+ */
+export function attachVoiceRelay(httpServer, { path, appUrl, secret }) {
+  const relay = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
+  relay.on("connection", (socket) => handleRelayConnection(socket, { appUrl, secret }));
+  httpServer.on("upgrade", (request, socket, head) => {
+    const pathname = new URL(request.url ?? "/", "http://relay").pathname;
+    if (pathname !== path) {
+      socket.destroy();
+      return;
+    }
+    relay.handleUpgrade(request, socket, head, (ws) => relay.emit("connection", ws, request));
   });
+  return relay;
+}
+
+// Standalone: `node server/voice-bridge.mjs`, on its own port.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const port = Number(process.env.VOICE_BRIDGE_PORT ?? 8080);
+  const appUrl = (process.env.VOICE_APP_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+  const secret = process.env.VOICE_BRIDGE_SECRET ?? "";
+  if (!secret) {
+    console.error("VOICE_BRIDGE_SECRET is not set. The bridge refuses to start without it.");
+    process.exit(1);
+  }
+  const server = new WebSocketServer({ port, maxPayload: 64 * 1024 });
+  server.on("connection", (socket) => handleRelayConnection(socket, { appUrl, secret }));
+  console.log(`Voice bridge listening on :${port}, app at ${appUrl}`);
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.on(signal, () => {
+      console.log(`\n${signal} — closing the bridge.`);
+      server.close(() => process.exit(0));
+    });
+  }
 }

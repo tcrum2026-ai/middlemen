@@ -61,13 +61,16 @@ None of these are required to go live; the widget alone works on day one.
       the keys, finds the number and points its webhooks here itself. Read the notes it shows — if
       the number already sent texts somewhere else, it says so and leaves it. Then **Text me a
       test**, and reply to it: the reply should come back answered.
-- [ ] **Phone calls** — run `npm run voice` with `VOICE_BRIDGE_SECRET` set, put TLS in front of it,
-      check the Twilio connect notes say calls come to Lobby (or set the Voice webhook to
-      `POST /api/voice/incoming` yourself if it said it left your line alone), then turn on "Answer
-      incoming calls with AI" in Settings. **Call yourself before you point real customers at it**,
-      and listen for the AI disclosure at the start. Check your recording and consent obligations
-      where you are and where your callers are — Lobby stores transcripts, not audio, but if you
-      enable recording at Twilio that is yours to disclose.
+- [ ] **Phone calls** — nothing extra to run: the call relay is part of `npm run start`. Check the
+      Twilio connect notes say calls come to Lobby (or set the number's Voice webhook to
+      `POST /api/voice/incoming` yourself if it said it left your line alone), put a number your
+      team answers in Settings, then turn on "Answer incoming calls with AI". **Call yourself
+      before you point real customers at it**, and listen for the AI disclosure at the start. On a
+      host that sleeps when idle (Render's free plan), the first call after a quiet spell arrives
+      before the app wakes and fails — keep it awake or use a plan that doesn't sleep before you
+      rely on it. Check your recording and consent obligations where you are and where your
+      callers are — Lobby stores transcripts, not audio, but if you enable recording at Twilio
+      that is yours to disclose.
 - [ ] **Calendar, both ways.** If you use Google Calendar, click **Connect Google Calendar** in
       Integrations and approve access — one click covers both directions: Lobby reads what you are
       already committed to, and every booking it makes is written straight onto your calendar.

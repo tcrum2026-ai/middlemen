@@ -15,9 +15,9 @@ Everything below is "paste a value" work. No code changes are needed to go live.
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Legal pages, Enterprise plan | Also what the "Contact sales" button mails. Unset, that plan shows "Start free" rather than offering a conversation nobody can have. |
 | `NEXT_PUBLIC_LEGAL_JURISDICTION` | Terms | e.g. `England and Wales`. |
 | `RESEND_API_KEY` + `AUTH_FROM_EMAIL` | Password reset **and email verification** | Platform mail, separate from the per-workspace Resend keys entered in the dashboard. Without both, `/forgot` tells the visitor that reset email isn't set up rather than pretending to send, and email verification is switched off entirely — a trial that cannot be confirmed is not held back for failing to confirm. |
-| `VOICE_BRIDGE_SECRET` | Answering phone calls | Shared secret between the app and the voice bridge. The bridge will not start without it, and `/api/voice/turn` returns 503 until it is set. |
-| `VOICE_BRIDGE_URL` / `VOICE_BRIDGE_PORT` | Answering phone calls | The `wss://` URL Twilio connects to, and the port the bridge listens on. The URL must be publicly reachable and TLS-terminated. |
-| `VOICE_APP_URL` | Answering phone calls | Where the bridge reaches the app. `http://127.0.0.1:3000` when both run on the same host. |
+| `VOICE_BRIDGE_SECRET` | Phone calls, optional | Secret between the call relay and the app. `npm run start` runs both in one process and makes one up at boot if unset, so a normal deploy needs nothing here. Set it only to run the relay separately (`npm run voice`) or to use `scripts/call.mjs`. |
+| `VOICE_BRIDGE_URL` / `VOICE_BRIDGE_PORT` | Phone calls, optional | Only for a separately-run relay. By default Twilio is sent to `wss://<this site>/voice-relay`, on the site's own port. |
+| `VOICE_APP_URL` | Phone calls, optional | Where a separately-run relay reaches the app. `http://127.0.0.1:3000` when both run on the same host. |
 | `INBOUND_EMAIL_SECRET` | Inbound email webhook | **Required to turn inbound email on.** The webhook fails closed: unset, it returns 503 and accepts nothing, because otherwise anyone could trigger a paid model call on any workspace. Checked against `x-inbound-secret`. |
 | `INBOUND_EMAIL_DOMAIN` | Inbound email webhook | The domain you route mail from, e.g. `inbound.your-domain`. The Install page shows the forwarding address only when this is set. |
 | `LOBBY_SCHEDULER` | Turning the built-in ticker off | The app sends due follow-ups itself every five minutes. Set to `off` only if you would rather drive that from outside. |
@@ -132,15 +132,20 @@ is what `/api/health` actually trusts to say `storage: persistent` — set it on
 npm ci && npm run build && npm run start
 ```
 
-**Answering calls** needs a second process alongside the app, because Next's App
-Router cannot hold a long-lived WebSocket:
+**Answering calls** needs nothing extra. Twilio's ConversationRelay holds a
+WebSocket open for the length of a call, which a Next route can't, so
+`npm run start` runs `server/index.mjs`: the site and the call relay in one
+process, on one port, with the relay at `/voice-relay`. Whatever gives the site
+https gives the relay the `wss://` Twilio insists on — including a single Render
+web service.
 
-```bash
-npm run voice        # the ConversationRelay bridge, default port 8080
-```
+Every relay connection has to carry a short-lived token that
+`/api/voice/incoming` mints only for a call Twilio signed, so the relay being
+public doesn't let anyone else run calls on a workspace's bill.
 
-Both processes need `VOICE_BRIDGE_SECRET`. Put TLS in front of the bridge — Twilio
-will only connect to `wss://`.
+To run the relay as its own process instead, `npm run voice` still works — set
+`VOICE_BRIDGE_SECRET` in both, and `VOICE_BRIDGE_URL` to its public `wss://`
+address.
 
 A platform with a persistent disk (Fly, Railway, Render, a VPS) suits this better than a
 serverless host, because the database is a file. `GET /api/health` reports database

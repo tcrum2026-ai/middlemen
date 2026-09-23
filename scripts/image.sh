@@ -37,19 +37,19 @@ while read -r src; do
   cp -r "$ROOT/$src" "$SIM/$src"
 done < <(grep -oP 'COPY --from=build /app/\K\S+' "$ROOT/Dockerfile")
 
-for pid in $(ps -eo pid,args --no-headers | grep "[n]ext-server" | awk '{print $1}'); do kill "$pid" 2>/dev/null || true; done
+for pid in $(ps -eo pid,args --no-headers | grep -E "[n]ext-server|[s]erver/index.mjs" | awk '{print $1}'); do kill "$pid" 2>/dev/null || true; done
 sleep 2
 
 echo "· booting on :$PORT"
 ( cd "$SIM" && NODE_ENV=production LOBBY_DATA_DIR="$SIM/data" LOBBY_DEMO_PASSWORD=lobby-demo-2026 \
-  nohup npx next start -p $PORT > /tmp/lobby-image.log 2>&1 & )
+  PORT=$PORT nohup npm run start > /tmp/lobby-image.log 2>&1 & )
 for _ in $(seq 1 30); do curl -sf -o /dev/null "http://localhost:$PORT/api/health" && break; sleep 2; done
 
 # Anything installed at boot means the image is missing something it needs.
 if grep -qiE "Installing (TypeScript|devDependencies)|yarn add" /tmp/lobby-image.log; then
   echo "✗ the container installed packages at startup — see /tmp/lobby-image.log"
   tail -8 /tmp/lobby-image.log
-  for pid in $(ps -eo pid,args --no-headers | grep "[n]ext-server" | awk '{print $1}'); do kill "$pid" 2>/dev/null || true; done
+  for pid in $(ps -eo pid,args --no-headers | grep -E "[n]ext-server|[s]erver/index.mjs" | awk '{print $1}'); do kill "$pid" 2>/dev/null || true; done
   exit 1
 fi
 
@@ -57,5 +57,5 @@ set +e
 node "$ROOT/scripts/image.mjs"
 code=$?
 set -e
-for pid in $(ps -eo pid,args --no-headers | grep "[n]ext-server" | awk '{print $1}'); do kill "$pid" 2>/dev/null || true; done
+for pid in $(ps -eo pid,args --no-headers | grep -E "[n]ext-server|[s]erver/index.mjs" | awk '{print $1}'); do kill "$pid" 2>/dev/null || true; done
 exit $code

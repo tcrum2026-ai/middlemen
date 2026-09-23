@@ -8,11 +8,15 @@
  *
  *   node scripts/call.mjs <businessId> [utterance...]
  *
- * Needs the app and `npm run voice` both running, with VOICE_BRIDGE_SECRET set
- * in each. Exits non-zero if the assistant never says anything.
+ * Needs the app running (`npm run start` — the relay is part of it), the
+ * workspace's "Answer incoming calls with AI" switched on, and a
+ * VOICE_BRIDGE_SECRET you set yourself, and the same value exported here, so
+ * this can sign the call the way /api/voice/incoming does for a real one.
+ * Exits non-zero if the assistant never says anything.
  */
 
 import { WebSocket } from "ws";
+import { issueCallToken } from "../server/call-token.mjs";
 
 const [, , businessId, ...rest] = process.argv;
 if (!businessId) {
@@ -28,7 +32,13 @@ const SCRIPT = rest.length
       "Actually, can I speak to a person?",
     ];
 
-const url = process.env.VOICE_BRIDGE_WS ?? "ws://127.0.0.1:8080";
+const url = process.env.VOICE_BRIDGE_WS ?? "ws://127.0.0.1:3000/voice-relay";
+const secret = process.env.VOICE_BRIDGE_SECRET ?? "";
+if (!secret) {
+  console.error("Set VOICE_BRIDGE_SECRET to the value the app was started with.");
+  process.exit(2);
+}
+const callSid = `CA${Date.now()}`;
 const socket = new WebSocket(url);
 const spoken = [];
 let ended = null;
@@ -41,10 +51,10 @@ socket.on("open", async () => {
     JSON.stringify({
       type: "setup",
       sessionId: "sim-session",
-      callSid: `CA${Date.now()}`,
+      callSid,
       from: "+15551234567",
       to: "+15557654321",
-      customParameters: { businessId, from: "+15551234567" },
+      customParameters: { businessId, from: "+15551234567", token: issueCallToken(secret, businessId, callSid) },
     }),
   );
   await wait(1500);
